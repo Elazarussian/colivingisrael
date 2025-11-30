@@ -1,0 +1,59 @@
+<header class="hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1>CoLiving Israel</h1>
+        <p class="subtitle">Find your perfect community in the heart of Israel</p>
+        <div class="cta-buttons">
+            <button *ngIf="!(auth.user$ | async)" id="register-btn" class="btn primary" (click)="showAuthModal()">הרשמה</button>
+            <button id="search-btn" class="btn secondary">חפש שותפים</button>
+            <button id="about-btn" class="btn secondary" [routerLink]="'/about'">אודות</button>
+        </div>
+    </div>
+
+    <!-- Scroll arrow -->
+    <div class="scroll-down" (click)="scrollToContent()">
+        <span></span>
+    </div>
+</header>
+
+<main>
+    <!-- About Section -->
+    <section class="content-section">
+        <h2>Welcome to CoLiving Israel</h2>
+        <p>
+            Discover vibrant communities across Israel. Find roommates, shared spaces, and
+            experiences tailored to your lifestyle.
+        </p>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="content-section">
+        <h2>How It Works</h2>
+        <ol>
+            <li>Browse available communities or list your own.</li>
+            <li>Connect with potential roommates and neighbors.</li>
+            <li>Move in and enjoy shared living in a comfortable space.</li>
+        </ol>
+    </section>
+
+    <!-- Features / Benefits Section -->
+    <section class="content-section">
+        <h2>Why CoLiving?</h2>
+        <div class="card-container">
+            <div class="card">
+                <h3>Community</h3>
+                <p>Meet like-minded people and create lasting friendships.</p>
+            </div>
+            <div class="card">
+                <h3>Flexibility</h3>
+                <p>Choose spaces that fit your lifestyle and duration preferences.</p>
+            </div>
+            <div class="card">
+                <h3>Support</h3>
+                <p>Get assistance with housing, events, and local services.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- auth modal moved to AppComponent -->
+</main>
