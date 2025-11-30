@@ -4,9 +4,9 @@
         <h1>CoLiving Israel</h1>
         <p class="subtitle">Find your perfect community in the heart of Israel</p>
         <div class="cta-buttons">
-            <button *ngIf="!(auth.user$ | async)" id="register-btn" class="btn primary" (click)="showAuthModal()">הרשמה</button>
-            <button id="search-btn" class="btn secondary">חפש שותפים</button>
-            <button id="about-btn" class="btn secondary" [routerLink]="'/about'">אודות</button>
+            <button *ngIf="!(auth.user$ | async)" id="register-btn" class="btn btn-approve" (click)="showAuthModal()">הרשמה</button>
+            <button id="search-btn" class="btn btn-regular">חפש שותפים</button>
+            <button id="about-btn" class="btn btn-regular" [routerLink]="'/about'">אודות</button>
         </div>
     </div>
 

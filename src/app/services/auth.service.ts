@@ -1,5 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
-import { auth } from '../firebase-config';
+import { auth, db } from '../firebase-config';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
@@ -20,6 +21,9 @@ export class AuthService {
     private _user$ = new BehaviorSubject<User | null>(null);
     public user$: Observable<User | null> = this._user$.asObservable();
 
+    private _profile$ = new BehaviorSubject<any | null>(null);
+    public profile$ = this._profile$.asObservable();
+
     // Modal control for global open/close of auth modal
     private _showAuthModal$ = new BehaviorSubject<boolean>(false);
     public showAuthModal$ = this._showAuthModal$.asObservable();
@@ -28,21 +32,21 @@ export class AuthService {
         // listen to auth state changes and run updates inside Angular zone
         if (auth) {
             onAuthStateChanged(auth, (user) => {
-                console.log('[AuthService] onAuthStateChanged ->', !!user, user ? user.uid : null);
                 try {
-                    this.ngZone.run(() => {
+                    this.ngZone.run(async () => {
                         this._user$.next(user || null);
+                        if (user && db) {
+                            // load profile document
+                            const docRef = doc(db, 'profiles', user.uid);
+                            const snap = await getDoc(docRef);
+                            this._profile$.next(snap.exists() ? snap.data() : null);
+                        } else {
+                            this._profile$.next(null);
+                        }
                     });
                 } catch (e) {
                     // fallback
                     this._user$.next(user || null);
-                }
-                try {
-                    // visible alert for debugging (temporary)
-                    // eslint-disable-next-line no-alert
-                    alert('[AuthService] onAuthStateChanged -> ' + (!!user) + ' ' + (user ? user.uid : 'null'));
-                } catch (e) {
-                    /* ignore */
                 }
             });
         }
@@ -52,35 +56,82 @@ export class AuthService {
         return auth;
     }
 
+    get db() { return db; }
+
+    // Profile read/write
+    async getProfile(uid: string) {
+        if (!db) throw new Error('Firestore not configured');
+        const docRef = doc(db, 'profiles', uid);
+        const snap = await getDoc(docRef);
+        return snap.exists() ? snap.data() : null;
+    }
+
+    async saveProfile(uid: string, data: any) {
+        if (!db) {
+            console.error('Firestore not configured in AuthService');
+            throw new Error('Firestore not configured');
+        }
+        console.log('AuthService: saveProfile called for', uid, data);
+
+        const docRef = doc(db, 'profiles', uid);
+        let payload: any = { ...data, uid };
+        // remove empty-string fields so we don't persist blanks
+        Object.keys(payload).forEach(k => {
+            if (k === 'uid') return;
+            if (payload[k] === '') delete payload[k];
+        });
+
+        // OPTIMISTIC UPDATE: Update the observable immediately
+        this._profile$.next(payload);
+
+        // Create a timeout promise
+        const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Firestore operation timed out. Please check your internet connection and Firestore setup.')), 10000)
+        );
+
+        try {
+            // Race between setDoc and timeout
+            await Promise.race([
+                setDoc(docRef, payload, { merge: true }),
+                timeout
+            ]);
+            console.log('AuthService: setDoc completed');
+        } catch (error) {
+            console.error('AuthService: saveProfile error', error);
+            throw error;
+        }
+    }
+
+    // Allow manual reload of profile (useful after app start)
+    async reloadProfile() {
+        const user = this._user$.getValue();
+        if (user && db) {
+            const docRef = doc(db, 'profiles', user.uid);
+            const snap = await getDoc(docRef);
+            this._profile$.next(snap.exists() ? snap.data() : null);
+        }
+    }
+
     async login(email: string, password: string): Promise<UserCredential> {
         if (!auth) throw new Error('Firebase not configured');
-    console.log('[AuthService] login()', email);
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    console.log('[AuthService] login result ->', !!cred?.user, cred?.user?.uid);
-    try { alert('[AuthService] login result -> ' + (!!cred?.user) + ' ' + (cred?.user?.uid || 'null')); } catch (e) {}
-    try { this._user$.next(cred.user); } catch (e) { /* ignore */ }
-    return cred;
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        try { this._user$.next(cred.user); } catch (e) { /* ignore */ }
+        return cred;
     }
 
     async signup(email: string, password: string): Promise<UserCredential> {
         if (!auth) throw new Error('Firebase not configured');
-    console.log('[AuthService] signup()', email);
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    console.log('[AuthService] signup result ->', !!cred?.user, cred?.user?.uid);
-    try { alert('[AuthService] signup result -> ' + (!!cred?.user) + ' ' + (cred?.user?.uid || 'null')); } catch (e) {}
-    try { this._user$.next(cred.user); } catch (e) { /* ignore */ }
-    return cred;
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        try { this._user$.next(cred.user); } catch (e) { /* ignore */ }
+        return cred;
     }
 
     async loginWithGoogle(): Promise<UserCredential> {
         if (!auth) throw new Error('Firebase not configured');
         const provider = new GoogleAuthProvider();
-    console.log('[AuthService] loginWithGoogle()');
-    const cred = await signInWithPopup(auth, provider);
-    console.log('[AuthService] loginWithGoogle result ->', !!cred?.user, cred?.user?.uid);
-    try { alert('[AuthService] loginWithGoogle result -> ' + (!!cred?.user) + ' ' + (cred?.user?.uid || 'null')); } catch (e) {}
-    try { this._user$.next(cred.user); } catch (e) { /* ignore */ }
-    return cred;
+        const cred = await signInWithPopup(auth, provider);
+        try { this._user$.next(cred.user); } catch (e) { /* ignore */ }
+        return cred;
     }
 
     // Global modal control
@@ -97,7 +148,6 @@ export class AuthService {
         try {
             await signOut(auth);
             this._user$.next(null);
-            console.log('[AuthService] signOut -> success');
         } catch (e) {
             console.error('[AuthService] signOut error', e);
         }

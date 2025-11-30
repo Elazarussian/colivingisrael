@@ -14,7 +14,6 @@ export class HomeComponent {
   constructor(public auth: AuthService) {}
 
   showAuthModal() {
-  console.log('[Home] showAuthModal()');
   this.auth.showAuthModal();
   }
 

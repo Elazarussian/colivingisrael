@@ -1,0 +1,49 @@
+<section class="profile-page">
+  <div class="container">
+    <h1>פרופיל משתמש</h1>
+    <div *ngIf="user$ | async as user; else loggedOut">
+      <form *ngIf="!editing; else editForm">
+        <p><strong>שם:</strong> {{ fieldOrDefault('displayName', user.displayName, 'לא מוגדר') }}</p>
+        <p><strong>אימייל:</strong> {{ user.email }}</p>
+        <p><strong>UID:</strong> {{ user.uid }}</p>
+        <p><strong>עיר:</strong> {{ fieldOrDefault('city', null, 'לא הוגדר') }}</p>
+        <p><strong>אודות:</strong> {{ fieldOrDefault('about', null, 'לא הוגדר') }}</p>
+        <div style="margin-top:1.25rem; display:flex; gap:0.75rem; justify-content:flex-end;">
+          <button class="btn btn-regular" (click)="goHome()">חזרה לבית</button>
+          <button class="btn btn-approve" type="button" (click)="startEdit()">ערוך</button>
+          <button class="btn btn-cancel" type="button" (click)="promptLogout()">התנתק</button>
+        </div>
+
+        <div *ngIf="showLogoutConfirm" class="confirm-panel">
+          <p>האם אתה בטוח שברצונך להתנתק?</p>
+          <div class="confirm-actions">
+            <button class="btn btn-regular" (click)="cancelLogout()">לא</button>
+            <button class="btn btn-cancel" (click)="confirmLogout()">כן, התנתק</button>
+          </div>
+        </div>
+      </form>
+
+      <ng-template #editForm>
+        <div class="edit-panel">
+          <form (ngSubmit)="save()" #f="ngForm">
+            <label>שם</label>
+            <input name="displayName" [(ngModel)]="edit.displayName" />
+            <label>עיר</label>
+            <input name="city" [(ngModel)]="edit.city" />
+            <label>אודות</label>
+            <textarea name="about" [(ngModel)]="edit.about"></textarea>
+
+            <div class="edit-actions">
+              <button class="btn btn-regular" type="button" (click)="cancelEdit()">בטל</button>
+              <button class="btn btn-approve" type="submit">שמור</button>
+            </div>
+          </form>
+        </div>
+      </ng-template>
+
+    </div>
+    <ng-template #loggedOut>
+      <p>אנא התחבר כדי לראות את הפרופיל.</p>
+    </ng-template>
+  </div>
+</section>

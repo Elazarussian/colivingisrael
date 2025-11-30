@@ -100,93 +100,19 @@
     gap: 0.95rem;
 }
 
-#auth-form input {
-    padding: 0.9rem;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    font-size: 1rem;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255,255,255,0.95);
-    text-align: right;
-}
 
-#auth-form input::placeholder {
-    color: rgba(255,255,255,0.7);
-}
-
-#auth-form input:focus {
-    outline: none;
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12);
-}
-
-.submit-btn {
-    padding: 0.95rem;
-    background: #4CAF50; /* site primary */
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 1.05rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.18s;
-}
-
-.submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(76, 175, 80, 0.22);
-}
-
-.divider {
-    display: flex;
-    align-items: center;
-    margin: 1.25rem 0;
-    color: rgba(255,255,255,0.8);
-}
-.divider::before,
-.divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.06);
-}
-.divider span {
-    padding: 0 0.75rem;
-}
-
-.google-btn {
+/* Modal-specific adjustments for global button variants */
+.modal-content .btn {
     width: 100%;
-    padding: 0.9rem;
-    background: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 0.98rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    gap: 0.75rem;
-    transition: all 0.18s;
-    color: #333;
 }
 
-.google-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
+.modal-content .btn-approve { padding: 0.95rem; font-weight:700; }
+.modal-content .btn-special { padding: 0.9rem; color: #fff; }
 
-.error-message {
-    color: #ffebee;
-    background: rgba(244, 67, 54, 0.18);
-    padding: 0.7rem;
-    border-radius: 8px;
-    margin-top: 0.9rem;
-    text-align: center;
-    font-weight: 500;
-    min-height: 20px;
-}
 
-.error-message:empty {
-    display: none;
-}
+
+/* Google button now uses .btn-special but keep spacing rules */
+.modal-content .btn-special svg { background: transparent; }
+
+/* inputs, .divider and .error-message moved to global styles */

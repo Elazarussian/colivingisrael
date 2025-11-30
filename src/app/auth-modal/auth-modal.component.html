@@ -12,7 +12,7 @@
             <input type="email" [(ngModel)]="email" name="email" placeholder="אימייל" required />
             <input type="password" [(ngModel)]="password" name="password" placeholder="סיסמה" [required]="activeTab === 'signup' || activeTab === 'login'" />
             <div *ngIf="activeTab === 'signup' && !password" style="color:#ffcdd2;margin-bottom:0.5rem;">יש להזין סיסמה להרשמה</div>
-            <button type="submit" class="submit-btn" [disabled]="!email || !password || submitting">{{ activeTab === 'login' ? 'התחבר' : 'הירשם' }}</button>
+            <button type="submit" class="btn btn-approve" [disabled]="!email || !password || submitting">{{ activeTab === 'login' ? 'התחבר' : 'הירשם' }}</button>
             <div *ngIf="submitting" style="margin-top:0.5rem;color:#b9f6ca;">שולח...</div>
         </form>
 
@@ -20,7 +20,7 @@
             <span>או</span>
         </div>
 
-        <button id="google-signin" class="google-btn" (click)="onGoogleSignIn()">
+    <button id="google-signin" class="btn btn-special" (click)="onGoogleSignIn()">
             <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
                 <path fill="#EA4335"
                     d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />

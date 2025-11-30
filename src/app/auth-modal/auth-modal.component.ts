@@ -43,7 +43,6 @@ export class AuthModalComponent {
   }
 
   closeModal() {
-  console.log('[AuthModal] closeModal()');
   this.close.emit();
     this.resetForm();
   }
@@ -62,24 +61,18 @@ export class AuthModalComponent {
 
   async onSubmit() {
     if (!this.authService.auth) {
-      alert('Firebase לא מוגדר!');
+  // Firebase not configured
       return;
     }
-
-  console.log('[AuthModal] onSubmit', this.activeTab, this.email);
   this.submitting = true;
   try {
       if (this.activeTab === 'signup') {
         await this.authService.signup(this.email, this.password);
-        console.log('User registered successfully');
       } else {
         await this.authService.login(this.email, this.password);
-        console.log('User logged in successfully');
       }
-  console.log('[AuthModal] auth success, closing modal');
   this.submitting = false;
   this.closeModal();
-  alert('התחברת בהצלחה!');
     } catch (error: any) {
       console.error('Auth error:', error);
       this.errorMessage = this.authService.getHebrewErrorMessage(error.code);
@@ -89,18 +82,15 @@ export class AuthModalComponent {
 
   async onGoogleSignIn() {
     if (!this.authService.auth) {
-      alert('Firebase לא מוגדר!');
+  // Firebase not configured
       return;
     }
 
-    console.log('[AuthModal] onGoogleSignIn');
     this.submitting = true;
     try {
       await this.authService.loginWithGoogle();
-      console.log('User signed in with Google');
       this.submitting = false;
       this.closeModal();
-      alert('התחברת בהצלחה!');
     } catch (error: any) {
       console.error('Google sign-in error:', error);
       this.errorMessage = this.authService.getHebrewErrorMessage(error.code);

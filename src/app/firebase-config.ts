@@ -1,5 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -17,14 +18,18 @@ const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
+let db: Firestore | null = null;
 
 if (isConfigured) {
     // Initialize Firebase
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
-    console.log('✅ Firebase initialized successfully');
+    // Initialize Firestore with offline persistence
+    db = initializeFirestore(app, {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
 } else {
     console.warn('⚠️ Firebase not configured! Please update firebase-config.ts with your actual Firebase configuration.');
 }
 
-export { auth };
+export { auth, db, app };
