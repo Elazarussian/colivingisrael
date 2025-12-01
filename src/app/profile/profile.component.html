@@ -27,6 +27,7 @@
                 <th>UID</th>
                 <th>אימייל</th>
                 <th>תפקיד</th>
+                <th>תשובות</th>
               </tr>
             </thead>
             <tbody>
@@ -34,6 +35,7 @@
                 <td>{{u.uid || u.id}}</td>
                 <td>{{u.email}}</td>
                 <td>{{u.role}}</td>
+                <td><button class="btn btn-regular btn-sm" (click)="openUserAnswers(u)">תשובות</button></td>
               </tr>
             </tbody>
           </table>
@@ -148,6 +150,9 @@
                 <div *ngIf="q.type === 'checklist' && q.options?.length" class="options-preview">
                   <small>אפשרויות: {{ (q.options || []).join(', ') }}</small>
                 </div>
+                <div *ngIf="q.type === 'scale'" class="options-preview">
+                  <small>טווח: {{q.min}} - {{q.max}}</small>
+                </div>
               </div>
               <button class="btn btn-danger btn-sm" (click)="deleteQuestion(q.id || '')">מחק</button>
             </div>
@@ -167,6 +172,8 @@
               <option value="text">טקסט חופשי</option>
               <option value="yesno">כן/לא</option>
               <option value="checklist">רשימת אפשרויות (Checklist)</option>
+              <option value="date">תאריך</option>
+              <option value="scale">דירוג (Scale)</option>
             </select>
 
             <!-- Options for checklist -->
@@ -183,6 +190,19 @@
               </ul>
             </div>
 
+            <!-- Min/Max for Scale -->
+            <div *ngIf="newQuestion.type === 'scale'" class="scale-manager"
+              style="display:flex;gap:1rem;margin-bottom:1rem;">
+              <div>
+                <label>מינימום</label>
+                <input type="number" [(ngModel)]="newQuestion.min" class="form-control" style="width:80px">
+              </div>
+              <div>
+                <label>מקסימום</label>
+                <input type="number" [(ngModel)]="newQuestion.max" class="form-control" style="width:80px">
+              </div>
+            </div>
+
             <button class="btn btn-approve full-width" (click)="addQuestion()" [disabled]="!newQuestion.text">הוסף
               שאלה</button>
           </div>
@@ -190,5 +210,109 @@
       </div>
     </div>
 
+    <!-- Onboarding Questions Modal for new users -->
+    <div *ngIf="showOnboardingModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>שאלות פתיחת חשבון</h2>
+        </div>
+
+        <div class="modal-body">
+          <p>לפני שנמשיך, נשמח אם תענה/י על מספר שאלות קצרות:</p>
+
+          <div class="progress-indicator" style="margin-bottom: 1rem; font-weight: bold; text-align: center;">
+            שאלה {{ currentOnboardingProgress }}
+          </div>
+
+          <form (ngSubmit)="submitOnboardingAnswers()">
+            <div *ngIf="currentOnboardingQuestion as q">
+              <div class="onboard-question">
+                <label style="display:block; margin-bottom:0.5rem; font-size:1.1rem;"><strong>{{ q.text
+                    }}</strong></label>
+
+                <!-- text -->
+                <div *ngIf="q.type === 'text'">
+                  <input [(ngModel)]="onboardingAnswers[q.id || '']" name="q-{{q.id}}" class="form-control" />
+                </div>
+
+                <!-- yes/no -->
+                <div *ngIf="q.type === 'yesno'">
+                  <select [(ngModel)]="onboardingAnswers[q.id || '']" name="q-{{q.id}}" class="form-control">
+                    <option [ngValue]="null">-- בחר --</option>
+                    <option [ngValue]="true">כן</option>
+                    <option [ngValue]="false">לא</option>
+                  </select>
+                </div>
+
+                <!-- checklist -->
+                <div *ngIf="q.type === 'checklist'">
+                  <div *ngFor="let opt of q.options; let i = index">
+                    <label style="display:block; margin-bottom:0.25rem;">
+                      <input type="checkbox" [checked]="(onboardingAnswers[q.id || ''] || []).indexOf(opt) > -1"
+                        (change)="onboardingAnswers[q.id || ''] = toggleChecklist(onboardingAnswers[q.id || ''], opt)" />
+                      {{ opt }}
+                    </label>
+                  </div>
+                </div>
+
+                <!-- date -->
+                <div *ngIf="q.type === 'date'">
+                  <input type="date" [(ngModel)]="onboardingAnswers[q.id || '']" name="q-{{q.id}}" class="form-control">
+                </div>
+
+                <!-- scale -->
+                <div *ngIf="q.type === 'scale'">
+                  <div style="display:flex;align-items:center;gap:1rem;">
+                    <span>{{q.min || 1}}</span>
+                    <input type="range" [min]="q.min || 1" [max]="q.max || 5"
+                      [(ngModel)]="onboardingAnswers[q.id || '']" name="q-{{q.id}}" style="flex:1">
+                    <span>{{q.max || 5}}</span>
+                    <span style="font-weight:bold;margin-right:0.5rem;">(נבחר: {{onboardingAnswers[q.id ||
+                      '']}})</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:0.5rem;justify-content:space-between;margin-top:1.5rem;">
+              <button class="btn btn-regular" type="button" (click)="prevQuestion()"
+                [disabled]="currentQuestionIndex === 0">הקודם</button>
+
+              <button *ngIf="!isLastOnboardingQuestion" class="btn btn-approve" type="button" (click)="nextQuestion()"
+                [disabled]="!canProceedWithQuestion()">הבא</button>
+
+              <button *ngIf="isLastOnboardingQuestion" class="btn btn-approve" type="submit"
+                [disabled]="!canSubmitOnboarding()">סיום והרשמה</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>
+
+<!-- User Answers Modal -->
+<div *ngIf="showUserAnswersModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>תשובות משתמש</h2>
+      <button class="btn-close" (click)="closeUserAnswersModal()">X</button>
+    </div>
+    <div class="modal-body">
+      <div *ngIf="viewedUser">
+        <p><strong>UID:</strong> {{ viewedUser.uid || viewedUser.id }}</p>
+        <p><strong>אימייל:</strong> {{ viewedUser.email }}</p>
+        <h3>תשובות</h3>
+        <div *ngIf="!viewedQuestionIds || viewedQuestionIds.length === 0">אין תשובות</div>
+        <div *ngFor="let qid of viewedQuestionIds">
+          <div class="answer-item">
+            <strong>{{ questionTextMap[qid] || qid }}</strong>
+            <div class="answer-value">{{ formatAnswer(viewedUserAnswers?.[qid]) }}</div>
+          </div>
+          <hr />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -2,7 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 interface Question {
@@ -10,6 +10,8 @@ interface Question {
   text: string;
   type: string;
   options?: string[];
+  min?: number;
+  max?: number;
   createdAt?: string;
 }
 
@@ -52,15 +54,58 @@ export class ProfileComponent implements OnInit {
   questions: Question[] = [];
   newQuestion: Question = {
     text: '',
-    type: 'text',
-    options: []
+    type: 'yesno',
+    options: [],
+    min: 1,
+    max: 5
   };
   newOption = '';
 
-  constructor(private auth: AuthService, private router: Router, private cdr: ChangeDetectorRef) {
-    this.auth.profile$.subscribe(p => {
+  // Onboarding (for new users)
+  showOnboardingModal = false;
+  onboardingQuestions: Question[] = [];
+  onboardingAnswers: { [questionId: string]: any } = {};
+  // Prevent showing onboarding multiple times during lifecycle
+  onboardingPrompted = false;
+
+  constructor(private auth: AuthService, private router: Router, private route: ActivatedRoute, private cdr: ChangeDetectorRef) {
+    // Keep local profile updated and trigger onboarding when profile becomes available
+    this.auth.profile$.subscribe(async (p) => {
       this.profile = p;
+      if (!p || this.onboardingPrompted) return;
+
+      try {
+        const showOnboardingRequested = this.route.snapshot.queryParams['showOnboarding'] === '1';
+        const hasAnswered = p['questions'] && Object.keys(p['questions'] || {}).length > 0;
+
+        // Only show onboarding if explicitly requested (signup flow)
+        // OR if the profile was just created and has no answers (new user registration)
+        const isNewProfile = !hasAnswered && this.isRecentlyCreated(p, 15);
+        if (showOnboardingRequested || isNewProfile) {
+          await this.loadOnboardingQuestions();
+          if (this.onboardingQuestions.length > 0) {
+            this.prepareOnboardingAnswers();
+            this.showOnboardingModal = true;
+            this.cdr.detectChanges();
+          }
+        }
+      } catch (err) {
+        console.error('Error during onboarding trigger:', err);
+      } finally {
+        this.onboardingPrompted = true;
+      }
     });
+  }
+
+  // Returns true if profile.createdAt is within the last `minutes` minutes
+  isRecentlyCreated(profile: any, minutes: number = 15): boolean {
+    if (!profile) return false;
+    const created = profile['createdAt'] || profile.createdAt;
+    if (!created) return false;
+    const d = new Date(created);
+    if (isNaN(d.getTime())) return false;
+    const ageMs = Date.now() - d.getTime();
+    return ageMs <= minutes * 60 * 1000;
   }
 
   fieldOrDefault(field: string, userFallback: any = null, def: string = '-') {
@@ -83,22 +128,8 @@ export class ProfileComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Trigger a profile reload; onboarding is handled in the profile$ subscription above
     this.auth.reloadProfile();
-    this.auth.user$.subscribe(async (u: any) => {
-      if (u && u.uid) {
-        try {
-          const p = await this.auth.getProfile(u.uid);
-          console.log('Profile loaded:', p);
-          console.log('Is admin?', this.auth.isAdmin(p));
-          if (p) {
-            this.profile = p;
-            this.cdr.detectChanges();
-          }
-        } catch (e) {
-          console.error('Error loading profile:', e);
-        }
-      }
-    });
   }
 
   toggleUsersTable() {
@@ -187,6 +218,200 @@ export class ProfileComponent implements OnInit {
     }
   }
 
+  // Load onboarding questions for newly registered users
+  async loadOnboardingQuestions() {
+    if (!this.auth.db) return;
+    try {
+      const { collection, getDocs, query, orderBy } = await import('firebase/firestore');
+      const q = query(collection(this.auth.db, 'newUsersQuestions'), orderBy('createdAt', 'asc'));
+      const snapshot = await getDocs(q);
+      this.onboardingQuestions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
+      this.cdr.detectChanges();
+    } catch (err) {
+      console.error('Error loading onboarding questions:', err);
+    }
+  }
+
+  prepareOnboardingAnswers() {
+    this.currentQuestionIndex = 0;
+    this.onboardingAnswers = {};
+    for (const q of this.onboardingQuestions) {
+      const id = q.id || '';
+      // If profile already has a saved answer, use it
+      if (this.profile && this.profile.questions && this.profile.questions[id] !== undefined) {
+        this.onboardingAnswers[id] = this.profile.questions[id];
+        continue;
+      }
+      switch (q.type) {
+        case 'checklist':
+          this.onboardingAnswers[id] = [];
+          break;
+        case 'yesno':
+          this.onboardingAnswers[id] = null;
+          break;
+        case 'scale':
+          this.onboardingAnswers[id] = q.min || 1;
+          break;
+        case 'date':
+          this.onboardingAnswers[id] = '';
+          break;
+        default:
+          this.onboardingAnswers[id] = '';
+      }
+    }
+  }
+
+  async submitOnboardingAnswers() {
+    const currentUser = await firstValueFrom(this.auth.user$);
+    const uid = currentUser?.uid || this.profile?.uid;
+    if (!uid) return;
+
+    // Build answers object mapping questionId -> answer
+    const answers: any = {};
+    for (const q of this.onboardingQuestions) {
+      const id = q.id || '';
+      const ans = this.onboardingAnswers[id];
+      // Normalize empty answers to undefined so saveProfile won't persist empty strings
+      if (q.type === 'checklist') {
+        answers[id] = Array.isArray(ans) ? ans : [];
+      } else if (q.type === 'yesno') {
+        // store boolean true/false or null
+        answers[id] = ans === null ? null : !!ans;
+      } else if (q.type === 'scale') {
+        answers[id] = Number(ans);
+      } else {
+        answers[id] = ans || '';
+      }
+    }
+
+    try {
+      // Save into profiles/{uid}.questions as an object
+      await this.auth.saveProfile(uid, { questions: answers });
+      // Update local profile and close modal
+      this.profile = { ...this.profile, questions: answers };
+      this.showOnboardingModal = false;
+      this.cdr.detectChanges();
+    } catch (err) {
+      console.error('Error saving onboarding answers:', err);
+      alert('שגיאה בשמירת תשובות. יש לנסות שוב מאוחר יותר.');
+    }
+  }
+
+  // Helper for template checkbox toggling
+  toggleChecklist(current: any[] | undefined, option: string) {
+    const arr = Array.isArray(current) ? [...current] : [];
+    const idx = arr.indexOf(option);
+    if (idx === -1) arr.push(option);
+    else arr.splice(idx, 1);
+    return arr;
+  }
+
+  // Sequential Onboarding State
+  currentQuestionIndex = 0;
+
+  get currentOnboardingQuestion(): Question | undefined {
+    return this.onboardingQuestions[this.currentQuestionIndex];
+  }
+
+  get isLastOnboardingQuestion(): boolean {
+    return this.currentQuestionIndex === this.onboardingQuestions.length - 1;
+  }
+
+  get currentOnboardingProgress(): string {
+    if (this.onboardingQuestions.length === 0) return '';
+    return `${this.currentQuestionIndex + 1} / ${this.onboardingQuestions.length}`;
+  }
+
+  nextQuestion() {
+    if (this.canProceedWithQuestion()) {
+      this.currentQuestionIndex++;
+    }
+  }
+
+  prevQuestion() {
+    if (this.currentQuestionIndex > 0) {
+      this.currentQuestionIndex--;
+    }
+  }
+
+  canProceedWithQuestion(): boolean {
+    const q = this.currentOnboardingQuestion;
+    if (!q) return false;
+    const id = q.id || '';
+    const ans = this.onboardingAnswers[id];
+
+    if (q.type === 'checklist') {
+      if (!Array.isArray(ans) || ans.length === 0) return false;
+    } else if (q.type === 'yesno') {
+      if (ans !== true && ans !== false) return false;
+    } else if (q.type === 'scale') {
+      if (ans === undefined || ans === null || isNaN(ans)) return false;
+    } else if (q.type === 'date') {
+      if (!ans || String(ans).trim() === '') return false;
+    } else {
+      // text or other
+      if (!ans || String(ans).trim() === '') return false;
+    }
+    return true;
+  }
+
+  // Ensure all onboarding questions have an answer (global check, though we enforce per step now)
+  canSubmitOnboarding(): boolean {
+    // We rely on step-by-step validation, but final check doesn't hurt
+    return this.onboardingQuestions.length > 0 && this.canProceedWithQuestion();
+  }
+
+  // --- Admin: view another user's answers ---
+  showUserAnswersModal = false;
+  viewedUser: any = null;
+  viewedUserAnswers: { [k: string]: any } | null = null;
+  viewedQuestionIds: string[] = [];
+  questionTextMap: { [id: string]: string } = {};
+
+  async openUserAnswers(userProfile: any) {
+    if (!this.auth.db) return;
+    try {
+      this.viewedUser = userProfile;
+
+      // load user's profile doc to get questions (answers)
+      const { doc, getDoc, collection, getDocs } = await import('firebase/firestore');
+      const ref = doc(this.auth.db, 'profiles', userProfile.uid || userProfile.id);
+      const snap = await getDoc(ref);
+      this.viewedUserAnswers = snap.exists() ? (snap.data() as any).questions || {} : {};
+
+      // load questions to map id -> text
+      const qcol = collection(this.auth.db, 'newUsersQuestions');
+      const qsnap = await getDocs(qcol);
+      this.questionTextMap = {};
+      qsnap.docs.forEach(d => {
+        const data: any = d.data();
+        this.questionTextMap[d.id] = data.text || '';
+      });
+
+      this.viewedQuestionIds = Object.keys(this.viewedUserAnswers || {});
+      this.showUserAnswersModal = true;
+      this.cdr.detectChanges();
+    } catch (err) {
+      console.error('Error loading user answers:', err);
+      alert('שגיאה בטעינת תשובות המשתמש');
+    }
+  }
+
+  closeUserAnswersModal() {
+    this.showUserAnswersModal = false;
+    this.viewedUser = null;
+    this.viewedUserAnswers = null;
+    this.viewedQuestionIds = [];
+    this.questionTextMap = {};
+  }
+
+  formatAnswer(ans: any) {
+    if (ans === null || ans === undefined) return '-';
+    if (Array.isArray(ans)) return ans.join(', ');
+    if (typeof ans === 'boolean') return ans ? 'כן' : 'לא';
+    return String(ans);
+  }
+
   async addQuestion() {
     if (!this.newQuestion.text) return;
     if (!this.auth.db) return;
@@ -197,11 +422,13 @@ export class ProfileComponent implements OnInit {
         text: this.newQuestion.text,
         type: this.newQuestion.type,
         options: this.newQuestion.options || [],
+        min: this.newQuestion.type === 'scale' ? (this.newQuestion.min || 1) : null,
+        max: this.newQuestion.type === 'scale' ? (this.newQuestion.max || 5) : null,
         createdAt: new Date().toISOString()
       });
 
       // Reset form
-      this.newQuestion = { text: '', type: 'text', options: [] };
+      this.newQuestion = { text: '', type: 'yesno', options: [], min: 1, max: 5 };
       this.newOption = '';
 
       // Reload list

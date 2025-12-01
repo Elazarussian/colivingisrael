@@ -2,6 +2,7 @@ import { Component, EventEmitter, Output, ElementRef, OnInit, OnDestroy, Rendere
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-auth-modal',
@@ -19,7 +20,7 @@ export class AuthModalComponent {
   errorMessage = '';
   submitting = false;
 
-  constructor(private authService: AuthService, private el: ElementRef, private renderer: Renderer2) { }
+  constructor(private authService: AuthService, private el: ElementRef, private renderer: Renderer2, private router: Router) { }
 
   ngOnInit(): void {
     // Move host element to document.body so the modal isn't trapped by ancestor stacking contexts
@@ -68,6 +69,8 @@ export class AuthModalComponent {
   try {
       if (this.activeTab === 'signup') {
         await this.authService.signup(this.email, this.password);
+  // After signup, navigate to profile so onboarding questions (if any) are shown
+  try { this.router.navigate(['/profile'], { queryParams: { showOnboarding: '1' } }); } catch (e) { /* ignore */ }
       } else {
         await this.authService.login(this.email, this.password);
       }

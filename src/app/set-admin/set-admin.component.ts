@@ -7,18 +7,7 @@ import { firstValueFrom } from 'rxjs';
 @Component({
     selector: 'app-set-admin',
     standalone: true,
-    imports: [CommonModule],
-    template: `
-    <div style="padding: 2rem; background: #f0f0f0; margin: 2rem;">
-      <h2>Admin Role Setter (Development Only)</h2>
-      <p>Current User: {{ userEmail }}</p>
-      <p>Current Role: {{ currentRole }}</p>
-      <button (click)="setAdminRole()" style="padding: 1rem; background: #4CAF50; color: white; border: none; cursor: pointer;">
-        Set Admin Role
-      </button>
-      <p *ngIf="message" [style.color]="messageColor">{{ message }}</p>
-    </div>
-  `
+    template: '' // no UI
 })
 export class SetAdminComponent {
     userEmail = '';
