@@ -8,7 +8,10 @@ import {
     GoogleAuthProvider,
     UserCredential,
     onAuthStateChanged,
-    User
+    User,
+    updatePassword,
+    EmailAuthProvider,
+    reauthenticateWithCredential
 } from 'firebase/auth';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { signOut } from 'firebase/auth';
@@ -39,12 +42,36 @@ export class AuthService {
                             // load profile document
                             const docRef = doc(db, 'profiles', user.uid);
                             const snap = await getDoc(docRef);
-                            this._profile$.next(snap.exists() ? snap.data() : null);
+
+                            if (snap.exists()) {
+                                // Profile exists, update it with latest email if changed
+                                const profileData = snap.data();
+                                if (profileData['email'] !== user.email) {
+                                    await setDoc(docRef, { email: user.email }, { merge: true });
+                                    profileData['email'] = user.email;
+                                }
+                                this._profile$.next(profileData);
+                            } else {
+                                // Profile doesn't exist, create it with default values
+                                const newProfile = {
+                                    uid: user.uid,
+                                    email: user.email || '',
+                                    displayName: user.displayName || '',
+                                    role: 'user', // Default role
+                                    createdAt: new Date().toISOString()
+                                };
+                                await setDoc(docRef, newProfile);
+                                this._profile$.next(newProfile);
+                                console.log('Created new profile for user:', user.uid);
+                                // ensure users collection has a corresponding entry
+                                // await this.ensureUserExists(user); // REMOVED: using profiles only
+                            }
                         } else {
                             this._profile$.next(null);
                         }
                     });
                 } catch (e) {
+                    console.error('Error in auth state change:', e);
                     // fallback
                     this._user$.next(user || null);
                 }
@@ -112,17 +139,86 @@ export class AuthService {
         }
     }
 
+    // Role-based permission methods
+    getUserRole(profile: any): string {
+        // Returns the role from the profile, defaults to 'user'
+        return profile?.role || 'user';
+    }
+
+    isAdmin(profile: any): boolean {
+        return this.getUserRole(profile) === 'admin';
+    }
+
+    isModerator(profile: any): boolean {
+        return this.getUserRole(profile) === 'moderator';
+    }
+
+    hasPermission(profile: any, requiredRole: 'admin' | 'moderator' | 'user'): boolean {
+        const role = this.getUserRole(profile);
+        const roleHierarchy: { [key: string]: number } = {
+            'admin': 3,
+            'moderator': 2,
+            'user': 1
+        };
+        return (roleHierarchy[role] || 0) >= (roleHierarchy[requiredRole] || 0);
+    }
+
+    // Helper method to ensure profile exists for a user
+    private async ensureProfileExists(user: User): Promise<void> {
+        if (!db) return;
+
+        const docRef = doc(db, 'profiles', user.uid);
+        const snap = await getDoc(docRef);
+
+        if (!snap.exists()) {
+            // Create profile with default values
+            const newProfile = {
+                uid: user.uid,
+                email: user.email || '',
+                displayName: user.displayName || '',
+                role: 'user', // Default role
+                createdAt: new Date().toISOString()
+            };
+            await setDoc(docRef, newProfile);
+            console.log('Created profile for user:', user.uid);
+        } else {
+            // Update email if it changed
+            const profileData = snap.data();
+            if (profileData['email'] !== user.email) {
+                await setDoc(docRef, { email: user.email }, { merge: true });
+            }
+        }
+    }
+
+    // Helper method to ensure there is an entry in `users` collection for the user
+    // REMOVED: using profiles only
+    // private async ensureUserExists(user: User): Promise<void> { ... }
+
     async login(email: string, password: string): Promise<UserCredential> {
         if (!auth) throw new Error('Firebase not configured');
         const cred = await signInWithEmailAndPassword(auth, email, password);
-        try { this._user$.next(cred.user); } catch (e) { /* ignore */ }
+        try {
+            this._user$.next(cred.user);
+            await this.ensureProfileExists(cred.user);
+            await this.ensureProfileExists(cred.user);
+            // await this.ensureUserExists(cred.user);
+        } catch (e) {
+            console.error('Error in login:', e);
+        }
         return cred;
     }
 
     async signup(email: string, password: string): Promise<UserCredential> {
         if (!auth) throw new Error('Firebase not configured');
         const cred = await createUserWithEmailAndPassword(auth, email, password);
-        try { this._user$.next(cred.user); } catch (e) { /* ignore */ }
+        try {
+            this._user$.next(cred.user);
+            await this.ensureProfileExists(cred.user);
+            await this.ensureProfileExists(cred.user);
+            // await this.ensureUserExists(cred.user);
+        } catch (e) {
+            console.error('Error in signup:', e);
+        }
         return cred;
     }
 
@@ -130,7 +226,14 @@ export class AuthService {
         if (!auth) throw new Error('Firebase not configured');
         const provider = new GoogleAuthProvider();
         const cred = await signInWithPopup(auth, provider);
-        try { this._user$.next(cred.user); } catch (e) { /* ignore */ }
+        try {
+            this._user$.next(cred.user);
+            await this.ensureProfileExists(cred.user);
+            await this.ensureProfileExists(cred.user);
+            // await this.ensureUserExists(cred.user);
+        } catch (e) {
+            console.error('Error in Google login:', e);
+        }
         return cred;
     }
 
@@ -153,17 +256,44 @@ export class AuthService {
         }
     }
 
+    async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+        if (!auth || !auth.currentUser) {
+            throw new Error('No authenticated user');
+        }
+
+        const user = auth.currentUser;
+
+        // User must have an email to use email/password authentication
+        if (!user.email) {
+            throw new Error('auth/no-email');
+        }
+
+        // Re-authenticate the user with their current password
+        const credential = EmailAuthProvider.credential(user.email, currentPassword);
+
+        try {
+            await reauthenticateWithCredential(user, credential);
+            // If re-authentication succeeds, update the password
+            await updatePassword(user, newPassword);
+        } catch (error: any) {
+            // Re-throw with the original error code for proper error handling
+            throw error;
+        }
+    }
+
     getHebrewErrorMessage(errorCode: string): string {
         const errorMessages: { [key: string]: string } = {
             'auth/email-already-in-use': 'האימייל כבר בשימוש',
             'auth/invalid-email': 'אימייל לא תקין',
             'auth/operation-not-allowed': 'פעולה לא מורשית',
-            'auth/weak-password': 'הסיסמה חלשה מדי',
+            'auth/weak-password': 'הסיסמה חלשה מדי (לפחות 6 תווים)',
             'auth/user-disabled': 'המשתמש חסום',
             'auth/user-not-found': 'משתמש לא נמצא',
             'auth/wrong-password': 'סיסמה שגויה',
             'auth/missing-password': 'סיסמה חסרה',
             'auth/popup-closed-by-user': 'החלון נסגר',
+            'auth/no-email': 'לא ניתן לשנות סיסמה למשתמשים ללא אימייל',
+            'auth/requires-recent-login': 'יש להתחבר מחדש לפני שינוי סיסמה',
         };
         return errorMessages[errorCode] || 'שגיאה לא ידועה';
     }

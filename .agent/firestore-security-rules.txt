@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Profiles collection - user profile data
+    match /profiles/{userId} {
+      // Users can read their own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // Users can create their profile on first login/signup
+      // System will set email and default role='user'
+      // Users cannot set their own role to anything other than 'user'
+      allow create: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == userId
+                    && request.resource.data.email == request.auth.token.email
+                    && (!request.resource.data.keys().hasAny(['role']) 
+                        || request.resource.data.role == 'user');
+      
+      // Users can update their profile fields (displayName, city, about, etc.)
+      // BUT they CANNOT change uid, email, or role fields
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId
+                    && request.resource.data.uid == resource.data.uid
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['uid', 'email', 'role']));
+      
+      // Note: To change a user's role, use Firebase Console or Admin SDK
+      // Regular users cannot promote themselves
+    }
+    
+    // Add other collections here as needed
+  }
+}

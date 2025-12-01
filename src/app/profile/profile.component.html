@@ -2,15 +2,65 @@
   <div class="container">
     <h1>פרופיל משתמש</h1>
     <div *ngIf="user$ | async as user; else loggedOut">
-      <form *ngIf="!editing; else editForm">
+      <!-- ADMIN UI: show table of all users and management actions -->
+      <div *ngIf="isAdmin()" class="admin-panel">
+        <div class="admin-header" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+          <h2>ניהול משתמשים</h2>
+          <div>
+            <button class="btn btn-special" (click)="toggleUsersTable()">{{ showUsersTable ? 'הסתר משתמשים' : 'הצג
+              משתמשים' }}</button>
+            <button class="btn btn-regular" (click)="openNewUserQuestions()">שאלות הרשמה חדשות</button>
+          </div>
+        </div>
+
+        <div *ngIf="showUsersTable && allUsersError" class="error-message" style="margin-top:1rem">{{ allUsersError }}
+          <div style="margin-top:.5rem;display:flex;gap:.5rem;justify-content:flex-end">
+            <button class="btn btn-regular" (click)="loadAllUsers()">נסה שנית</button>
+            <button class="btn btn-regular" (click)="openNewUserQuestions()">בדוק שאלות</button>
+          </div>
+        </div>
+
+        <div *ngIf="showUsersTable && !allUsersError" class="users-table" style="margin-top:1rem;overflow:auto;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>UID</th>
+                <th>אימייל</th>
+                <th>תפקיד</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let u of allUsers">
+                <td>{{u.uid || u.id}}</td>
+                <td>{{u.email}}</td>
+                <td>{{u.role}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Admin Badge -->
+      <div *ngIf="isAdmin()" class="admin-badge">
+        ADMIN
+      </div>
+
+      <!-- Moderator Badge -->
+      <div *ngIf="isModerator() && !isAdmin()" class="moderator-badge">
+        MODERATOR
+      </div>
+
+      <form *ngIf="!editing && !changingPassword; else editOrPasswordForm">
         <p><strong>שם:</strong> {{ fieldOrDefault('displayName', user.displayName, 'לא מוגדר') }}</p>
         <p><strong>אימייל:</strong> {{ user.email }}</p>
+        <p><strong>תפקיד:</strong> {{ getUserRole() }}</p>
         <p><strong>UID:</strong> {{ user.uid }}</p>
         <p><strong>עיר:</strong> {{ fieldOrDefault('city', null, 'לא הוגדר') }}</p>
         <p><strong>אודות:</strong> {{ fieldOrDefault('about', null, 'לא הוגדר') }}</p>
-        <div style="margin-top:1.25rem; display:flex; gap:0.75rem; justify-content:flex-end;">
+        <div style="margin-top:1.25rem; display:flex; gap:0.75rem; justify-content:flex-end; flex-wrap:wrap;">
           <button class="btn btn-regular" (click)="goHome()">חזרה לבית</button>
           <button class="btn btn-approve" type="button" (click)="startEdit()">ערוך</button>
+          <button class="btn btn-secondary" type="button" (click)="startChangePassword()">שינוי סיסמה</button>
           <button class="btn btn-cancel" type="button" (click)="promptLogout()">התנתק</button>
         </div>
 
@@ -23,8 +73,9 @@
         </div>
       </form>
 
-      <ng-template #editForm>
-        <div class="edit-panel">
+      <ng-template #editOrPasswordForm>
+        <!-- Edit Profile Form -->
+        <div *ngIf="editing" class="edit-panel">
           <form (ngSubmit)="save()" #f="ngForm">
             <label>שם</label>
             <input name="displayName" [(ngModel)]="edit.displayName" />
@@ -39,11 +90,105 @@
             </div>
           </form>
         </div>
+
+        <!-- Change Password Form -->
+        <div *ngIf="changingPassword" class="edit-panel password-panel">
+          <h2>שינוי סיסמה</h2>
+          <form (ngSubmit)="submitPasswordChange()" #pwForm="ngForm">
+            <label>סיסמה נוכחית</label>
+            <input type="password" name="currentPassword" [(ngModel)]="passwordForm.currentPassword" required
+              autocomplete="current-password" />
+
+            <label>סיסמה חדשה</label>
+            <input type="password" name="newPassword" [(ngModel)]="passwordForm.newPassword" required minlength="6"
+              autocomplete="new-password" />
+
+            <label>אימות סיסמה חדשה</label>
+            <input type="password" name="confirmPassword" [(ngModel)]="passwordForm.confirmPassword" required
+              autocomplete="new-password" />
+
+            <div *ngIf="passwordError" class="error-message">
+              {{ passwordError }}
+            </div>
+
+            <div *ngIf="passwordSuccess" class="success-message">
+              {{ passwordSuccess }}
+            </div>
+
+            <div class="edit-actions">
+              <button class="btn btn-regular" type="button" (click)="cancelChangePassword()">בטל</button>
+              <button class="btn btn-approve" type="submit">שנה סיסמה</button>
+            </div>
+          </form>
+        </div>
       </ng-template>
 
     </div>
     <ng-template #loggedOut>
       <p>אנא התחבר כדי לראות את הפרופיל.</p>
     </ng-template>
+
+    <!-- Questions Management Modal -->
+    <div *ngIf="showQuestionsModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>ניהול שאלות הרשמה</h2>
+          <button class="btn-close" (click)="closeQuestionsModal()">X</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- List of existing questions -->
+          <div class="questions-list">
+            <h3>שאלות קיימות</h3>
+            <div *ngIf="questions.length === 0">אין שאלות עדיין.</div>
+            <div *ngFor="let q of questions" class="question-item">
+              <div class="question-info">
+                <strong>{{q.text}}</strong>
+                <span class="question-type">({{q.type}})</span>
+                <div *ngIf="q.type === 'checklist' && q.options?.length" class="options-preview">
+                  <small>אפשרויות: {{ (q.options || []).join(', ') }}</small>
+                </div>
+              </div>
+              <button class="btn btn-danger btn-sm" (click)="deleteQuestion(q.id || '')">מחק</button>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Add new question form -->
+          <div class="add-question-form">
+            <h3>הוסף שאלה חדשה</h3>
+
+            <label>נוסח השאלה</label>
+            <input [(ngModel)]="newQuestion.text" placeholder="הכנס שאלה..." class="form-control">
+
+            <label>סוג תשובה</label>
+            <select [(ngModel)]="newQuestion.type" class="form-control">
+              <option value="text">טקסט חופשי</option>
+              <option value="yesno">כן/לא</option>
+              <option value="checklist">רשימת אפשרויות (Checklist)</option>
+            </select>
+
+            <!-- Options for checklist -->
+            <div *ngIf="newQuestion.type === 'checklist'" class="options-manager">
+              <label>אפשרויות בחירה</label>
+              <div class="add-option-row">
+                <input [(ngModel)]="newOption" placeholder="אפשרות חדשה..." (keyup.enter)="addOption()">
+                <button class="btn btn-regular btn-sm" (click)="addOption()">הוסף</button>
+              </div>
+              <ul class="options-list">
+                <li *ngFor="let opt of newQuestion.options; let i = index">
+                  {{opt}} <span class="remove-opt" (click)="removeOption(i)">x</span>
+                </li>
+              </ul>
+            </div>
+
+            <button class="btn btn-approve full-width" (click)="addQuestion()" [disabled]="!newQuestion.text">הוסף
+              שאלה</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>
