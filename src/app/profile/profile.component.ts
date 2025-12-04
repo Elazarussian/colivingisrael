@@ -263,6 +263,9 @@ export class ProfileComponent implements OnInit {
         case 'range':
           this.onboardingAnswers[id] = { min: q.min || 0, max: q.max || 100 };
           break;
+        case 'radio':
+          this.onboardingAnswers[id] = null;
+          break;
         default:
           this.onboardingAnswers[id] = '';
       }
@@ -287,6 +290,10 @@ export class ProfileComponent implements OnInit {
         answers[id] = ans === null ? null : !!ans;
       } else if (q.type === 'scale') {
         answers[id] = Number(ans);
+      } else if (q.type === 'range') {
+        answers[id] = ans; // {min, max} object
+      } else if (q.type === 'radio') {
+        answers[id] = ans;
       } else {
         answers[id] = ans || '';
       }
@@ -362,6 +369,8 @@ export class ProfileComponent implements OnInit {
       // Optional: enforce bounds if strict validation is needed
       if (q.min !== undefined && ans.min < q.min) return false;
       if (q.max !== undefined && ans.max > q.max) return false;
+    } else if (q.type === 'radio') {
+      if (!ans || String(ans).trim() === '') return false;
     } else {
       // text or other
       if (!ans || String(ans).trim() === '') return false;
@@ -438,7 +447,7 @@ export class ProfileComponent implements OnInit {
       await addDoc(collection(this.auth.db, 'newUsersQuestions'), {
         text: this.newQuestion.text,
         type: this.newQuestion.type,
-        options: this.newQuestion.options || [],
+        options: (this.newQuestion.type === 'checklist' || this.newQuestion.type === 'radio') ? (this.newQuestion.options || []) : [],
         min: (this.newQuestion.type === 'scale' || this.newQuestion.type === 'range') ? (this.newQuestion.min || 1) : null,
         max: (this.newQuestion.type === 'scale' || this.newQuestion.type === 'range') ? (this.newQuestion.max || 5) : null,
         createdAt: new Date().toISOString()
@@ -450,8 +459,10 @@ export class ProfileComponent implements OnInit {
 
       // Reload list
       await this.loadQuestions();
+      // alert('השאלה נוספה בהצלחה!'); // Optional: feedback
     } catch (err) {
       console.error('Error adding question:', err);
+      alert('שגיאה בהוספת השאלה. נסה שוב.');
     }
   }
 
