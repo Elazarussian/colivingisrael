@@ -38,6 +38,8 @@ export class ProfileComponent implements OnInit {
   selectedUser: any = null;
   allUsersError: string | null = null;
   showUsersTable = false;
+  currentUserId: string | null = null;
+
 
   // Password change properties
   changingPassword = false;
@@ -127,9 +129,12 @@ export class ProfileComponent implements OnInit {
     return this.auth.getUserRole(this.profile);
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     // Trigger a profile reload; onboarding is handled in the profile$ subscription above
     this.auth.reloadProfile();
+    // Get current user ID for preventing self-deletion
+    const user = await firstValueFrom(this.auth.user$);
+    this.currentUserId = user?.uid || null;
   }
 
   toggleUsersTable() {
@@ -255,6 +260,9 @@ export class ProfileComponent implements OnInit {
         case 'date':
           this.onboardingAnswers[id] = '';
           break;
+        case 'range':
+          this.onboardingAnswers[id] = { min: q.min || 0, max: q.max || 100 };
+          break;
         default:
           this.onboardingAnswers[id] = '';
       }
@@ -348,6 +356,12 @@ export class ProfileComponent implements OnInit {
       if (ans === undefined || ans === null || isNaN(ans)) return false;
     } else if (q.type === 'date') {
       if (!ans || String(ans).trim() === '') return false;
+    } else if (q.type === 'range') {
+      if (!ans || typeof ans.min !== 'number' || typeof ans.max !== 'number') return false;
+      if (ans.min > ans.max) return false;
+      // Optional: enforce bounds if strict validation is needed
+      if (q.min !== undefined && ans.min < q.min) return false;
+      if (q.max !== undefined && ans.max > q.max) return false;
     } else {
       // text or other
       if (!ans || String(ans).trim() === '') return false;
@@ -409,6 +423,9 @@ export class ProfileComponent implements OnInit {
     if (ans === null || ans === undefined) return '-';
     if (Array.isArray(ans)) return ans.join(', ');
     if (typeof ans === 'boolean') return ans ? 'כן' : 'לא';
+    if (ans && typeof ans === 'object' && 'min' in ans && 'max' in ans) {
+      return `${ans.min} - ${ans.max}`;
+    }
     return String(ans);
   }
 
@@ -422,8 +439,8 @@ export class ProfileComponent implements OnInit {
         text: this.newQuestion.text,
         type: this.newQuestion.type,
         options: this.newQuestion.options || [],
-        min: this.newQuestion.type === 'scale' ? (this.newQuestion.min || 1) : null,
-        max: this.newQuestion.type === 'scale' ? (this.newQuestion.max || 5) : null,
+        min: (this.newQuestion.type === 'scale' || this.newQuestion.type === 'range') ? (this.newQuestion.min || 1) : null,
+        max: (this.newQuestion.type === 'scale' || this.newQuestion.type === 'range') ? (this.newQuestion.max || 5) : null,
         createdAt: new Date().toISOString()
       });
 
@@ -600,4 +617,6 @@ export class ProfileComponent implements OnInit {
   goHome() {
     this.router.navigate(['/']);
   }
+
+
 }

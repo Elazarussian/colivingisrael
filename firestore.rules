@@ -13,11 +13,16 @@ service cloud.firestore {
     match /profiles/{userId} {
       // Users can read their own profile, OR admins can read any profile
       allow read: if (request.auth != null && request.auth.uid == userId) || isAdmin();
-      
+
       // Users can create/update their own profile
       allow create, update: if request.auth != null 
                             && request.auth.uid == userId
                             && request.resource.data.uid == userId; // Ensure uid matches
+
+      // Allow admins to delete profiles (e.g., when an admin removes a user)
+      allow delete: if isAdmin();
+      // Optionally, allow users to delete their own profile (uncomment if desired)
+      // allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
     // Registration Questions collection

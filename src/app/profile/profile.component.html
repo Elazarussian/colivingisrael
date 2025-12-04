@@ -1,19 +1,28 @@
-<section class="profile-page">
+﻿<section class="profile-page">
   <div class="container">
     <h1>פרופיל משתמש</h1>
+
     <div *ngIf="user$ | async as user; else loggedOut">
-      <!-- ADMIN UI: show table of all users and management actions -->
+
+      <!-- BADGES -->
+      <div *ngIf="isAdmin()" class="admin-badge">ADMIN</div>
+      <div *ngIf="isModerator() && !isAdmin()" class="moderator-badge">MODERATOR</div>
+
+
+      <!-- ADMIN UI -->
       <div *ngIf="isAdmin()" class="admin-panel">
         <div class="admin-header" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
           <h2>ניהול משתמשים</h2>
           <div>
-            <button class="btn btn-special" (click)="toggleUsersTable()">{{ showUsersTable ? 'הסתר משתמשים' : 'הצג
-              משתמשים' }}</button>
-            <button class="btn btn-regular" (click)="openNewUserQuestions()">שאלות הרשמה חדשות</button>
+            <button class="btn btn-special" (click)="toggleUsersTable()">
+              {{ showUsersTable ? 'הסתר משתמשים' : 'הצג משתמשים' }}
+            </button>
+            <button class="btn btn-special" (click)="openNewUserQuestions()">שאלות הרשמה חדשות</button>
           </div>
         </div>
 
-        <div *ngIf="showUsersTable && allUsersError" class="error-message" style="margin-top:1rem">{{ allUsersError }}
+        <div *ngIf="showUsersTable && allUsersError" class="error-message" style="margin-top:1rem">
+          {{ allUsersError }}
           <div style="margin-top:.5rem;display:flex;gap:.5rem;justify-content:flex-end">
             <button class="btn btn-regular" (click)="loadAllUsers()">נסה שנית</button>
             <button class="btn btn-regular" (click)="openNewUserQuestions()">בדוק שאלות</button>
@@ -28,6 +37,7 @@
                 <th>אימייל</th>
                 <th>תפקיד</th>
                 <th>תשובות</th>
+                <th>פעולות</th>
               </tr>
             </thead>
             <tbody>
@@ -36,53 +46,52 @@
                 <td>{{u.email}}</td>
                 <td>{{u.role}}</td>
                 <td><button class="btn btn-regular btn-sm" (click)="openUserAnswers(u)">תשובות</button></td>
+
               </tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Admin Badge -->
-      <div *ngIf="isAdmin()" class="admin-badge">
-        ADMIN
-      </div>
-
-      <!-- Moderator Badge -->
-      <div *ngIf="isModerator() && !isAdmin()" class="moderator-badge">
-        MODERATOR
-      </div>
-
-      <form *ngIf="!editing && !changingPassword; else editOrPasswordForm">
+      <!-- VIEW MODE -->
+      <form *ngIf="!editing && !changingPassword && !isAdmin(); else editOrPasswordForm">
         <p><strong>שם:</strong> {{ fieldOrDefault('displayName', user.displayName, 'לא מוגדר') }}</p>
         <p><strong>אימייל:</strong> {{ user.email }}</p>
         <p><strong>תפקיד:</strong> {{ getUserRole() }}</p>
         <p><strong>UID:</strong> {{ user.uid }}</p>
         <p><strong>עיר:</strong> {{ fieldOrDefault('city', null, 'לא הוגדר') }}</p>
         <p><strong>אודות:</strong> {{ fieldOrDefault('about', null, 'לא הוגדר') }}</p>
-        <div style="margin-top:1.25rem; display:flex; gap:0.75rem; justify-content:flex-end; flex-wrap:wrap;">
-          <button class="btn btn-regular" (click)="goHome()">חזרה לבית</button>
-          <button class="btn btn-approve" type="button" (click)="startEdit()">ערוך</button>
-          <button class="btn btn-secondary" type="button" (click)="startChangePassword()">שינוי סיסמה</button>
-          <button class="btn btn-cancel" type="button" (click)="promptLogout()">התנתק</button>
-        </div>
 
-        <div *ngIf="showLogoutConfirm" class="confirm-panel">
-          <p>האם אתה בטוח שברצונך להתנתק?</p>
-          <div class="confirm-actions">
-            <button class="btn btn-regular" (click)="cancelLogout()">לא</button>
-            <button class="btn btn-cancel" (click)="confirmLogout()">כן, התנתק</button>
-          </div>
+        <div style="margin-top:1.25rem; display:flex; gap:0.75rem; justify-content:flex-end; flex-wrap:wrap;">
+          <button class="btn btn-approve" type="button" (click)="startEdit()">ערוך</button>
+          <button class="btn btn-secondary" type="button" (click)="startChangePassword()">שינוי
+            סיסמה</button>
         </div>
       </form>
 
+
+      <button class="btn btn-danger" type="button" (click)="promptLogout()">התנתק</button>
+      <button class="btn btn-special" type="button" (click)="goHome()">חזרה לבית</button>
+      <div *ngIf="showLogoutConfirm" class="confirm-panel">
+        <p>האם אתה בטוח שברצונך להתנתק?</p>
+        <div class="confirm-actions">
+          <button class="btn btn-regular" (click)="cancelLogout()">לא</button>
+          <button class="btn btn-cancel" (click)="confirmLogout()">כן, התנתק</button>
+        </div>
+      </div>
+
+      <!-- EDIT OR PASSWORD FORM -->
       <ng-template #editOrPasswordForm>
-        <!-- Edit Profile Form -->
+
+        <!-- EDIT PROFILE -->
         <div *ngIf="editing" class="edit-panel">
           <form (ngSubmit)="save()" #f="ngForm">
             <label>שם</label>
             <input name="displayName" [(ngModel)]="edit.displayName" />
+
             <label>עיר</label>
             <input name="city" [(ngModel)]="edit.city" />
+
             <label>אודות</label>
             <textarea name="about" [(ngModel)]="edit.about"></textarea>
 
@@ -93,9 +102,10 @@
           </form>
         </div>
 
-        <!-- Change Password Form -->
+        <!-- CHANGE PASSWORD -->
         <div *ngIf="changingPassword" class="edit-panel password-panel">
           <h2>שינוי סיסמה</h2>
+
           <form (ngSubmit)="submitPasswordChange()" #pwForm="ngForm">
             <label>סיסמה נוכחית</label>
             <input type="password" name="currentPassword" [(ngModel)]="passwordForm.currentPassword" required
@@ -109,13 +119,8 @@
             <input type="password" name="confirmPassword" [(ngModel)]="passwordForm.confirmPassword" required
               autocomplete="new-password" />
 
-            <div *ngIf="passwordError" class="error-message">
-              {{ passwordError }}
-            </div>
-
-            <div *ngIf="passwordSuccess" class="success-message">
-              {{ passwordSuccess }}
-            </div>
+            <div *ngIf="passwordError" class="error-message">{{ passwordError }}</div>
+            <div *ngIf="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
 
             <div class="edit-actions">
               <button class="btn btn-regular" type="button" (click)="cancelChangePassword()">בטל</button>
@@ -126,11 +131,12 @@
       </ng-template>
 
     </div>
+
     <ng-template #loggedOut>
       <p>אנא התחבר כדי לראות את הפרופיל.</p>
     </ng-template>
 
-    <!-- Questions Management Modal -->
+    <!-- QUESTIONS MANAGEMENT MODAL -->
     <div *ngIf="showQuestionsModal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
@@ -139,50 +145,54 @@
         </div>
 
         <div class="modal-body">
-          <!-- List of existing questions -->
+
           <div class="questions-list">
             <h3>שאלות קיימות</h3>
             <div *ngIf="questions.length === 0">אין שאלות עדיין.</div>
+
             <div *ngFor="let q of questions" class="question-item">
               <div class="question-info">
                 <strong>{{q.text}}</strong>
                 <span class="question-type">({{q.type}})</span>
-                <div *ngIf="q.type === 'checklist' && q.options?.length" class="options-preview">
-                  <small>אפשרויות: {{ (q.options || []).join(', ') }}</small>
+
+                <div *ngIf="q.type === 'checklist' && q.options && q.options.length" class="options-preview">
+                  <small>אפשרויות: {{ q.options.join(', ') }}</small>
                 </div>
+
                 <div *ngIf="q.type === 'scale'" class="options-preview">
                   <small>טווח: {{q.min}} - {{q.max}}</small>
                 </div>
               </div>
+
               <button class="btn btn-danger btn-sm" (click)="deleteQuestion(q.id || '')">מחק</button>
             </div>
           </div>
 
           <hr>
 
-          <!-- Add new question form -->
           <div class="add-question-form">
             <h3>הוסף שאלה חדשה</h3>
 
             <label>נוסח השאלה</label>
-            <input [(ngModel)]="newQuestion.text" placeholder="הכנס שאלה..." class="form-control">
+            <input [(ngModel)]="newQuestion.text" class="form-control" placeholder="הכנס שאלה..." />
 
             <label>סוג תשובה</label>
             <select [(ngModel)]="newQuestion.type" class="form-control">
               <option value="text">טקסט חופשי</option>
               <option value="yesno">כן/לא</option>
-              <option value="checklist">רשימת אפשרויות (Checklist)</option>
+              <option value="checklist">רשימת אפשרויות</option>
               <option value="date">תאריך</option>
-              <option value="scale">דירוג (Scale)</option>
+              <option value="scale">דירוג</option>
             </select>
 
-            <!-- Options for checklist -->
             <div *ngIf="newQuestion.type === 'checklist'" class="options-manager">
               <label>אפשרויות בחירה</label>
+
               <div class="add-option-row">
-                <input [(ngModel)]="newOption" placeholder="אפשרות חדשה..." (keyup.enter)="addOption()">
+                <input [(ngModel)]="newOption" placeholder="אפשרות חדשה..." (keyup.enter)="addOption()" />
                 <button class="btn btn-regular btn-sm" (click)="addOption()">הוסף</button>
               </div>
+
               <ul class="options-list">
                 <li *ngFor="let opt of newQuestion.options; let i = index">
                   {{opt}} <span class="remove-opt" (click)="removeOption(i)">x</span>
@@ -190,129 +200,56 @@
               </ul>
             </div>
 
-            <!-- Min/Max for Scale -->
             <div *ngIf="newQuestion.type === 'scale'" class="scale-manager"
               style="display:flex;gap:1rem;margin-bottom:1rem;">
               <div>
                 <label>מינימום</label>
-                <input type="number" [(ngModel)]="newQuestion.min" class="form-control" style="width:80px">
+                <input type="number" [(ngModel)]="newQuestion.min" class="form-control" style="width:80px" />
               </div>
               <div>
                 <label>מקסימום</label>
-                <input type="number" [(ngModel)]="newQuestion.max" class="form-control" style="width:80px">
+                <input type="number" [(ngModel)]="newQuestion.max" class="form-control" style="width:80px" />
               </div>
             </div>
 
-            <button class="btn btn-approve full-width" (click)="addQuestion()" [disabled]="!newQuestion.text">הוסף
-              שאלה</button>
+            <button class="btn btn-approve full-width" (click)="addQuestion()" [disabled]="!newQuestion.text">
+              הוסף שאלה
+            </button>
           </div>
+
         </div>
       </div>
     </div>
 
-    <!-- Onboarding Questions Modal for new users -->
-    <div *ngIf="showOnboardingModal" class="modal-overlay">
+    <!-- USER ANSWERS MODAL -->
+    <div *ngIf="showUserAnswersModal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>שאלות פתיחת חשבון</h2>
+          <h2>תשובות משתמש</h2>
+          <button class="btn-close" (click)="closeUserAnswersModal()">X</button>
         </div>
 
         <div class="modal-body">
-          <p>לפני שנמשיך, נשמח אם תענה/י על מספר שאלות קצרות:</p>
+          <div *ngIf="viewedUser">
 
-          <div class="progress-indicator" style="margin-bottom: 1rem; font-weight: bold; text-align: center;">
-            שאלה {{ currentOnboardingProgress }}
+            <p><strong>UID:</strong> {{ viewedUser.uid || viewedUser.id }}</p>
+            <p><strong>אימייל:</strong> {{ viewedUser.email }}</p>
+
+            <h3>תשובות</h3>
+
+            <div *ngIf="!viewedQuestionIds || viewedQuestionIds.length === 0">אין תשובות</div>
+
+            <div *ngFor="let qid of viewedQuestionIds" class="answer-item">
+              <strong>{{ questionTextMap[qid] || qid }}</strong>
+              <div class="answer-value">{{ formatAnswer(viewedUserAnswers ? viewedUserAnswers[qid] : null)
+                }}</div>
+            </div>
+
           </div>
-
-          <form (ngSubmit)="submitOnboardingAnswers()">
-            <div *ngIf="currentOnboardingQuestion as q">
-              <div class="onboard-question">
-                <label style="display:block; margin-bottom:0.5rem; font-size:1.1rem;"><strong>{{ q.text
-                    }}</strong></label>
-
-                <!-- text -->
-                <div *ngIf="q.type === 'text'">
-                  <input [(ngModel)]="onboardingAnswers[q.id || '']" name="q-{{q.id}}" class="form-control" />
-                </div>
-
-                <!-- yes/no -->
-                <div *ngIf="q.type === 'yesno'">
-                  <select [(ngModel)]="onboardingAnswers[q.id || '']" name="q-{{q.id}}" class="form-control">
-                    <option [ngValue]="null">-- בחר --</option>
-                    <option [ngValue]="true">כן</option>
-                    <option [ngValue]="false">לא</option>
-                  </select>
-                </div>
-
-                <!-- checklist -->
-                <div *ngIf="q.type === 'checklist'">
-                  <div *ngFor="let opt of q.options; let i = index">
-                    <label style="display:block; margin-bottom:0.25rem;">
-                      <input type="checkbox" [checked]="(onboardingAnswers[q.id || ''] || []).indexOf(opt) > -1"
-                        (change)="onboardingAnswers[q.id || ''] = toggleChecklist(onboardingAnswers[q.id || ''], opt)" />
-                      {{ opt }}
-                    </label>
-                  </div>
-                </div>
-
-                <!-- date -->
-                <div *ngIf="q.type === 'date'">
-                  <input type="date" [(ngModel)]="onboardingAnswers[q.id || '']" name="q-{{q.id}}" class="form-control">
-                </div>
-
-                <!-- scale -->
-                <div *ngIf="q.type === 'scale'">
-                  <div style="display:flex;align-items:center;gap:1rem;">
-                    <span>{{q.min || 1}}</span>
-                    <input type="range" [min]="q.min || 1" [max]="q.max || 5"
-                      [(ngModel)]="onboardingAnswers[q.id || '']" name="q-{{q.id}}" style="flex:1">
-                    <span>{{q.max || 5}}</span>
-                    <span style="font-weight:bold;margin-right:0.5rem;">(נבחר: {{onboardingAnswers[q.id ||
-                      '']}})</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:0.5rem;justify-content:space-between;margin-top:1.5rem;">
-              <button class="btn btn-regular" type="button" (click)="prevQuestion()"
-                [disabled]="currentQuestionIndex === 0">הקודם</button>
-
-              <button *ngIf="!isLastOnboardingQuestion" class="btn btn-approve" type="button" (click)="nextQuestion()"
-                [disabled]="!canProceedWithQuestion()">הבא</button>
-
-              <button *ngIf="isLastOnboardingQuestion" class="btn btn-approve" type="submit"
-                [disabled]="!canSubmitOnboarding()">סיום והרשמה</button>
-            </div>
-          </form>
         </div>
       </div>
     </div>
+
 
   </div>
 </section>
-
-<!-- User Answers Modal -->
-<div *ngIf="showUserAnswersModal" class="modal-overlay">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>תשובות משתמש</h2>
-      <button class="btn-close" (click)="closeUserAnswersModal()">X</button>
-    </div>
-    <div class="modal-body">
-      <div *ngIf="viewedUser">
-        <p><strong>UID:</strong> {{ viewedUser.uid || viewedUser.id }}</p>
-        <p><strong>אימייל:</strong> {{ viewedUser.email }}</p>
-        <h3>תשובות</h3>
-        <div *ngIf="!viewedQuestionIds || viewedQuestionIds.length === 0">אין תשובות</div>
-        <div *ngFor="let qid of viewedQuestionIds">
-          <div class="answer-item">
-            <strong>{{ questionTextMap[qid] || qid }}</strong>
-            <div class="answer-value">{{ formatAnswer(viewedUserAnswers?.[qid]) }}</div>
-          </div>
-          <hr />
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
