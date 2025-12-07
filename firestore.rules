@@ -33,6 +33,15 @@ service cloud.firestore {
       // Only admins can write (create, update, delete)
       allow write: if isAdmin();
     }
+
+    // User Personal Data Questions collection
+    match /userPersonalDataQuestions/{questionId} {
+      // Everyone can read questions (needed for user profile forms)
+      allow read: if true;
+      
+      // Only admins can write (create, update, delete)
+      allow write: if isAdmin();
+    }
     
     // Default deny all other access
     match /{document=**} {
