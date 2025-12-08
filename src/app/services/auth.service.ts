@@ -139,6 +139,15 @@ export class AuthService {
         }
     }
 
+    // Logout method
+    async logout() {
+        if (auth) {
+            await signOut(auth);
+            this._user$.next(null);
+            this._profile$.next(null);
+        }
+    }
+
     // Role-based permission methods
     getUserRole(profile: any): string {
         // Returns the role from the profile, defaults to 'user'
@@ -149,15 +158,10 @@ export class AuthService {
         return this.getUserRole(profile) === 'admin';
     }
 
-    isModerator(profile: any): boolean {
-        return this.getUserRole(profile) === 'moderator';
-    }
-
-    hasPermission(profile: any, requiredRole: 'admin' | 'moderator' | 'user'): boolean {
+    hasPermission(profile: any, requiredRole: 'admin' | 'user'): boolean {
         const role = this.getUserRole(profile);
         const roleHierarchy: { [key: string]: number } = {
             'admin': 3,
-            'moderator': 2,
             'user': 1
         };
         return (roleHierarchy[role] || 0) >= (roleHierarchy[requiredRole] || 0);
