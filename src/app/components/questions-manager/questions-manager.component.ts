@@ -2,6 +2,7 @@ import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectorRef } fro
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { MessageService } from '../../services/message.service';
 import { firstValueFrom } from 'rxjs';
 
 export interface Question {
@@ -77,13 +78,15 @@ export class QuestionsManagerComponent implements OnInit {
     registrationKeyManualMode = false;
     personalDataKeyManualMode = false;
     maskirKeyManualMode = false;
+    apartmentKeyManualMode = false;
 
     // Phone support
     phonePrefixes = ['050', '051', '052', '053', '054', '055', '058'];
 
     constructor(
         public auth: AuthService,
-        private cdr: ChangeDetectorRef
+        private cdr: ChangeDetectorRef,
+        private msg: MessageService
     ) { }
 
     async ngOnInit() {
@@ -318,7 +321,7 @@ export class QuestionsManagerComponent implements OnInit {
 
         if (idx === -1) {
             if (maxSelections && arr.length >= maxSelections) {
-                alert(`ניתן לבחור עד ${maxSelections} אפשרויות בלבד.`);
+                this.msg.show(`ניתן לבחור עד ${maxSelections} אפשרויות בלבד.`);
                 return arr;
             }
             arr.push(option);
@@ -503,7 +506,7 @@ export class QuestionsManagerComponent implements OnInit {
             this.cdr.detectChanges();
         } catch (err) {
             console.error('Error loading user answers:', err);
-            alert('שגיאה בטעינת תשובות המשתמש');
+            this.msg.show('שגיאה בטעינת תשובות המשתמש');
         }
     }
 
@@ -517,7 +520,7 @@ export class QuestionsManagerComponent implements OnInit {
             await this.loadQuestions();
         } catch (err) {
             console.error('Error adding question:', err);
-            alert('שגיאה בהוספת השאלה. נסה שוב.');
+            this.msg.show('שגיאה בהוספת השאלה. נסה שוב.');
         }
     }
 
@@ -530,7 +533,7 @@ export class QuestionsManagerComponent implements OnInit {
             await this.loadPersonalDataQuestions();
         } catch (err) {
             console.error('Error adding personal data question:', err);
-            alert('שגיאה בהוספת השאלה. נסה שוב.');
+            this.msg.show('שגיאה בהוספת השאלה. נסה שוב.');
         }
     }
 
@@ -540,7 +543,7 @@ export class QuestionsManagerComponent implements OnInit {
         // Client-side check: ensure current profile is admin before attempting write
         const isAdminClient = this.auth && this.profile && this.auth.isAdmin ? this.auth.isAdmin(this.profile) : (this.profile?.role === 'admin');
         if (!isAdminClient) {
-            alert('אין הרשאה להוסיף שאלות משכיר. ודא שאתה מחובר בפרופיל מנהל (role=admin) ורענן את הדף.');
+            this.msg.show('אין הרשאה להוסיף שאלות משכיר. ודא שאתה מחובר בפרופיל מנהל (role=admin) ורענן את הדף.');
             return;
         }
 
@@ -554,9 +557,9 @@ export class QuestionsManagerComponent implements OnInit {
             // Friendly, actionable message for permission errors
             const code = err && (err.code || err.message || '').toString();
             if (code && (code.includes('permission') || code === 'permission-denied')) {
-                alert('שגיאת הרשאה ב-Firestore: לא ניתן לכתוב ל-`maskirQuestions`. וודא שפריסת כללי Firestore כוללת `maskirQuestions` ושהפרופיל שלך role=\'admin\'. אם שינית את החוקים, הרץ `firebase deploy --only firestore:rules`.');
+                this.msg.show('שגיאת הרשאה ב-Firestore: לא ניתן לכתוב ל-`maskirQuestions`. וודא שפריסת כללי Firestore כוללת `maskirQuestions` ושהפרופיל שלך role=\'admin\'. אם שינית את החוקים, הרץ `firebase deploy --only firestore:rules`.');
             } else {
-                alert('שגיאה בהוספת השאלה. נסה שוב.');
+                this.msg.show('שגיאה בהוספת השאלה. נסה שוב.');
             }
         }
     }
@@ -570,7 +573,7 @@ export class QuestionsManagerComponent implements OnInit {
             await this.loadApartmentQuestions();
         } catch (err) {
             console.error('Error adding apartment question:', err);
-            alert('שגיאה בהוספת השאלה. נסה שוב.');
+            this.msg.show('שגיאה בהוספת השאלה. נסה שוב.');
         }
     }
 
@@ -581,6 +584,7 @@ export class QuestionsManagerComponent implements OnInit {
             await this.loadApartmentQuestions();
         } catch (err) {
             console.error('Error deleting apartment question:', err);
+            this.msg.show('שגיאה בפעולת המחיקה. נסה שוב.');
         }
     }
 
@@ -591,6 +595,7 @@ export class QuestionsManagerComponent implements OnInit {
             await this.loadQuestions();
         } catch (err) {
             console.error('Error deleting question:', err);
+            this.msg.show('שגיאה בפעולת המחיקה. נסה שוב.');
         }
     }
 
@@ -601,6 +606,7 @@ export class QuestionsManagerComponent implements OnInit {
             await this.loadPersonalDataQuestions();
         } catch (err) {
             console.error('Error deleting personal data question:', err);
+            this.msg.show('שגיאה בפעולת המחיקה. נסה שוב.');
         }
     }
 
@@ -611,6 +617,7 @@ export class QuestionsManagerComponent implements OnInit {
             await this.loadMaskirQuestions();
         } catch (err) {
             console.error('Error deleting maskir question:', err);
+            this.msg.show('שגיאה בפעולת המחיקה. נסה שוב.');
         }
     }
 
@@ -656,7 +663,7 @@ export class QuestionsManagerComponent implements OnInit {
             this.cdr.detectChanges();
         } catch (err) {
             console.error('Error updating question orders:', err);
-            alert('שגיאה בעדכון סדר השאלות');
+            this.msg.show('שגיאה בעדכון סדר השאלות');
         }
     }
 
@@ -707,7 +714,7 @@ export class QuestionsManagerComponent implements OnInit {
             }
         } catch (err) {
             console.error('Error updating question:', err);
-            alert('שגיאה בעדכון השאלה.');
+            this.msg.show('שגיאה בעדכון השאלה.');
         }
     }
 
@@ -842,9 +849,9 @@ export class QuestionsManagerComponent implements OnInit {
                 onboardingCompleted: true
             });
             this.completed.emit();
-        } catch (err) {
+            } catch (err) {
             console.error('Error saving onboarding answers:', err);
-            alert('שגיאה בשמירת תשובות. יש לנסות שוב מאוחר יותר.');
+            this.msg.show('שגיאה בשמירת תשובות. יש לנסות שוב מאוחר יותר.');
         }
     }
 
@@ -970,7 +977,7 @@ export class QuestionsManagerComponent implements OnInit {
             this.completed.emit();
         } catch (err) {
             console.error('Error saving edited answers:', err);
-            alert('שגיאה בשמירת תשובות. יש לנסות שוב מאוחר יותר.');
+            this.msg.show('שגיאה בשמירת תשובות. יש לנסות שוב מאוחר יותר.');
         }
     }
 
@@ -1015,22 +1022,30 @@ export class QuestionsManagerComponent implements OnInit {
         this.closed.emit();
     }
 
-    onQuestionTextChange(isPersonalData: boolean, isMaskir: boolean = false) {
+    onQuestionTextChange(isPersonalData: boolean, isMaskir: boolean = false, isApartment: boolean = false) {
         let q: Question;
         if (isMaskir) q = this.newMaskirQuestion;
-        else q = isPersonalData ? this.newPersonalDataQuestion : this.newQuestion;
+        else if (isPersonalData) q = this.newPersonalDataQuestion;
+        else if (isApartment) q = this.newApartmentQuestion;
+        else q = this.newQuestion;
 
-        const isManual = isMaskir ? this.maskirKeyManualMode : (isPersonalData ? this.personalDataKeyManualMode : this.registrationKeyManualMode);
+        const isManual = isMaskir ? this.maskirKeyManualMode : (isPersonalData ? this.personalDataKeyManualMode : (isApartment ? this.apartmentKeyManualMode : this.registrationKeyManualMode));
 
         if (!isManual) {
             q.key = this.generateKey(q.text, q.textEn);
         }
     }
 
-    toggleKeyManualMode(isPersonalData: boolean, isMaskir: boolean = false) {
+    toggleKeyManualMode(isPersonalData: boolean, isMaskir: boolean = false, isApartment: boolean = false) {
         if (isMaskir) {
             this.maskirKeyManualMode = !this.maskirKeyManualMode;
             if (!this.maskirKeyManualMode) this.onQuestionTextChange(false, true);
+            return;
+        }
+
+        if (isApartment) {
+            this.apartmentKeyManualMode = !this.apartmentKeyManualMode;
+            if (!this.apartmentKeyManualMode) this.onQuestionTextChange(false, false, true);
             return;
         }
 
@@ -1079,6 +1094,7 @@ export class QuestionsManagerComponent implements OnInit {
     private resetApartmentQuestionForm() {
         this.newApartmentQuestion = this.getEmptyQuestion();
         this.newApartmentOption = '';
-        this.currentLang = 'he';
+    this.currentLang = 'he';
+    this.apartmentKeyManualMode = false;
     }
 }

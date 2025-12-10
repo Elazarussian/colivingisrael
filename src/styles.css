@@ -250,6 +250,92 @@ select:focus {
     box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12)
 }
 
+/* Reusable form-control class used across components */
+.form-control {
+    width: 100%;
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.95);
+    transition: all 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(76, 175, 80, 0.5);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+}
+
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Utility: make a button take fit-content width */
+.btn-fit-content {
+    width: fit-content !important;
+    padding-left: 2rem;
+    padding-right: 2rem;
+    margin-top: 1rem;
+}
+
+/* Close button: red circular with X icon centered */
+.btn-close {
+    --size: 40px;
+    width: var(--size);
+    height: var(--size);
+    display: inline-grid;
+    place-items: center;
+    background: linear-gradient(180deg,#e53935,#d32f2f);
+    color: #fff;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 6px 18px rgba(213,47,47,0.18);
+    cursor: pointer;
+    transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1;
+    text-align: center;
+}
+
+.btn-close:hover {
+    transform: scale(1.06) translateY(-2px);
+    filter: brightness(.96);
+    box-shadow: 0 10px 26px rgba(213,47,47,0.26);
+}
+
+.btn-close:active {
+    transform: scale(.98);
+    box-shadow: 0 6px 18px rgba(213,47,47,0.18) inset;
+}
+
+.btn-close:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(213,47,47,0.12);
+}
+
+/* If you want an 'X' made from pseudo elements (no text needed) */
+.btn-close.icon-only {
+    position: relative;
+}
+.btn-close.icon-only::before,
+.btn-close.icon-only::after {
+    content: '';
+    position: absolute;
+    width: 50%;
+    height: 2px;
+    background: rgba(255,255,255,0.95);
+    left: 25%;
+    top: 50%;
+    transform-origin: center;
+}
+.btn-close.icon-only::before { transform: translateY(-50%) rotate(45deg); }
+.btn-close.icon-only::after  { transform: translateY(-50%) rotate(-45deg); }
+
 /* Fix dropdown options visibility globally */
 select option {
     background-color: #2c2c2c;
@@ -291,6 +377,35 @@ select option {
 
 .error-message:empty {
     display: none
+}
+
+/* Modal Styles - shared across components */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2100;
+}
+
+.modal-content {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    padding: 2rem;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.95);
 }
 
 @media (max-width:768px) {
