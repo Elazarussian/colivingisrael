@@ -33,8 +33,8 @@
                                 [disabled]="i === 0" title="העלה">↑</button>
                             <button class="btn btn-regular btn-sm" (click)="moveQuestionDown(i, false)"
                                 [disabled]="i === questions.length - 1" title="הורד">↓</button>
-                            <button class="btn btn-regular btn-sm" (click)="openEditQuestion(q, false)">ערוך</button>
-                            <button class="btn btn-danger btn-sm" (click)="deleteQuestion(q.id || '')">מחק</button>
+                            <button class="btn btn-approve btn-sm" (click)="openEditQuestion(q, false)">ערוך</button>
+                            <button class="btn btn-cancel btn-sm" (click)="deleteQuestion(q.id || '')">מחק</button>
                         </div>
                     </div>
                 </div>
@@ -430,6 +430,87 @@
                         [disabled]="!newMaskirQuestion.text">
                         הוסף שאלה
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN: APARTMENT QUESTIONS MANAGEMENT -->
+    <div *ngIf="mode === 'admin-apartment'" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>ניהול שאלון דירות</h2>
+                <button class="btn-close" (click)="close()">X</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="questions-list">
+                    <h3>שאלות דירות</h3>
+                    <div *ngIf="apartmentQuestions.length === 0">אין שאלות מסוג זה.</div>
+
+                    <div *ngFor="let q of apartmentQuestions; let i = index" class="question-item">
+                        <div class="question-info">
+                            <strong>{{q.text}}</strong>
+                            <span *ngIf="q.key" style="font-size:0.8rem;color:#666;margin-right:0.5rem;">(Key: {{q.key}})</span>
+                            <span class="question-type">({{q.type}})</span>
+
+                            <div *ngIf="(q.type === 'checklist' || q.type === 'radio') && q.options && q.options.length" class="options-preview">
+                                <small>אפשרויות: {{ q.options.join(', ') }}</small>
+                            </div>
+
+                            <div *ngIf="q.type === 'scale' || q.type === 'range'" class="options-preview">
+                                <small>טווח: {{q.min}} - {{q.max}}</small>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;">
+                            <button class="btn btn-regular btn-sm" (click)="moveQuestionUp(i, false, false)" [disabled]="i === 0" title="העלאה">↑</button>
+                            <button class="btn btn-regular btn-sm" (click)="moveQuestionDown(i, false, false)" [disabled]="i === apartmentQuestions.length - 1" title="הורדה">↓</button>
+                            <button class="btn btn-regular btn-sm" (click)="openEditQuestion(q, false, false)">ערוך</button>
+                            <button class="btn btn-danger btn-sm" (click)="deleteApartmentQuestion(q.id || '')">מחק</button>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="add-question-form">
+                    <h3>הוסף שאלה לדירות</h3>
+
+                    <div class="language-switcher" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+                        <span (click)="setLanguage('he')" [style.opacity]="currentLang==='he'?1:0.5" style="cursor:pointer;font-size:1.5rem;">🇮🇱</span>
+                        <span (click)="setLanguage('en')" [style.opacity]="currentLang==='en'?1:0.5" style="cursor:pointer;font-size:1.5rem;">🇺🇸</span>
+                        <span (click)="setLanguage('ru')" [style.opacity]="currentLang==='ru'?1:0.5" style="cursor:pointer;font-size:1.5rem;">🇷🇺</span>
+                        <span (click)="setLanguage('fr')" [style.opacity]="currentLang==='fr'?1:0.5" style="cursor:pointer;font-size:1.5rem;">🇫🇷</span>
+                    </div>
+
+                    <label>נוסח השאלה ({{currentLang | uppercase}})</label>
+                    <input *ngIf="currentLang === 'he'" [(ngModel)]="newApartmentQuestion.text" (input)="onQuestionTextChange(false)" class="form-control" placeholder="הכנס שאלת דירה (עברית)..." />
+                    <input *ngIf="currentLang === 'en'" [(ngModel)]="newApartmentQuestion.textEn" (input)="onQuestionTextChange(false)" class="form-control" placeholder="Enter apartment question (English)..." />
+
+                    <label>סוג תשובה</label>
+                    <select [(ngModel)]="newApartmentQuestion.type" class="form-control form-control-auto">
+                        <option value="text">טקסט חופשי</option>
+                        <option value="yesno">כן/לא</option>
+                        <option value="checklist">רשימת אפשרויות</option>
+                        <option value="date">תאריך</option>
+                        <option value="scale">דרוג</option>
+                        <option value="range">טווח מספרים</option>
+                        <option value="radio">בחירה יחידה</option>
+                        <option value="phone">טלפון</option>
+                    </select>
+
+                    <div *ngIf="newApartmentQuestion.type === 'checklist' || newApartmentQuestion.type === 'radio'" class="options-manager">
+                        <label>אפשרויות</label>
+                        <div class="add-option-row">
+                            <input [(ngModel)]="newApartmentOption" class="form-control-sm-custom" placeholder="אפשרות חדשה..." (keyup.enter)="addApartmentOption()" />
+                            <button class="btn btn-regular btn-sm" (click)="addApartmentOption()">הוסף</button>
+                        </div>
+                        <ul class="options-list">
+                            <li *ngFor="let opt of newApartmentQuestion.options; let i = index">{{opt}} <span class="remove-opt" (click)="removeApartmentOption(i)">x</span></li>
+                        </ul>
+                    </div>
+
+                    <button class="btn btn-approve btn-fit-content" (click)="addApartmentQuestion()" [disabled]="!newApartmentQuestion.text">הוסף שאלה</button>
                 </div>
             </div>
         </div>

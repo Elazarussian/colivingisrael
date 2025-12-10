@@ -5,6 +5,7 @@ import { TopbarComponent } from './components/topbar/topbar.component';
 import { AuthModalComponent } from './components/auth-modal/auth-modal.component';
 import { ShowMessageComponent } from './components/show-message/show-message.component';
 import { AuthService } from './services/auth.service';
+import { MessageService } from './services/message.service';
 
 @Component({
   selector: 'app-root',
@@ -21,16 +22,17 @@ import { AuthService } from './services/auth.service';
 export class AppComponent {
   showAuthModal = false;
   title = 'coliving-israel';
-  constructor(public auth: AuthService) {
+  messageToShow = '';
+
+  constructor(public auth: AuthService, private msg: MessageService) {
     this.auth.showAuthModal$.subscribe(v => {
       this.showAuthModal = v;
     });
-    // demo message (component is standalone; other components can set messageToShow)
-    this.messageToShow = '';
+
+    this.msg.message$.subscribe(m => {
+      this.messageToShow = m || '';
+    });
   }
-
-  messageToShow = '';
-
   onMsgClosed(reason: 'ok'|'x') {
     // hide message; real callers can react to reason
     this.messageToShow = '';

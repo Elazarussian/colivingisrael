@@ -9,15 +9,46 @@
 
       <!-- ADMIN UI -->
       <div *ngIf="isAdmin()" class="admin-panel">
-        <div class="admin-header" style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
-          <h2>ניהול משתמשים</h2>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-            <button class="btn btn-special" (click)="toggleUsersTable()">
-              {{ showUsersTable ? 'הסתר משתמשים' : 'הצג משתמשים' }}
-            </button>
+        <h2>ניהול משתמשים</h2>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap; margin-top:0.5rem;">
+          <button class="btn btn-special" (click)="toggleUsersTable()">
+            {{ showUsersTable ? 'הסתר משתמשים' : 'הצג משתמשים' }}
+          </button>
+        </div>
+
+        <!-- USERS TABLE -->
+        <div *ngIf="showUsersTable && !allUsersError" class="users-table" style="margin-top:1rem;overflow:auto;">
+          <table class="table">
+            <thead>
+              <tr>
+          <th>אימייל</th>
+          <th>נרשם בתאריך</th>
+          <th>תפקיד</th>
+          <th>הצג תשובות</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let u of allUsers">
+          <td>{{u.email}}</td>
+          <td>
+              {{ (u.createdAt && u.createdAt.toDate ? u.createdAt.toDate() : u.createdAt) | date:'dd/MM/yyyy hh:mm a' }}
+          </td>
+          <td>{{u.role}}</td>
+          <td><button class="btn btn-special" (click)="openUserAnswers(u)">תשובות</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Questionnaire management section -->
+        <div class="admin-questions" style="margin-top:1rem;">
+          <h2>ניהול שאלונים</h2>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap; margin-top:0.5rem;">
             <button class="btn btn-special" (click)="openRegistrationQuestions()">שאלות הרשמה חדשות</button>
-              <button class="btn btn-special" (click)="openPersonalDataQuestions()">נהל שאלון פרטי משתמש</button>
-              <button class="btn btn-special" (click)="openMaskirQuestions()">נהל שאלון משכיר</button>
+            <button class="btn btn-special" (click)="openPersonalDataQuestions()">נהל שאלון פרטי משתמש</button>
+            <button class="btn btn-special" (click)="openMaskirQuestions()">נהל שאלון משכיר</button>
+            <button class="btn btn-special" (click)="openApartmentQuestions()">נהל שאלון דירות</button>
+            <button class="btn btn-special" (click)="openEditAnswers()">ערוך תשובות אישיות</button>
           </div>
         </div>
 
@@ -28,44 +59,12 @@
             <button class="btn btn-regular" (click)="openRegistrationQuestions()">בדוק שאלות</button>
           </div>
         </div>
-
-        <div *ngIf="showUsersTable && !allUsersError" class="users-table" style="margin-top:1rem;overflow:auto;">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>UID</th>
-                <th>אימייל</th>
-                <th>תפקיד</th>
-                <th>תשובות</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let u of allUsers">
-                <td>{{u.uid || u.id}}</td>
-                <td>{{u.email}}</td>
-                <td>{{u.role}}</td>
-                <td><button class="btn btn-regular btn-sm" (click)="openUserAnswers(u)">תשובות</button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
       </div>
 
       <!-- USER VIEW (NON-ADMIN) -->
       <div *ngIf="!isAdmin()"
         style="margin-top:1.25rem; display:flex; gap:0.75rem; justify-content:flex-end; flex-wrap:wrap;">
         <button class="btn btn-approve" type="button" (click)="openEditAnswers()">ערוך תשובות אישיות</button>
-      </div>
-
-      <button class="btn btn-danger" type="button" (click)="promptLogout()">התנתק</button>
-      <button class="btn btn-special" type="button" (click)="goHome()">חזרה לבית</button>
-
-      <div *ngIf="showLogoutConfirm" class="confirm-panel">
-        <p>האם אתה בטוח שברצונך להתנתק?</p>
-        <div class="confirm-actions">
-          <button class="btn btn-regular" (click)="cancelLogout()">לא</button>
-          <button class="btn btn-cancel" (click)="confirmLogout()">כן, התנתק</button>
-        </div>
       </div>
 
     </div>

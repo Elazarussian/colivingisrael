@@ -28,7 +28,7 @@ export interface Question {
     styleUrls: ['./questions-manager.component.css']
 })
 export class QuestionsManagerComponent implements OnInit {
-    @Input() mode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
+    @Input() mode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'admin-apartment' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
     @Input() profile: any = null;
     @Input() userId?: string;
 
@@ -39,6 +39,7 @@ export class QuestionsManagerComponent implements OnInit {
     questions: Question[] = [];
     personalDataQuestions: Question[] = [];
     maskirQuestions: Question[] = [];
+    apartmentQuestions: Question[] = [];
     onboardingQuestions: Question[] = [];
     onboardingPersonalDataQuestions: Question[] = [];
     onboardingMaskirQuestions: Question[] = [];
@@ -48,9 +49,11 @@ export class QuestionsManagerComponent implements OnInit {
     newQuestion: Question = this.getEmptyQuestion();
     newPersonalDataQuestion: Question = this.getEmptyQuestion();
     newMaskirQuestion: Question = this.getEmptyQuestion();
+    newApartmentQuestion: Question = this.getEmptyQuestion();
     newOption = '';
     newPersonalDataOption = '';
     newMaskirOption = '';
+    newApartmentOption = '';
 
     // Edit question state
     editingQuestion: Question | null = null;
@@ -97,6 +100,9 @@ export class QuestionsManagerComponent implements OnInit {
                 break;
             case 'admin-maskir':
                 await this.loadMaskirQuestions();
+                break;
+            case 'admin-apartment':
+                await this.loadApartmentQuestions();
                 break;
             case 'onboarding':
                 await this.loadOnboardingQuestions();
@@ -188,6 +194,26 @@ export class QuestionsManagerComponent implements OnInit {
             });
         } catch (err) {
             console.error('Error loading personal data questions:', err);
+            return [];
+        }
+    }
+
+    async getApartmentQuestions(): Promise<Question[]> {
+        if (!this.auth.db) return [];
+        try {
+            const { collection, getDocs } = await import('firebase/firestore');
+            const snapshot = await getDocs(collection(this.auth.db, 'apartmentQuestions'));
+            const questions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
+            return questions.sort((a, b) => {
+                if (a.order !== undefined && b.order !== undefined) {
+                    return a.order - b.order;
+                }
+                if (a.order !== undefined) return -1;
+                if (b.order !== undefined) return 1;
+                return (a.createdAt || '').localeCompare(b.createdAt || '');
+            });
+        } catch (err) {
+            console.error('Error loading apartment questions:', err);
             return [];
         }
     }
@@ -452,6 +478,11 @@ export class QuestionsManagerComponent implements OnInit {
         this.cdr.detectChanges();
     }
 
+    async loadApartmentQuestions() {
+        this.apartmentQuestions = await this.getApartmentQuestions();
+        this.cdr.detectChanges();
+    }
+
     async loadOnboardingQuestions() {
     this.onboardingPersonalDataQuestions = await this.getPersonalDataQuestions();
     this.onboardingQuestions = await this.getRegistrationQuestions();
@@ -527,6 +558,29 @@ export class QuestionsManagerComponent implements OnInit {
             } else {
                 alert('שגיאה בהוספת השאלה. נסה שוב.');
             }
+        }
+    }
+
+    async addApartmentQuestion() {
+        if (!this.newApartmentQuestion.text) return;
+        try {
+            const questionData = this.prepareQuestionPayload(this.newApartmentQuestion);
+            await this.addQuestionToFirebase('apartmentQuestions', questionData);
+            this.resetApartmentQuestionForm();
+            await this.loadApartmentQuestions();
+        } catch (err) {
+            console.error('Error adding apartment question:', err);
+            alert('שגיאה בהוספת השאלה. נסה שוב.');
+        }
+    }
+
+    async deleteApartmentQuestion(id: string) {
+        if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
+        try {
+            await this.deleteQuestionFromFirebase('apartmentQuestions', id);
+            await this.loadApartmentQuestions();
+        } catch (err) {
+            console.error('Error deleting apartment question:', err);
         }
     }
 
@@ -693,6 +747,21 @@ export class QuestionsManagerComponent implements OnInit {
             this.newMaskirQuestion.options.splice(index, 1);
         }
     }
+
+    addApartmentOption() {
+        if (this.newApartmentOption.trim()) {
+            if (!this.newApartmentQuestion.options) this.newApartmentQuestion.options = [];
+            this.newApartmentQuestion.options.push(this.newApartmentOption.trim());
+            this.newApartmentOption = '';
+        }
+    }
+
+    removeApartmentOption(index: number) {
+        if (this.newApartmentQuestion.options) {
+            this.newApartmentQuestion.options.splice(index, 1);
+        }
+    }
+
 
     removePersonalDataOption(index: number) {
         if (this.newPersonalDataQuestion.options) {
@@ -1004,6 +1073,12 @@ export class QuestionsManagerComponent implements OnInit {
         this.newMaskirQuestion = this.getEmptyQuestion();
         this.newMaskirOption = '';
         this.maskirKeyManualMode = false;
+        this.currentLang = 'he';
+    }
+
+    private resetApartmentQuestionForm() {
+        this.newApartmentQuestion = this.getEmptyQuestion();
+        this.newApartmentOption = '';
         this.currentLang = 'he';
     }
 }

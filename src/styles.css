@@ -109,13 +109,6 @@ h1 {
     padding: 2rem
 }
 
-h1 {
-    font-size: 4rem;
-    font-weight: 700;
-    margin-bottom: .5rem;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5)
-}
-
 .subtitle {
     font-size: 1.5rem;
     margin-bottom: 2.5rem;
@@ -142,20 +135,12 @@ h1 {
     gap: .5rem
 }
 
-.btn-regular {
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.06)
-}
-
-.btn-regular:hover {
-    transform: translateY(-2px)
-}
-
 .btn-approve {
-    background: #4CAF50;
+    /* approve: green */
+    background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
     color: #fff;
     box-shadow: 0 6px 18px rgba(76, 175, 80, 0.18)
+ 
 }
 
 .btn-approve:hover {
@@ -164,24 +149,34 @@ h1 {
 }
 
 .btn-special {
-    background: linear-gradient(90deg, #2e7d32 0%, #43a047 100%);
-    color: #fff
+    /* special: yellow */
+    background: linear-gradient(135deg, #81c784 0%, #4caf50 50%, #2e7d32 100%);
+    color: #111;
 }
-
 .btn-special:hover {
-    filter: brightness(.98);
+    filter: brightness(.96);
     transform: translateY(-1px)
 }
 
 .btn-cancel {
-    background: transparent;
-    color: #ffdede;
-    border: 1px solid rgba(255, 0, 0, 0.12)
+    /* Primary cancel style used across the app */
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 25%, #d32f2f 60%, #8e0000 100%);
+    color: #fff;
+    border: none;
+    box-shadow: 0 6px 18px rgba(213, 47, 47, 0.18);
+    border-radius: 10px;
+    padding: .75rem 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .16s;
 }
 
 .btn-cancel:hover {
-    background: rgba(255, 0, 0, 0.06)
+    background: linear-gradient(135deg, #c62828 0%, #d32f2f 100%);
+    transform: translateY(-2px);
 }
+
+
 
 /* Shared layout and form utilities (used across multiple components) */
 .container {

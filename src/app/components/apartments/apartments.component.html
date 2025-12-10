@@ -2,7 +2,11 @@
     <h2>Available Apartments</h2>
     <p>Browse listings shared by the community.</p>
 
-    <div class="list">
+    <div *ngIf="showRegistrationRequired">
+        <show-message [message]="'אין כניסה למאגר דירות ללא הרשמה לאתר. יש להירשם לפני הצפייה במודעות.'" (closed)="showRegistrationRequired = false"></show-message>
+    </div>
+
+    <div class="list" *ngIf="!showRegistrationRequired">
         <div class="apt-card" *ngFor="let a of apartments">
             <h3>{{ a.title }}</h3>
             <p>{{ a.city }} — {{ a.price }}</p>

@@ -13,7 +13,7 @@ import { filter } from 'rxjs/operators';
   template: `
     <nav class="topbar">
       <div class="left"> <!-- placeholder for logo or nav links -->
-  <button *ngIf="showHome" class="btn btn-regular" [routerLink]="['/']">בית</button>
+  <button *ngIf="showHome" class="btn btn-special" [routerLink]="['/']">בית</button>
       </div>
       <div class="right">
   <ng-container *ngIf="user$ | async as user; else notLogged">

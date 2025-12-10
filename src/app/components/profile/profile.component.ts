@@ -27,7 +27,7 @@ export class ProfileComponent implements OnInit {
   showUsersTable = false;
 
   showQuestionsManager = false;
-  questionsMode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
+  questionsMode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'admin-apartment' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
   selectedUserId?: string;
 
   onboardingPrompted = false;
@@ -83,6 +83,7 @@ export class ProfileComponent implements OnInit {
   openRegistrationQuestions() { this.questionsMode = 'admin-registration'; this.showQuestionsManager = true; }
   openPersonalDataQuestions() { this.questionsMode = 'admin-personal-data'; this.showQuestionsManager = true; }
   openMaskirQuestions() { this.questionsMode = 'admin-maskir'; this.showQuestionsManager = true; }
+  openApartmentQuestions() { this.questionsMode = 'admin-apartment'; this.showQuestionsManager = true; }
   openEditAnswers() { this.questionsMode = 'edit-answers'; this.showQuestionsManager = true; }
   openUserAnswers(user: any) { this.selectedUserId = user.uid || user.id; this.questionsMode = 'view-answers'; this.showQuestionsManager = true; }
   onQuestionsCompleted() { this.showQuestionsManager = false; this.cdr.detectChanges(); }
