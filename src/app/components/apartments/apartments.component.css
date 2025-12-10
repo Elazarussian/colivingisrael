@@ -1,0 +1,14 @@
+.apartments-page {
+    padding: 1rem;
+}
+.list {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.apt-card {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    border-radius: 6px;
+    width: 240px;
+}

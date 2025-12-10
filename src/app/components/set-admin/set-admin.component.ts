@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 import { doc, setDoc } from 'firebase/firestore';
 import { firstValueFrom } from 'rxjs';
 
@@ -48,13 +48,10 @@ export class SetAdminComponent {
             this.message = '✅ Admin role set! Refreshing profile...';
             this.messageColor = 'green';
 
-            // Reload profile
             await this.auth.reloadProfile();
 
             console.log('Profile reloaded, waiting before refresh...');
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            setTimeout(() => { window.location.reload(); }, 1000);
 
         } catch (error: any) {
             this.message = '❌ Error: ' + error.message;

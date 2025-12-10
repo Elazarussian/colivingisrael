@@ -1,0 +1,12 @@
+<section class="apartments-page">
+    <h2>Available Apartments</h2>
+    <p>Browse listings shared by the community.</p>
+
+    <div class="list">
+        <div class="apt-card" *ngFor="let a of apartments">
+            <h3>{{ a.title }}</h3>
+            <p>{{ a.city }} — {{ a.price }}</p>
+            <button class="btn btn-regular">View</button>
+        </div>
+    </div>
+</section>

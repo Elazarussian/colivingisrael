@@ -1,18 +1,19 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
-import { NavigationEnd, RouterEvent } from '@angular/router';
+import { RouterModule } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
+import { NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   template: `
     <nav class="topbar">
       <div class="left"> <!-- placeholder for logo or nav links -->
-  <button *ngIf="showHome" class="btn btn-regular" (click)="goHome()">בית</button>
+  <button *ngIf="showHome" class="btn btn-regular" [routerLink]="['/']">בית</button>
       </div>
       <div class="right">
   <ng-container *ngIf="user$ | async as user; else notLogged">
@@ -36,7 +37,6 @@ export class TopbarComponent {
   showHome = false;
 
   constructor(private auth: AuthService, private router: Router) {
-    // update showHome based on current route
     this.updateShowHome(this.router.url || '/');
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe(ev => {
       this.updateShowHome(ev.urlAfterRedirects || ev.url);
@@ -55,21 +55,10 @@ export class TopbarComponent {
   }
 
   private updateShowHome(url: string) {
-    // show home button on any non-root path
     this.showHome = !(url === '/' || url === '' || url.startsWith('/?'));
   }
 
-  openRegister() {
-    this.auth.showAuthModal();
-    // ensure route to home so modal appears in context
-    this.router.navigate(['/']);
-  }
-
-  goToProfile() {
-    this.router.navigate(['/profile']);
-  }
-
-  goHome() {
-    this.router.navigate(['/']);
-  }
+  openRegister() { this.auth.showAuthModal(); this.router.navigate(['/']); }
+  goToProfile() { this.router.navigate(['/profile']); }
+  goHome() { this.router.navigate(['/']); }
 }

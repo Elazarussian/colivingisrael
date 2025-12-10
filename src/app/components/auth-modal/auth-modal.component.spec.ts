@@ -7,17 +7,11 @@ describe('AuthModalComponent', () => {
   let fixture: ComponentFixture<AuthModalComponent>;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [AuthModalComponent]
-    })
-    .compileComponents();
-
+    await TestBed.configureTestingModule({ imports: [AuthModalComponent] }).compileComponents();
     fixture = TestBed.createComponent(AuthModalComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+  it('should create', () => { expect(component).toBeTruthy(); });
 });

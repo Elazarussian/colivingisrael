@@ -1,9 +1,9 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 import { Router, ActivatedRoute } from '@angular/router';
-import { QuestionsManagerComponent } from '../components/questions-manager/questions-manager.component';
+import { QuestionsManagerComponent } from '../questions-manager/questions-manager.component';
 
 @Component({
   selector: 'app-profile',
@@ -22,17 +22,14 @@ export class ProfileComponent implements OnInit {
   profile: any = null;
   showLogoutConfirm = false;
 
-  // Admin mode
   allUsers: any[] = [];
   allUsersError: string | null = null;
   showUsersTable = false;
 
-  // Questions Manager Integration
   showQuestionsManager = false;
   questionsMode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
   selectedUserId?: string;
 
-  // Onboarding tracking
   onboardingPrompted = false;
 
   constructor(
@@ -41,7 +38,6 @@ export class ProfileComponent implements OnInit {
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
   ) {
-    // Keep local profile updated and trigger onboarding when profile becomes available
     this.auth.profile$.subscribe(async (p) => {
       this.profile = p;
       if (!p || this.onboardingPrompted) return;
@@ -49,10 +45,6 @@ export class ProfileComponent implements OnInit {
       try {
         const showOnboardingRequested = this.route.snapshot.queryParams['showOnboarding'] === '1';
         const onboardingCompleted = p['onboardingCompleted'] === true;
-
-        // Only show onboarding if:
-        // 1. Explicitly requested (signup flow) AND not already completed
-        // 2. OR if the profile was just created and onboarding not completed
         const isNewProfile = !onboardingCompleted && this.isRecentlyCreated(p, 15);
 
         if (!onboardingCompleted && (showOnboardingRequested || isNewProfile)) {
@@ -67,7 +59,6 @@ export class ProfileComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Load admin data if admin
     this.auth.profile$.subscribe(p => {
       if (p && this.isAdmin()) {
         this.loadAllUsers();
@@ -84,77 +75,23 @@ export class ProfileComponent implements OnInit {
     return diffMinutes <= withinMinutes;
   }
 
-  // === ROLE CHECKS ===
-  isAdmin(): boolean {
-    return this.auth.isAdmin(this.profile);
-  }
+  isAdmin(): boolean { return this.auth.isAdmin(this.profile); }
+  getUserRole(): string { return this.auth.getUserRole(this.profile); }
+  fieldOrDefault(key: string, userVal: any, defaultVal: string): string { if (this.profile && this.profile[key]) return this.profile[key]; if (userVal) return userVal; return defaultVal; }
 
-  getUserRole(): string {
-    return this.auth.getUserRole(this.profile);
-  }
+  openOnboarding() { this.questionsMode = 'onboarding'; this.showQuestionsManager = true; }
+  openRegistrationQuestions() { this.questionsMode = 'admin-registration'; this.showQuestionsManager = true; }
+  openPersonalDataQuestions() { this.questionsMode = 'admin-personal-data'; this.showQuestionsManager = true; }
+  openMaskirQuestions() { this.questionsMode = 'admin-maskir'; this.showQuestionsManager = true; }
+  openEditAnswers() { this.questionsMode = 'edit-answers'; this.showQuestionsManager = true; }
+  openUserAnswers(user: any) { this.selectedUserId = user.uid || user.id; this.questionsMode = 'view-answers'; this.showQuestionsManager = true; }
+  onQuestionsCompleted() { this.showQuestionsManager = false; this.cdr.detectChanges(); }
+  onQuestionsClosed() { this.showQuestionsManager = false; }
 
-  fieldOrDefault(key: string, userVal: any, defaultVal: string): string {
-    if (this.profile && this.profile[key]) return this.profile[key];
-    if (userVal) return userVal;
-    return defaultVal;
-  }
-
-  // === QUESTIONS MANAGER METHODS ===
-  openOnboarding() {
-    this.questionsMode = 'onboarding';
-    this.showQuestionsManager = true;
-  }
-
-  openRegistrationQuestions() {
-    this.questionsMode = 'admin-registration';
-    this.showQuestionsManager = true;
-  }
-
-  openPersonalDataQuestions() {
-    this.questionsMode = 'admin-personal-data';
-    this.showQuestionsManager = true;
-  }
-
-  openMaskirQuestions() {
-    this.questionsMode = 'admin-maskir';
-    this.showQuestionsManager = true;
-  }
-
-  openEditAnswers() {
-    this.questionsMode = 'edit-answers';
-    this.showQuestionsManager = true;
-  }
-
-  openUserAnswers(user: any) {
-    this.selectedUserId = user.uid || user.id;
-    this.questionsMode = 'view-answers';
-    this.showQuestionsManager = true;
-  }
-
-  onQuestionsCompleted() {
-    this.showQuestionsManager = false;
-    // Profile will be automatically updated via the profile$ subscription
-    this.cdr.detectChanges();
-  }
-
-  onQuestionsClosed() {
-    this.showQuestionsManager = false;
-  }
-
-  // === ADMIN METHODS ===
-  toggleUsersTable() {
-    this.showUsersTable = !this.showUsersTable;
-    if (this.showUsersTable && this.allUsers.length === 0) {
-      this.loadAllUsers();
-    }
-  }
+  toggleUsersTable() { this.showUsersTable = !this.showUsersTable; if (this.showUsersTable && this.allUsers.length === 0) { this.loadAllUsers(); } }
 
   async loadAllUsers() {
-    if (!this.auth.db) {
-      this.allUsersError = 'Database not initialized';
-      return;
-    }
-
+    if (!this.auth.db) { this.allUsersError = 'Database not initialized'; return; }
     try {
       this.allUsersError = null;
       const { collection, getDocs } = await import('firebase/firestore');
@@ -168,22 +105,8 @@ export class ProfileComponent implements OnInit {
     }
   }
 
-  // === LOGOUT ===
-  promptLogout() {
-    this.showLogoutConfirm = true;
-  }
-
-  cancelLogout() {
-    this.showLogoutConfirm = false;
-  }
-
-  async confirmLogout() {
-    await this.auth.logout();
-    this.showLogoutConfirm = false;
-    this.router.navigate(['/']);
-  }
-
-  goHome() {
-    this.router.navigate(['/']);
-  }
+  promptLogout() { this.showLogoutConfirm = true; }
+  cancelLogout() { this.showLogoutConfirm = false; }
+  async confirmLogout() { await this.auth.logout(); this.showLogoutConfirm = false; this.router.navigate(['/']); }
+  goHome() { this.router.navigate(['/']); }
 }

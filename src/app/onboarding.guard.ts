@@ -44,12 +44,18 @@ export class OnboardingGuard implements CanActivate {
                 }
 
                 // If they DON'T have answers:
-                // If they are already going to /profile, let them in (so they can answer).
+                // Allow navigation to /profile (so they can answer) and allow navigation to the site root '/'.
+                // This ensures the topbar 'בית' button actually reaches home instead of being redirected.
                 if (state.url.startsWith('/profile')) {
                     return true;
                 }
 
-                // Otherwise, redirect to profile
+                // Allow root navigation (/) even if onboarding incomplete
+                if (state.url === '/' || state.url === '' || state.url.startsWith('/?')) {
+                    return true;
+                }
+
+                // Otherwise, redirect to profile to force onboarding
                 return this.router.createUrlTree(['/profile'], { queryParams: { showOnboarding: '1' } });
             })
         );

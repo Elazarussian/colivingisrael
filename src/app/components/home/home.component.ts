@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router'; // <-- add this
-import { AuthService } from '../services/auth.service';
-import { SetAdminComponent } from '../components/set-admin/set-admin.component';
+import { RouterModule } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
+import { SetAdminComponent } from '../set-admin/set-admin.component';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule, SetAdminComponent], // <-- add SetAdminComponent
+  imports: [CommonModule, RouterModule, SetAdminComponent],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })
