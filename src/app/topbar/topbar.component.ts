@@ -15,8 +15,13 @@ import { filter } from 'rxjs/operators';
   <button *ngIf="showHome" class="btn btn-regular" (click)="goHome()">בית</button>
       </div>
       <div class="right">
-  <button *ngIf="!(user$ | async)" class="btn btn-approve" (click)="openRegister()">הרשמה</button>
-  <button *ngIf="user$ | async as user" class="btn btn-special" (click)="goToProfile()">{{ user.displayName || 'פרופיל' }}</button>
+  <ng-container *ngIf="user$ | async as user; else notLogged">
+    <button class="btn btn-special" (click)="goToProfile()">{{ user.displayName || 'פרופיל' }}</button>
+    <button class="btn btn-cancel" (click)="logout()">התנתק</button>
+  </ng-container>
+  <ng-template #notLogged>
+    <button class="btn btn-approve" (click)="openRegister()">הרשמה</button>
+  </ng-template>
       </div>
     </nav>
   `,
@@ -36,6 +41,17 @@ export class TopbarComponent {
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe(ev => {
       this.updateShowHome(ev.urlAfterRedirects || ev.url);
     });
+  }
+
+  async logout() {
+    const confirmed = confirm('האם אתה בטוח שברצונך להתנתק?');
+    if (!confirmed) return;
+    try {
+      await this.auth.logout();
+      this.router.navigate(['/']);
+    } catch (err) {
+      console.error('Logout error', err);
+    }
   }
 
   private updateShowHome(url: string) {

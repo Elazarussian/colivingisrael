@@ -43,6 +43,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
+    // Maskir Questions collection
+    match /maskirQuestions/{questionId} {
+      // Everyone can read questions (needed for onboarding and admin UI)
+      allow read: if true;
+
+      // Only admins can write (create, update, delete)
+      allow write: if isAdmin();
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;

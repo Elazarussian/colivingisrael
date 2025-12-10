@@ -158,10 +158,11 @@ export class AuthService {
         return this.getUserRole(profile) === 'admin';
     }
 
-    hasPermission(profile: any, requiredRole: 'admin' | 'user'): boolean {
+    hasPermission(profile: any, requiredRole: 'admin' | 'maskir' | 'user'): boolean {
         const role = this.getUserRole(profile);
         const roleHierarchy: { [key: string]: number } = {
             'admin': 3,
+            'maskir': 2,
             'user': 1
         };
         return (roleHierarchy[role] || 0) >= (roleHierarchy[requiredRole] || 0);
@@ -212,14 +213,25 @@ export class AuthService {
         return cred;
     }
 
-    async signup(email: string, password: string): Promise<UserCredential> {
+    async signup(email: string, password: string, role: 'user' | 'maskir' = 'user'): Promise<UserCredential> {
         if (!auth) throw new Error('Firebase not configured');
         const cred = await createUserWithEmailAndPassword(auth, email, password);
         try {
             this._user$.next(cred.user);
-            await this.ensureProfileExists(cred.user);
-            await this.ensureProfileExists(cred.user);
-            // await this.ensureUserExists(cred.user);
+            // Create profile with the selected role
+            if (db) {
+                const docRef = doc(db, 'profiles', cred.user.uid);
+                const newProfile = {
+                    uid: cred.user.uid,
+                    email: cred.user.email || '',
+                    displayName: cred.user.displayName || '',
+                    role: role,
+                    createdAt: new Date().toISOString()
+                };
+                await setDoc(docRef, newProfile);
+                this._profile$.next(newProfile);
+                console.log('Created new profile with role:', role);
+            }
         } catch (e) {
             console.error('Error in signup:', e);
         }

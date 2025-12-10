@@ -29,7 +29,7 @@ export class ProfileComponent implements OnInit {
 
   // Questions Manager Integration
   showQuestionsManager = false;
-  questionsMode: 'admin-registration' | 'admin-personal-data' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
+  questionsMode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
   selectedUserId?: string;
 
   // Onboarding tracking
@@ -112,6 +112,11 @@ export class ProfileComponent implements OnInit {
 
   openPersonalDataQuestions() {
     this.questionsMode = 'admin-personal-data';
+    this.showQuestionsManager = true;
+  }
+
+  openMaskirQuestions() {
+    this.questionsMode = 'admin-maskir';
     this.showQuestionsManager = true;
   }
 

@@ -290,6 +290,151 @@
         </div>
     </div>
 
+    <!-- ADMIN: MASKIR QUESTIONS MANAGEMENT -->
+    <div *ngIf="mode === 'admin-maskir'" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>ניהול שאלון משכיר</h2>
+                <button class="btn-close" (click)="close()">X</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="questions-list">
+                    <h3>שאלות קיימות</h3>
+                    <div *ngIf="maskirQuestions.length === 0">אין שאלות עדיין.</div>
+
+                    <div *ngFor="let q of maskirQuestions; let i = index" class="question-item">
+                        <div class="question-info">
+                            <strong>{{q.text}}</strong>
+                            <span *ngIf="q.key" style="font-size:0.8rem;color:#666;margin-right:0.5rem;">(Key:
+                                {{q.key}})</span>
+                            <span class="question-type">({{q.type}})</span>
+
+                            <div *ngIf="(q.type === 'checklist' || q.type === 'radio') && q.options && q.options.length"
+                                class="options-preview">
+                                <small>אפשרויות: {{ q.options.join(', ') }}</small>
+                            </div>
+
+                            <div *ngIf="q.type === 'scale' || q.type === 'range'" class="options-preview">
+                                <small>טווח: {{q.min}} - {{q.max}}</small>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;">
+                            <button class="btn btn-regular btn-sm" (click)="moveQuestionUp(i, false, true)"
+                                [disabled]="i === 0" title="העלה">↑</button>
+                            <button class="btn btn-regular btn-sm" (click)="moveQuestionDown(i, false, true)"
+                                [disabled]="i === maskirQuestions.length - 1" title="הורד">↓</button>
+                            <button class="btn btn-regular btn-sm" (click)="openEditQuestion(q, false, true)">ערוך</button>
+                            <button class="btn btn-danger btn-sm" (click)="deleteMaskirQuestion(q.id || '')">מחק</button>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="add-question-form">
+                    <h3>הוסף שאלה חדשה</h3>
+
+                    <div class="language-switcher" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
+                        <span (click)="setLanguage('he')" [style.opacity]="currentLang==='he'?1:0.5"
+                            style="cursor:pointer;font-size:1.5rem;">🇮🇱</span>
+                        <span (click)="setLanguage('en')" [style.opacity]="currentLang==='en'?1:0.5"
+                            style="cursor:pointer;font-size:1.5rem;">🇺🇸</span>
+                        <span (click)="setLanguage('ru')" [style.opacity]="currentLang==='ru'?1:0.5"
+                            style="cursor:pointer;font-size:1.5rem;">🇷🇺</span>
+                        <span (click)="setLanguage('fr')" [style.opacity]="currentLang==='fr'?1:0.5"
+                            style="cursor:pointer;font-size:1.5rem;">🇫🇷</span>
+                    </div>
+
+                    <label>נוסח השאלה ({{currentLang | uppercase}})</label>
+                    <input *ngIf="currentLang === 'he'" [(ngModel)]="newMaskirQuestion.text"
+                        (input)="onQuestionTextChange(false, true)" class="form-control" placeholder="הכנס שאלה (עברית)..." />
+                    <input *ngIf="currentLang === 'en'" [(ngModel)]="newMaskirQuestion.textEn"
+                        (input)="onQuestionTextChange(false, true)" class="form-control"
+                        placeholder="Enter question (English)..." />
+                    <input *ngIf="currentLang === 'ru'" [(ngModel)]="newMaskirQuestion.textRu"
+                        (input)="onQuestionTextChange(false, true)" class="form-control"
+                        placeholder="Введите вопрос (Russian)..." />
+                    <input *ngIf="currentLang === 'fr'" [(ngModel)]="newMaskirQuestion.textFr"
+                        (input)="onQuestionTextChange(false, true)" class="form-control"
+                        placeholder="Entrez la question (French)..." />
+
+                    <div class="key-section-container">
+                        <div
+                            style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                            <label [style.opacity]="maskirKeyManualMode ? 1 : 0.5">מפתח (אנגלית) -
+                                אופציונלי</label>
+                            <label style="font-size:0.8rem;display:flex;align-items:center;gap:0.25rem;cursor:pointer;">
+                                <input type="checkbox" [checked]="maskirKeyManualMode"
+                                    (change)="toggleKeyManualMode(false, true)">
+                                ערוך ידנית
+                            </label>
+                        </div>
+                        <input [(ngModel)]="newMaskirQuestion.key" [disabled]="!maskirKeyManualMode"
+                            class="form-control form-control-sm-custom"
+                            [style.opacity]="maskirKeyManualMode ? 1 : 0.5" placeholder="לדוגמה: firstname" />
+                    </div>
+
+                    <label>סוג תשובה</label>
+                    <select [(ngModel)]="newMaskirQuestion.type" class="form-control form-control-auto">
+                        <option value="text">טקסט חופשי</option>
+                        <option value="yesno">כן/לא</option>
+                        <option value="checklist">רשימת אפשרויות</option>
+                        <option value="date">תאריך</option>
+                        <option value="scale">דירוג</option>
+                        <option value="range">טווח מספרים</option>
+                        <option value="radio">בחירה יחידה</option>
+                        <option value="phone">טלפון</option>
+                    </select>
+
+                    <div *ngIf="newMaskirQuestion.type === 'checklist' || newMaskirQuestion.type === 'radio'"
+                        class="options-manager">
+                        <label>אפשרויות בחירה</label>
+                        <div class="add-option-row">
+                            <input [(ngModel)]="newMaskirOption" class="form-control-sm-custom"
+                                placeholder="אפשרות חדשה..." (keyup.enter)="addMaskirOption()" />
+                            <button class="btn btn-regular btn-sm" (click)="addMaskirOption()">הוסף</button>
+                        </div>
+                        <ul class="options-list">
+                            <li *ngFor="let opt of newMaskirQuestion.options; let i = index">
+                                {{opt}} <span class="remove-opt" (click)="removeMaskirOption(i)">x</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div *ngIf="newMaskirQuestion.type === 'scale' || newMaskirQuestion.type === 'range'"
+                        class="scale-manager" style="display:flex;gap:1rem;margin-bottom:1rem;">
+                        <div>
+                            <label>מינימום</label>
+                            <input type="number" [(ngModel)]="newMaskirQuestion.min"
+                                class="form-control form-control-sm-custom" style="width:80px" />
+                        </div>
+                        <div>
+                            <label>מקסימום</label>
+                            <input type="number" [(ngModel)]="newMaskirQuestion.max"
+                                class="form-control form-control-sm-custom" style="width:80px" />
+                        </div>
+                    </div>
+
+                    <div *ngIf="newMaskirQuestion.type === 'checklist'" class="max-selections-manager"
+                        style="margin-bottom:1rem;">
+                        <label>מקסימום בחירות (אופציונלי)</label>
+                        <input type="number" [(ngModel)]="newMaskirQuestion.maxSelections"
+                            class="form-control form-control-sm-custom" placeholder="השאר ריק ללא הגבלה" min="1" />
+                        <small style="color:#666;display:block;margin-top:0.25rem;">
+                            הגבל את מספר האפשרויות שהמשתמש יכול לבחור
+                        </small>
+                    </div>
+
+                    <button class="btn btn-approve btn-fit-content" (click)="addMaskirQuestion()"
+                        [disabled]="!newMaskirQuestion.text">
+                        הוסף שאלה
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- VIEW USER ANSWERS (ADMIN) -->
     <div *ngIf="mode === 'view-answers'" class="modal-overlay">
         <div class="modal-content">

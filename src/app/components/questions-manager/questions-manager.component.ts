@@ -28,7 +28,7 @@ export interface Question {
     styleUrls: ['./questions-manager.component.css']
 })
 export class QuestionsManagerComponent implements OnInit {
-    @Input() mode: 'admin-registration' | 'admin-personal-data' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
+    @Input() mode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
     @Input() profile: any = null;
     @Input() userId?: string;
 
@@ -38,19 +38,24 @@ export class QuestionsManagerComponent implements OnInit {
     // Questions lists
     questions: Question[] = [];
     personalDataQuestions: Question[] = [];
+    maskirQuestions: Question[] = [];
     onboardingQuestions: Question[] = [];
     onboardingPersonalDataQuestions: Question[] = [];
+    onboardingMaskirQuestions: Question[] = [];
     editPersonalityQuestions: Question[] = [];
 
     // Form state for new questions
     newQuestion: Question = this.getEmptyQuestion();
     newPersonalDataQuestion: Question = this.getEmptyQuestion();
+    newMaskirQuestion: Question = this.getEmptyQuestion();
     newOption = '';
     newPersonalDataOption = '';
+    newMaskirOption = '';
 
     // Edit question state
     editingQuestion: Question | null = null;
     isEditPersonalData = false;
+    isEditMaskir = false;
     editOption = '';
 
     // Answers state
@@ -68,6 +73,7 @@ export class QuestionsManagerComponent implements OnInit {
     currentLang: 'he' | 'en' | 'ru' | 'fr' = 'he';
     registrationKeyManualMode = false;
     personalDataKeyManualMode = false;
+    maskirKeyManualMode = false;
 
     // Phone support
     phonePrefixes = ['050', '051', '052', '053', '054', '055', '058'];
@@ -88,6 +94,9 @@ export class QuestionsManagerComponent implements OnInit {
                 break;
             case 'admin-personal-data':
                 await this.loadPersonalDataQuestions();
+                break;
+            case 'admin-maskir':
+                await this.loadMaskirQuestions();
                 break;
             case 'onboarding':
                 await this.loadOnboardingQuestions();
@@ -138,6 +147,26 @@ export class QuestionsManagerComponent implements OnInit {
             });
         } catch (err) {
             console.error('Error loading registration questions:', err);
+            return [];
+        }
+    }
+
+    async getMaskirQuestions(): Promise<Question[]> {
+        if (!this.auth.db) return [];
+        try {
+            const { collection, getDocs } = await import('firebase/firestore');
+            const snapshot = await getDocs(collection(this.auth.db, 'maskirQuestions'));
+            const questions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
+            return questions.sort((a, b) => {
+                if (a.order !== undefined && b.order !== undefined) {
+                    return a.order - b.order;
+                }
+                if (a.order !== undefined) return -1;
+                if (b.order !== undefined) return 1;
+                return (a.createdAt || '').localeCompare(b.createdAt || '');
+            });
+        } catch (err) {
+            console.error('Error loading maskir questions:', err);
             return [];
         }
     }
@@ -212,9 +241,10 @@ export class QuestionsManagerComponent implements OnInit {
     async mapQuestionsToText(): Promise<{ [id: string]: string }> {
         const textMap: { [id: string]: string } = {};
 
-        const [regQs, pdQs] = await Promise.all([
+        const [regQs, pdQs, mkQs] = await Promise.all([
             this.getRegistrationQuestions(),
-            this.getPersonalDataQuestions()
+            this.getPersonalDataQuestions(),
+            this.getMaskirQuestions()
         ]);
 
         const mapQ = (q: Question) => {
@@ -222,8 +252,9 @@ export class QuestionsManagerComponent implements OnInit {
             if (q.key) textMap[q.key] = q.text;
         };
 
-        regQs.forEach(mapQ);
-        pdQs.forEach(mapQ);
+    regQs.forEach(mapQ);
+    pdQs.forEach(mapQ);
+    mkQs.forEach(mapQ);
 
         return textMap;
     }
@@ -416,9 +447,15 @@ export class QuestionsManagerComponent implements OnInit {
         this.cdr.detectChanges();
     }
 
+    async loadMaskirQuestions() {
+        this.maskirQuestions = await this.getMaskirQuestions();
+        this.cdr.detectChanges();
+    }
+
     async loadOnboardingQuestions() {
-        this.onboardingPersonalDataQuestions = await this.getPersonalDataQuestions();
-        this.onboardingQuestions = await this.getRegistrationQuestions();
+    this.onboardingPersonalDataQuestions = await this.getPersonalDataQuestions();
+    this.onboardingQuestions = await this.getRegistrationQuestions();
+    this.onboardingMaskirQuestions = await this.getMaskirQuestions();
         this.cdr.detectChanges();
     }
 
@@ -466,6 +503,33 @@ export class QuestionsManagerComponent implements OnInit {
         }
     }
 
+    async addMaskirQuestion() {
+        if (!this.newMaskirQuestion.text) return;
+
+        // Client-side check: ensure current profile is admin before attempting write
+        const isAdminClient = this.auth && this.profile && this.auth.isAdmin ? this.auth.isAdmin(this.profile) : (this.profile?.role === 'admin');
+        if (!isAdminClient) {
+            alert('אין הרשאה להוסיף שאלות משכיר. ודא שאתה מחובר בפרופיל מנהל (role=admin) ורענן את הדף.');
+            return;
+        }
+
+        try {
+            const questionData = this.prepareQuestionPayload(this.newMaskirQuestion);
+            await this.addQuestionToFirebase('maskirQuestions', questionData);
+            this.resetMaskirQuestionForm();
+            await this.loadMaskirQuestions();
+        } catch (err: any) {
+            console.error('Error adding maskir question:', err);
+            // Friendly, actionable message for permission errors
+            const code = err && (err.code || err.message || '').toString();
+            if (code && (code.includes('permission') || code === 'permission-denied')) {
+                alert('שגיאת הרשאה ב-Firestore: לא ניתן לכתוב ל-`maskirQuestions`. וודא שפריסת כללי Firestore כוללת `maskirQuestions` ושהפרופיל שלך role=\'admin\'. אם שינית את החוקים, הרץ `firebase deploy --only firestore:rules`.');
+            } else {
+                alert('שגיאה בהוספת השאלה. נסה שוב.');
+            }
+        }
+    }
+
     async deleteQuestion(id: string) {
         if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
         try {
@@ -486,9 +550,19 @@ export class QuestionsManagerComponent implements OnInit {
         }
     }
 
+    async deleteMaskirQuestion(id: string) {
+        if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
+        try {
+            await this.deleteQuestionFromFirebase('maskirQuestions', id);
+            await this.loadMaskirQuestions();
+        } catch (err) {
+            console.error('Error deleting maskir question:', err);
+        }
+    }
+
     // === REORDER QUESTION METHODS ===
-    async moveQuestionUp(index: number, isPersonalData: boolean) {
-        const list = isPersonalData ? this.personalDataQuestions : this.questions;
+    async moveQuestionUp(index: number, isPersonalData: boolean, isMaskir: boolean = false) {
+        const list = isMaskir ? this.maskirQuestions : (isPersonalData ? this.personalDataQuestions : this.questions);
         if (index === 0) return; // Already at top
 
         // Swap with previous
@@ -497,11 +571,11 @@ export class QuestionsManagerComponent implements OnInit {
         list[index - 1] = temp;
 
         // Update order values
-        await this.updateQuestionOrders(list, isPersonalData);
+    await this.updateQuestionOrders(list, isPersonalData, isMaskir);
     }
 
-    async moveQuestionDown(index: number, isPersonalData: boolean) {
-        const list = isPersonalData ? this.personalDataQuestions : this.questions;
+    async moveQuestionDown(index: number, isPersonalData: boolean, isMaskir: boolean = false) {
+        const list = isMaskir ? this.maskirQuestions : (isPersonalData ? this.personalDataQuestions : this.questions);
         if (index === list.length - 1) return; // Already at bottom
 
         // Swap with next
@@ -510,11 +584,11 @@ export class QuestionsManagerComponent implements OnInit {
         list[index + 1] = temp;
 
         // Update order values
-        await this.updateQuestionOrders(list, isPersonalData);
+    await this.updateQuestionOrders(list, isPersonalData, isMaskir);
     }
 
-    private async updateQuestionOrders(list: Question[], isPersonalData: boolean) {
-        const collectionName = isPersonalData ? 'userPersonalDataQuestions' : 'newUsersQuestions';
+    private async updateQuestionOrders(list: Question[], isPersonalData: boolean, isMaskir: boolean = false) {
+        const collectionName = isMaskir ? 'maskirQuestions' : (isPersonalData ? 'userPersonalDataQuestions' : 'newUsersQuestions');
 
         try {
             // Update order for each question
@@ -533,8 +607,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     // === EDIT QUESTION METHODS ===
-    openEditQuestion(q: Question, isPersonalData: boolean) {
+    openEditQuestion(q: Question, isPersonalData: boolean, isMaskir: boolean = false) {
         this.isEditPersonalData = isPersonalData;
+        this.isEditMaskir = !!isMaskir;
         this.editingQuestion = JSON.parse(JSON.stringify(q));
         if (!this.editingQuestion!.options) {
             this.editingQuestion!.options = [];
@@ -550,7 +625,7 @@ export class QuestionsManagerComponent implements OnInit {
     async updateQuestion() {
         if (!this.editingQuestion || !this.editingQuestion.id) return;
         try {
-            const collectionName = this.isEditPersonalData ? 'userPersonalDataQuestions' : 'newUsersQuestions';
+            const collectionName = this.isEditMaskir ? 'maskirQuestions' : (this.isEditPersonalData ? 'userPersonalDataQuestions' : 'newUsersQuestions');
             const questionData = this.prepareQuestionPayload(this.editingQuestion);
             delete questionData.key;
             delete questionData.createdAt;
@@ -569,7 +644,9 @@ export class QuestionsManagerComponent implements OnInit {
             await this.updateQuestionInFirebase(collectionName, this.editingQuestion.id, questionData);
             this.closeEditQuestion();
 
-            if (this.isEditPersonalData) {
+            if (this.isEditMaskir) {
+                await this.loadMaskirQuestions();
+            } else if (this.isEditPersonalData) {
                 await this.loadPersonalDataQuestions();
             } else {
                 await this.loadQuestions();
@@ -603,6 +680,20 @@ export class QuestionsManagerComponent implements OnInit {
         }
     }
 
+    addMaskirOption() {
+        if (this.newMaskirOption.trim()) {
+            if (!this.newMaskirQuestion.options) this.newMaskirQuestion.options = [];
+            this.newMaskirQuestion.options.push(this.newMaskirOption.trim());
+            this.newMaskirOption = '';
+        }
+    }
+
+    removeMaskirOption(index: number) {
+        if (this.newMaskirQuestion.options) {
+            this.newMaskirQuestion.options.splice(index, 1);
+        }
+    }
+
     removePersonalDataOption(index: number) {
         if (this.newPersonalDataQuestion.options) {
             this.newPersonalDataQuestion.options.splice(index, 1);
@@ -628,7 +719,7 @@ export class QuestionsManagerComponent implements OnInit {
         this.currentQuestionIndex = 0;
         // Start with registration questions (group 0)
         // If no registration questions, skip to personal data questions (group 1)
-        this.currentQuestionGroup = this.onboardingQuestions.length > 0 ? 0 : 1;
+    this.currentQuestionGroup = this.onboardingQuestions.length > 0 ? 0 : 1;
 
         console.log('🔍 Onboarding Debug:', {
             personalDataCount: this.onboardingPersonalDataQuestions.length,
@@ -639,7 +730,9 @@ export class QuestionsManagerComponent implements OnInit {
             groupName: this.currentQuestionGroup === 0 ? 'Registration' : 'Personal Data'
         });
 
-        const allQuestions = [...this.onboardingQuestions, ...this.onboardingPersonalDataQuestions];
+    const isMaskir = this.profile?.role === 'maskir';
+    const secondGroup = isMaskir ? this.onboardingMaskirQuestions : this.onboardingPersonalDataQuestions;
+    const allQuestions = [...this.onboardingQuestions, ...secondGroup];
         const existingAnswers = this.profile?.questions;
         this.onboardingAnswers = this.prepareAnswersMap(allQuestions, existingAnswers);
     }
@@ -649,8 +742,10 @@ export class QuestionsManagerComponent implements OnInit {
         const uid = currentUser?.uid || this.profile?.uid;
         if (!uid) return;
 
-        const answers: any = {};
-        const allQuestions = [...this.onboardingQuestions, ...this.onboardingPersonalDataQuestions];
+    const answers: any = {};
+    const isMaskir = this.profile?.role === 'maskir';
+    const secondGroup = isMaskir ? this.onboardingMaskirQuestions : this.onboardingPersonalDataQuestions;
+    const allQuestions = [...this.onboardingQuestions, ...secondGroup];
 
         for (const q of allQuestions) {
             const id = q.id || '';
@@ -688,7 +783,7 @@ export class QuestionsManagerComponent implements OnInit {
         if (this.currentQuestionGroup === 0) {
             return this.onboardingQuestions; // Group 0 = Registration
         } else {
-            return this.onboardingPersonalDataQuestions; // Group 1 = Personal Data
+            return this.profile?.role === 'maskir' ? this.onboardingMaskirQuestions : this.onboardingPersonalDataQuestions; // Group 1 = Personal Data or Maskir
         }
     }
 
@@ -709,8 +804,11 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     get nextGroupPreview(): string {
-        if (this.currentQuestionGroup === 0 && this.onboardingPersonalDataQuestions.length > 0) {
-            return `הבא: פרטי משתמש (${this.onboardingPersonalDataQuestions.length} שאלות)`;
+        const isMaskir = this.profile?.role === 'maskir';
+        const nextCount = isMaskir ? this.onboardingMaskirQuestions.length : this.onboardingPersonalDataQuestions.length;
+        const nextLabel = isMaskir ? 'שאלון משכיר' : 'פרטי משתמש';
+        if (this.currentQuestionGroup === 0 && nextCount > 0) {
+            return `הבא: ${nextLabel} (${nextCount} שאלות)`;
         }
         return '';
     }
@@ -722,7 +820,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     get totalQuestionsCount(): string {
-        const total = this.onboardingQuestions.length + this.onboardingPersonalDataQuestions.length;
+        const isMaskir = this.profile?.role === 'maskir';
+        const secondCount = isMaskir ? this.onboardingMaskirQuestions.length : this.onboardingPersonalDataQuestions.length;
+        const total = this.onboardingQuestions.length + secondCount;
         const answered = this.currentQuestionGroup === 0
             ? this.currentQuestionIndex + 1
             : this.onboardingQuestions.length + this.currentQuestionIndex + 1;
@@ -846,16 +946,25 @@ export class QuestionsManagerComponent implements OnInit {
         this.closed.emit();
     }
 
-    onQuestionTextChange(isPersonalData: boolean) {
-        const q = isPersonalData ? this.newPersonalDataQuestion : this.newQuestion;
-        const isManual = isPersonalData ? this.personalDataKeyManualMode : this.registrationKeyManualMode;
+    onQuestionTextChange(isPersonalData: boolean, isMaskir: boolean = false) {
+        let q: Question;
+        if (isMaskir) q = this.newMaskirQuestion;
+        else q = isPersonalData ? this.newPersonalDataQuestion : this.newQuestion;
+
+        const isManual = isMaskir ? this.maskirKeyManualMode : (isPersonalData ? this.personalDataKeyManualMode : this.registrationKeyManualMode);
 
         if (!isManual) {
             q.key = this.generateKey(q.text, q.textEn);
         }
     }
 
-    toggleKeyManualMode(isPersonalData: boolean) {
+    toggleKeyManualMode(isPersonalData: boolean, isMaskir: boolean = false) {
+        if (isMaskir) {
+            this.maskirKeyManualMode = !this.maskirKeyManualMode;
+            if (!this.maskirKeyManualMode) this.onQuestionTextChange(false, true);
+            return;
+        }
+
         if (isPersonalData) {
             this.personalDataKeyManualMode = !this.personalDataKeyManualMode;
             if (!this.personalDataKeyManualMode) {
@@ -888,6 +997,13 @@ export class QuestionsManagerComponent implements OnInit {
         this.newPersonalDataQuestion = this.getEmptyQuestion();
         this.newPersonalDataOption = '';
         this.personalDataKeyManualMode = false;
+        this.currentLang = 'he';
+    }
+
+    private resetMaskirQuestionForm() {
+        this.newMaskirQuestion = this.getEmptyQuestion();
+        this.newMaskirOption = '';
+        this.maskirKeyManualMode = false;
         this.currentLang = 'he';
     }
 }

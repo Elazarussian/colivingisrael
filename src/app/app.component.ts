@@ -18,6 +18,7 @@ import { AuthService } from './services/auth.service';
 })
 export class AppComponent {
   showAuthModal = false;
+  title = 'coliving-israel';
   constructor(public auth: AuthService) {
     this.auth.showAuthModal$.subscribe(v => {
       this.showAuthModal = v;

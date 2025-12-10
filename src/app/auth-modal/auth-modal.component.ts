@@ -19,6 +19,7 @@ export class AuthModalComponent {
   password = '';
   errorMessage = '';
   submitting = false;
+  selectedRole: 'user' | 'maskir' = 'user';
 
   constructor(private authService: AuthService, private el: ElementRef, private renderer: Renderer2, private router: Router) { }
 
@@ -44,7 +45,7 @@ export class AuthModalComponent {
   }
 
   closeModal() {
-  this.close.emit();
+    this.close.emit();
     this.resetForm();
   }
 
@@ -53,6 +54,7 @@ export class AuthModalComponent {
     this.password = '';
     this.errorMessage = '';
     this.activeTab = 'login';
+    this.selectedRole = 'user';
   }
 
   switchTab(tab: 'login' | 'signup') {
@@ -62,30 +64,30 @@ export class AuthModalComponent {
 
   async onSubmit() {
     if (!this.authService.auth) {
-  // Firebase not configured
+      // Firebase not configured
       return;
     }
-  this.submitting = true;
-  try {
+    this.submitting = true;
+    try {
       if (this.activeTab === 'signup') {
-        await this.authService.signup(this.email, this.password);
-  // After signup, navigate to profile so onboarding questions (if any) are shown
-  try { this.router.navigate(['/profile'], { queryParams: { showOnboarding: '1' } }); } catch (e) { /* ignore */ }
+        await this.authService.signup(this.email, this.password, this.selectedRole);
+        // After signup, navigate to profile so onboarding questions (if any) are shown
+        try { this.router.navigate(['/profile'], { queryParams: { showOnboarding: '1' } }); } catch (e) { /* ignore */ }
       } else {
         await this.authService.login(this.email, this.password);
       }
-  this.submitting = false;
-  this.closeModal();
+      this.submitting = false;
+      this.closeModal();
     } catch (error: any) {
       console.error('Auth error:', error);
       this.errorMessage = this.authService.getHebrewErrorMessage(error.code);
-  this.submitting = false;
+      this.submitting = false;
     }
   }
 
   async onGoogleSignIn() {
     if (!this.authService.auth) {
-  // Firebase not configured
+      // Firebase not configured
       return;
     }
 
