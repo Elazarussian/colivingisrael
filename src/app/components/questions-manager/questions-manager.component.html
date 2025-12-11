@@ -3,10 +3,10 @@
     <!-- shared templates: language switcher, options preview, scale/range preview -->
     <ng-template #langSwitcher>
         <div class="language-switcher" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
-            <span (click)="setLanguage('he')" [style.opacity]="currentLang==='he'?1:0.5" style="cursor:pointer;font-size:1.5rem;">🇮🇱</span>
-            <span (click)="setLanguage('en')" [style.opacity]="currentLang==='en'?1:0.5" style="cursor:pointer;font-size:1.5rem;">🇺🇸</span>
-            <span (click)="setLanguage('ru')" [style.opacity]="currentLang==='ru'?1:0.5" style="cursor:pointer;font-size:1.5rem;">🇷🇺</span>
-            <span (click)="setLanguage('fr')" [style.opacity]="currentLang==='fr'?1:0.5" style="cursor:pointer;font-size:1.5rem;">🇫🇷</span>
+            <span (click)="setLanguage('he')" [style.opacity]="currentLang==='he'?1:0.5" class="lang-flag">🇮🇱</span>
+            <span (click)="setLanguage('en')" [style.opacity]="currentLang==='en'?1:0.5" class="lang-flag">🇺🇸</span>
+            <span (click)="setLanguage('ru')" [style.opacity]="currentLang==='ru'?1:0.5" class="lang-flag">🇷🇺</span>
+            <span (click)="setLanguage('fr')" [style.opacity]="currentLang==='fr'?1:0.5" class="lang-flag">🇫🇷</span>
         </div>
     </ng-template>
 
@@ -144,10 +144,10 @@
 
                 <div *ngIf="q.type === 'range'" class="range-input">
                     <div class="range-inputs" style="display:flex;align-items:center;gap:0.5rem;justify-content:center;">
-                        <label>מ-</label>
-                        <input type="number" [(ngModel)]="model[q.id || ''].min" [min]="q.min || 0" [max]="q.max || 100" class="form-control" style="width:80px">
-                        <label>עד-</label>
-                        <input type="number" [(ngModel)]="model[q.id || ''].max" [min]="q.min || 0" [max]="q.max || 100" class="form-control" style="width:80px">
+                            <label>מינימום</label>
+                            <input type="number" [(ngModel)]="ensureRangeAnswer(model, q).min" [min]="q.min || 0" [max]="q.max || 100" class="form-control" style="width:80px">
+                            <label>מקסימום</label>
+                            <input type="number" [(ngModel)]="ensureRangeAnswer(model, q).max" [min]="q.min || 0" [max]="q.max || 100" class="form-control" style="width:80px">
                     </div>
                     <div style="text-align:center;margin-top:0.5rem;color:#666;"><small>טווח אפשרי: {{q.min || 0}} - {{q.max || 100}}</small></div>
                 </div>
@@ -251,6 +251,34 @@
 
                 <ng-container *ngTemplateOutlet="addQuestionForm; context: { model: newApartmentQuestion, addOptFn: addApartmentOption.bind(this), removeOptFn: removeApartmentOption.bind(this), addFn: addApartmentQuestion.bind(this), keyManualMode: apartmentKeyManualMode, toggleKeyFn: toggleKeyManualMode.bind(this), minmaxProps: { flag1: false, flag2: false, flag3: true } }"></ng-container>
             </div>
+        </div>
+    </div>
+
+    <!-- fill apartment modal (used by admin/maskir to add a listing) -->
+    <div *ngIf="mode === 'fill-apartment'" class="modal-overlay">
+        <div class="modal-content onboarding-modal">
+            <div class="modal-header">
+                <div style="flex:1;">
+                    <h2>הוסף דירה למאגר</h2>
+                </div>
+                <button class="btn-close" (click)="close()">X</button>
+            </div>
+
+            <div class="modal-body" *ngIf="apartmentQuestions && apartmentQuestions.length > 0">
+                <h3>שאלות לדירה</h3>
+                <div *ngFor="let q of apartmentQuestions" class="answer-item" style="margin-bottom:1rem;">
+                    <strong>{{ q.text }}</strong>
+                    <div style="margin-top:0.5rem;">
+                        <ng-container *ngTemplateOutlet="answerInput; context: { $implicit: q, model: apartmentAnswers }"></ng-container>
+                    </div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;margin-top:1.5rem;">
+                    <button class="btn btn-cancel" (click)="close()">ביטול</button>
+                    <button class="btn btn-approve" (click)="submitApartment()">שמור דירה</button>
+                </div>
+            </div>
+            <div *ngIf="!apartmentQuestions || apartmentQuestions.length === 0" style="padding:1rem;">אין שאלות לדירה. יש להוסיף שאלות לדירה בממשק ניהול.</div>
         </div>
     </div>
 

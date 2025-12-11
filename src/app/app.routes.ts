@@ -8,7 +8,7 @@ import { ApartmentsGuard } from './apartments.guard';
 
 export const routes: Routes = [
     { path: '', component: HomeComponent, canActivate: [OnboardingGuard] },
-    { path: 'about', component: AboutComponent, canActivate: [OnboardingGuard] },
+    { path: 'about', component: AboutComponent },
     { path: 'apartments', component: ApartmentsComponent, canActivate: [ApartmentsGuard] },
     { path: 'profile', component: ProfileComponent } // No guard here to avoid loop
 ];

@@ -48,7 +48,14 @@ export class ProfileComponent implements OnInit {
         const isNewProfile = !onboardingCompleted && this.isRecentlyCreated(p, 15);
 
         if (!onboardingCompleted && (showOnboardingRequested || isNewProfile)) {
-          this.openOnboarding();
+          // IMPORTANT: do not show onboarding to admins. Use AuthService helper to check role.
+          const isAdmin = this.auth && typeof this.auth.isAdmin === 'function' ? this.auth.isAdmin(p) : (p?.role === 'admin');
+          if (!isAdmin) {
+            this.openOnboarding();
+          } else {
+            // Skip onboarding for admin users (they may have been recently created or the query param was present)
+            console.debug('ProfileComponent: skipping onboarding for admin user', p?.uid || p);
+          }
         }
       } catch (err) {
         console.error('Error during onboarding trigger:', err);

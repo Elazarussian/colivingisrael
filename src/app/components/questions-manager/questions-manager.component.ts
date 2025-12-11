@@ -29,7 +29,7 @@ export interface Question {
     styleUrls: ['./questions-manager.component.css']
 })
 export class QuestionsManagerComponent implements OnInit {
-    @Input() mode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'admin-apartment' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
+    @Input() mode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'admin-apartment' | 'onboarding' | 'edit-answers' | 'view-answers' | 'fill-apartment' = 'onboarding';
     @Input() profile: any = null;
     @Input() userId?: string;
 
@@ -65,6 +65,7 @@ export class QuestionsManagerComponent implements OnInit {
     // Answers state
     onboardingAnswers: { [questionId: string]: any } = {};
     editPersonalityAnswers: { [questionId: string]: any } = {};
+    apartmentAnswers: { [questionId: string]: any } = {};
     viewedUserAnswers: { [k: string]: any } | null = null;
     viewedUser: any = null;
     viewedQuestionIds: string[] = [];
@@ -110,6 +111,10 @@ export class QuestionsManagerComponent implements OnInit {
             case 'onboarding':
                 await this.loadOnboardingQuestions();
                 this.prepareOnboardingAnswers();
+                break;
+            case 'fill-apartment':
+                await this.loadApartmentQuestionsForFill();
+                this.prepareApartmentAnswers();
                 break;
             case 'edit-answers':
                 await this.loadEditPersonalityQuestions();
@@ -491,6 +496,59 @@ export class QuestionsManagerComponent implements OnInit {
     this.onboardingQuestions = await this.getRegistrationQuestions();
     this.onboardingMaskirQuestions = await this.getMaskirQuestions();
         this.cdr.detectChanges();
+    }
+
+    async loadApartmentQuestionsForFill() {
+        this.apartmentQuestions = await this.getApartmentQuestions();
+        this.cdr.detectChanges();
+    }
+
+    prepareApartmentAnswers() {
+        this.apartmentAnswers = this.prepareAnswersMap(this.apartmentQuestions || [], {});
+    }
+
+    /** Ensure a range answer object exists for the given question on the provided model. Returns the answer object. */
+    ensureRangeAnswer(model: any, q: Question) {
+        const id = q.id || '';
+        if (!model[id] || typeof model[id] !== 'object') {
+            model[id] = { min: q.min !== undefined ? q.min : 0, max: q.max !== undefined ? q.max : 100 };
+        }
+        return model[id];
+    }
+
+    private mapAnswersForSave(questions: Question[], answersObj: { [k: string]: any }) {
+        const payload: any = {};
+        for (const q of questions) {
+            const id = q.id || '';
+            const key = q.key || id;
+            const val = answersObj[id];
+            if (q.type === 'checklist') payload[key] = Array.isArray(val) ? val : [];
+            else if (q.type === 'yesno') payload[key] = val === null ? null : !!val;
+            else if (q.type === 'scale') payload[key] = Number(val);
+            else payload[key] = val || '';
+        }
+        return payload;
+    }
+
+    async submitApartment() {
+        if (!this.auth.db) {
+            this.msg.show('Firestore לא מחובר.');
+            return;
+        }
+
+        try {
+            const { collection, addDoc } = await import('firebase/firestore');
+            const payload = this.mapAnswersForSave(this.apartmentQuestions, this.apartmentAnswers || {});
+            // mark as apartment listing and include createdAt
+            payload.createdAt = new Date().toISOString();
+            const ref = await addDoc(collection(this.auth.db, 'apartments'), payload);
+            this.msg.show('הדירה נשמרה במאגר');
+            this.completed.emit();
+            this.close();
+        } catch (err) {
+            console.error('Error saving apartment:', err);
+            this.msg.show('שגיאה בשמירת הדירה. נסה שוב.');
+        }
     }
 
     async loadEditPersonalityQuestions() {

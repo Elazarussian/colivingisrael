@@ -27,9 +27,31 @@ import { filter } from 'rxjs/operators';
     </nav>
   `,
   styles: [`
-    .topbar { position: fixed; top: 0; right: 0; left: 0; display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1.5rem; z-index: 2000; pointer-events:auto; }
-    .topbar .right { display:flex; gap:0.75rem; }
-    .debug-user { position: absolute; top: 3.25rem; right: 1.25rem; color: rgba(255,255,255,0.8); }
+    .topbar { 
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: 0;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      /* height is controlled by a CSS variable so the page can reserve space */
+      height: var(--topbar-height, 64px);
+      box-sizing: border-box;
+      padding: 0 1.5rem;
+      z-index: 2000; /* above page content but below modal overlays (modal-overlay z-index:2100) */
+      /* match global site nav: dark, translucent with blur */
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      color: rgba(255,255,255,0.95);
+      pointer-events:auto;
+    }
+    /* make sure buttons inside topbar remain clickable and laid out */
+  .topbar .right { display:flex; gap:0.75rem; }
+    /* debug user label positioned below the topbar so it doesn't overlay content */
+  .debug-user { position: absolute; top: 3.25rem; right: 1.25rem; color: rgba(255,255,255,0.85); }
   `]
 })
 export class TopbarComponent {

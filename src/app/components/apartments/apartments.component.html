@@ -7,10 +7,24 @@
     </div>
 
     <div class="list" *ngIf="!showRegistrationRequired">
-        <div class="apt-card" *ngFor="let a of apartments">
-            <h3>{{ a.title }}</h3>
-            <p>{{ a.city }} — {{ a.price }}</p>
-            <button class="btn btn-regular">View</button>
+        <ng-container *ngIf="auth.profile$ | async as p">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+                <button *ngIf="auth.hasPermission(p, 'maskir') || auth.hasPermission(p, 'admin')" class="btn btn-approve" (click)="openAddApartment()">הוסף דירה למאגר</button>
+            </div>
+        </ng-container>
+        <div class="apt-card" *ngFor="let a of apartmentsFromDb">
+            <div class="apt-meta"><small>נוצר: {{ a.createdAt || '' }}</small></div>
+            <div class="apt-answers">
+                <div *ngFor="let k of keys(a)">
+                    <strong>{{ questionTextMap[k] || k }}:</strong>
+                    <span>{{ formatAnswer(a[k]) }}</span>
+                </div>
+            </div>
         </div>
+    </div>
+
+    <!-- Questions manager modal for adding apartment -->
+    <div *ngIf="showAddApartment">
+        <app-questions-manager [mode]="'fill-apartment'" [profile]="auth.profile$ | async" (completed)="onApartmentSaved()" (closed)="closeAddApartment()"></app-questions-manager>
     </div>
 </section>
