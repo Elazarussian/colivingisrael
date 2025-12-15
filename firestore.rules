@@ -50,6 +50,14 @@ service cloud.firestore {
       allow delete: if hasRoleRoot('admin') || hasRoleRoot('maskir');
     }
 
+    // Israel locations collection: cities and neighborhoods
+    match /israel_locations/{locationId} {
+      // allow all users (and unauthenticated) to read the list of cities/neighborhoods
+      allow read: if true;
+      // only admins may create/update/delete
+      allow create, update, delete: if hasRoleRoot('admin');
+    }
+
     // --- TEST DATA RULES (testdata/db) ---
     
     match /testdata/db {
@@ -84,6 +92,12 @@ service cloud.firestore {
         allow read: if true;
         allow create, update: if hasRoleTest('admin') || hasRoleTest('maskir');
         allow delete: if hasRoleTest('admin') || hasRoleTest('maskir');
+      }
+
+      // Israel locations collection in test data
+      match /israel_locations/{locationId} {
+        allow read: if true;
+        allow create, update, delete: if hasRoleTest('admin');
       }
     }
     

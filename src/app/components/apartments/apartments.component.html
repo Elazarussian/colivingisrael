@@ -1,23 +1,36 @@
 <section class="apartments-page">
-    <h2>Available Apartments</h2>
-    <p>Browse listings shared by the community.</p>
+    <h2>מאגר דירות</h2>
+    <p>גלישה במודעות ששותפו על ידי הקהילה.</p>
 
     <div *ngIf="showRegistrationRequired">
         <show-message [message]="'אין כניסה למאגר דירות ללא הרשמה לאתר. יש להירשם לפני הצפייה במודעות.'" (closed)="showRegistrationRequired = false"></show-message>
     </div>
 
-    <div class="list" *ngIf="!showRegistrationRequired">
+    <div *ngIf="!showRegistrationRequired">
         <ng-container *ngIf="auth.profile$ | async as p">
-            <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
+            <div class="actions-row">
                 <button *ngIf="auth.hasPermission(p, 'maskir') || auth.hasPermission(p, 'admin')" class="btn btn-approve" (click)="openAddApartment()">הוסף דירה למאגר</button>
             </div>
         </ng-container>
-        <div class="apt-card" *ngFor="let a of apartmentsFromDb">
-            <div class="apt-meta"><small>נוצר: {{ a.createdAt || '' }}</small></div>
-            <div class="apt-answers">
-                <div *ngFor="let k of keys(a)">
-                    <strong>{{ questionTextMap[k] || k }}:</strong>
-                    <span>{{ formatAnswer(a[k]) }}</span>
+
+        <div class="list">
+            <div class="apt-card" *ngFor="let a of apartmentsFromDb">
+                <div class="card-media">
+                    <img *ngIf="getPrimaryImage(a) as img" [src]="img" alt="תמונת דירה" loading="lazy" />
+                    <div *ngIf="!getPrimaryImage(a)" class="empty-image">
+                        <div class="empty-frame">ללא תמונה כעת</div>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="card-title">{{ titleForApartment(a) }}</div>
+                    <div class="card-details">
+                        <div class="detail" *ngFor="let k of visibleKeys(a)">
+                            <span class="label">{{ labelForKey(k) }}</span>
+                            <span class="value">{{ formatAnswer(a[k]) }}</span>
+                        </div>
+                    </div>
+                    <div class="card-meta"><small>נוצר: {{ a.createdAt || '-' }}</small></div>
                 </div>
             </div>
         </div>

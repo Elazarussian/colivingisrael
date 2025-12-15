@@ -455,3 +455,110 @@ select option {
         padding: .4rem .8rem
     }
 }
+
+/* Geo manager specific styles */
+.geo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.25rem 0;
+    max-height: 320px;
+    overflow: auto;
+}
+.geo-list li {
+    padding: .5rem .75rem;
+    border-radius: 8px;
+    margin-bottom: .4rem;
+    background: rgba(255,255,255,0.03);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 500;
+}
+.geo-list li .muted {
+    color: rgba(255,255,255,0.6);
+    font-size: .85rem;
+}
+
+/* ensure modal-content in geo manager is readable on dark background */
+.modal-content h3, .modal-content h4 {
+    margin: 0 0 .5rem 0;
+}
+
+/* Geo manager modal layout improvements */
+.geo-columns {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+.geo-left, .geo-right {
+    flex: 1 1 260px;
+    min-width: 220px;
+}
+.geo-form-row {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    margin-bottom: .6rem;
+}
+.geo-form-row label {
+    font-weight: 600;
+    font-size: .95rem;
+    color: rgba(255,255,255,0.9);
+}
+
+/* Make modal content scrollable on small screens and prevent buttons from overlaying inputs */
+.modal-content {
+    max-height: calc(100vh - 140px);
+    overflow-y: auto;
+    padding: 1.25rem;
+}
+
+@media (max-width: 640px) {
+    .geo-columns { flex-direction: column; }
+    .geo-left, .geo-right { min-width: 100%; }
+    .btn-fit-content { width: 100%; }
+}
+
+.geo-item {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:.75rem;
+}
+.geo-item-left { display:flex; align-items:center; gap:.5rem; }
+.geo-item-actions { display:flex; gap:.4rem; align-items:center; }
+.geo-item input.form-control { min-width: 130px; }
+.geo-item .btn { padding:.45rem .6rem; font-size:.9rem }
+
+/* Card-like panels for geo manager */
+.geo-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+}
+.geo-card-header { display:flex; justify-content:space-between; align-items:center; gap:1rem }
+.geo-section-title { margin:0; font-size:1.05rem; font-weight:700 }
+.geo-subtitle { margin:0; font-size:.9rem; color: rgba(255,255,255,0.75) }
+.geo-input { width:100%; margin-top:.3rem; max-width:320px }
+.geo-controls { margin-top:.35rem; display:flex; gap:.4rem; align-items:center }
+.geo-action-btn { padding:.35rem .6rem }
+.city-name { font-weight:600 }
+
+/* Limit input widths inside modal for better balance */
+.modal-content .form-control {
+    max-width: 360px;
+}
+.geo-left .form-control, .geo-right .form-control { max-width: 360px }
+.geo-card { padding: .75rem }
+
+/* subtle hover for list items */
+.geo-list li:hover { background: rgba(255,255,255,0.02); transform: translateY(-2px); }
+
+/* compact buttons inside lists */
+.geo-item-actions .btn { padding: .35rem .5rem; font-size:.85rem }
+
+.city-neighborhoods { background: rgba(255,255,255,0.02); border-left: 3px solid rgba(255,255,255,0.04); padding-left: .75rem; margin-top: .4rem; }
+.city-neighborhoods .geo-item { padding: .25rem 0 }

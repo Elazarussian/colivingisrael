@@ -62,6 +62,7 @@ export class QuestionsManagerComponent implements OnInit {
     editingQuestion: Question | null = null;
     isEditPersonalData = false;
     isEditMaskir = false;
+    isEditApartment = false;
     editOption = '';
 
     // Answers state
@@ -72,6 +73,9 @@ export class QuestionsManagerComponent implements OnInit {
     viewedUser: any = null;
     viewedQuestionIds: string[] = [];
     questionTextMap: { [id: string]: string } = {};
+
+    // Geo data (cities & neighborhoods)
+    cities: Array<{ id: string; name: string; neighborhoods?: string[] }> = [];
 
     // UI state
     currentQuestionIndex = 0;
@@ -130,14 +134,17 @@ export class QuestionsManagerComponent implements OnInit {
                 break;
             case 'onboarding':
                 await this.loadOnboardingQuestions();
+                await this.loadCities();
                 this.prepareOnboardingAnswers();
                 break;
             case 'fill-apartment':
                 await this.loadApartmentQuestionsForFill();
+                await this.loadCities();
                 this.prepareApartmentAnswers();
                 break;
             case 'edit-answers':
                 await this.loadEditPersonalityQuestions();
+                await this.loadCities();
                 this.prepareEditPersonalityAnswers();
                 break;
             case 'view-answers':
@@ -145,6 +152,75 @@ export class QuestionsManagerComponent implements OnInit {
                     await this.loadUserAnswers(this.userId);
                 }
                 break;
+        }
+    }
+
+    // Load israeli cities collection used by geo-manager
+    async loadCities() {
+        if (!this.auth.db) return;
+        try {
+            const { collection, getDocs } = await import('firebase/firestore');
+            const snap = await getDocs(collection(this.auth.db, `${this.auth.dbPath}israel_locations`));
+            this.cities = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+            this.cdr.detectChanges();
+        } catch (err) {
+            console.error('Error loading israel locations:', err);
+            this.cities = [];
+        }
+    }
+
+    // Helper used by template to get neighborhoods array for a given question's model
+    getNeighborhoodsForModel(q: Question, model: any): string[] {
+        try {
+            const id = q.id || '';
+            const cityId = model && model[id] && model[id].cityId ? model[id].cityId : '';
+            if (!cityId) return [];
+            const city = this.cities.find(c => c.id === cityId);
+            return city && Array.isArray(city.neighborhoods) ? city.neighborhoods : [];
+        } catch (err) {
+            return [];
+        }
+    }
+
+    // Ensure the answer object exists in the provided model for the question and return it.
+    // This avoids runtime errors in templates when model entries are not initialized yet.
+    getOrInitAnswer(model: any, q: Question): any {
+        const id = q.id || '';
+        if (!model) return { cityId: '', neighborhood: '' };
+        if (!model[id] || typeof model[id] !== 'object') {
+            model[id] = { cityId: '', neighborhood: '', cityName: '', neighborhoodName: '' } as any;
+        } else {
+            // ensure name fields exist and are strings to avoid 'undefined' showing in inputs
+            if (model[id].cityName === undefined) model[id].cityName = '';
+            if (model[id].neighborhoodName === undefined) model[id].neighborhoodName = '';
+        }
+        return model[id];
+    }
+
+    // Called when user types/selects a city name in the datalist input.
+    onCityInput(q: Question, model: any, value: string) {
+        const ans: any = this.getOrInitAnswer(model, q) as any;
+        ans.cityName = value || '';
+        // try to find matching city by exact name
+        const city = this.cities.find(c => c.name === value);
+        if (city) {
+            ans.cityId = city.id;
+            // reset neighborhood when city changes
+            ans.neighborhood = '';
+            ans.neighborhoodName = '';
+        } else {
+            ans.cityId = '';
+        }
+    }
+
+    onNeighborhoodInput(q: Question, model: any, value: string) {
+        const ans: any = this.getOrInitAnswer(model, q) as any;
+        ans.neighborhoodName = value || '';
+        const city = this.cities.find(c => c.id === ans.cityId);
+        if (city && Array.isArray(city.neighborhoods) && city.neighborhoods.includes(value)) {
+            ans.neighborhood = value;
+        } else {
+            ans.neighborhood = '';
         }
     }
 
@@ -459,6 +535,22 @@ export class QuestionsManagerComponent implements OnInit {
                 case 'phone':
                     answers[id] = '050';
                     break;
+                case 'city_neighborhood':
+                    // store as object { cityId: string, neighborhood: string }
+                    if (existingAnswers && (existingAnswers[key] || existingAnswers[id])) {
+                        const ex = existingAnswers[key] || existingAnswers[id];
+                        // if saved as simple string, try to parse
+                        if (typeof ex === 'string') {
+                            answers[id] = { cityId: ex, neighborhood: '' };
+                        } else if (typeof ex === 'object') {
+                            answers[id] = { cityId: ex.cityId || '', neighborhood: ex.neighborhood || '' };
+                        } else {
+                            answers[id] = { cityId: '', neighborhood: '' };
+                        }
+                    } else {
+                        answers[id] = { cityId: '', neighborhood: '' };
+                    }
+                    break;
                 default:
                     answers[id] = '';
             }
@@ -485,6 +577,11 @@ export class QuestionsManagerComponent implements OnInit {
             if (q.max !== undefined && ans.max > q.max) return false;
         } else if (q.type === 'phone') {
             if (!ans || String(ans).length < 9) return false;
+        } else if (q.type === 'city_neighborhood') {
+            if (!ans || typeof ans !== 'object') return false;
+            if (!ans.cityId || String(ans.cityId).trim() === '') return false;
+            // neighborhood optional
+            return true;
         } else if (q.type === 'radio') {
             if (!ans || String(ans).trim() === '') return false;
         } else {
@@ -711,8 +808,8 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     // === REORDER QUESTION METHODS ===
-    async moveQuestionUp(index: number, isPersonalData: boolean, isMaskir: boolean = false) {
-        const list = isMaskir ? this.maskirQuestions : (isPersonalData ? this.personalDataQuestions : this.questions);
+    async moveQuestionUp(index: number, isPersonalData: boolean, isMaskir: boolean = false, isApartment: boolean = false) {
+        const list = isApartment ? this.apartmentQuestions : (isMaskir ? this.maskirQuestions : (isPersonalData ? this.personalDataQuestions : this.questions));
         if (index === 0) return; // Already at top
 
         // Swap with previous
@@ -721,11 +818,11 @@ export class QuestionsManagerComponent implements OnInit {
         list[index - 1] = temp;
 
         // Update order values
-        await this.updateQuestionOrders(list, isPersonalData, isMaskir);
+    await this.updateQuestionOrders(list, isPersonalData, isMaskir, isApartment);
     }
 
-    async moveQuestionDown(index: number, isPersonalData: boolean, isMaskir: boolean = false) {
-        const list = isMaskir ? this.maskirQuestions : (isPersonalData ? this.personalDataQuestions : this.questions);
+    async moveQuestionDown(index: number, isPersonalData: boolean, isMaskir: boolean = false, isApartment: boolean = false) {
+        const list = isApartment ? this.apartmentQuestions : (isMaskir ? this.maskirQuestions : (isPersonalData ? this.personalDataQuestions : this.questions));
         if (index === list.length - 1) return; // Already at bottom
 
         // Swap with next
@@ -734,16 +831,17 @@ export class QuestionsManagerComponent implements OnInit {
         list[index + 1] = temp;
 
         // Update order values
-        await this.updateQuestionOrders(list, isPersonalData, isMaskir);
+    await this.updateQuestionOrders(list, isPersonalData, isMaskir, isApartment);
     }
 
-    private async updateQuestionOrders(list: Question[], isPersonalData: boolean, isMaskir: boolean = false) {
-        const collectionName = isMaskir ? 'maskirQuestions' : (isPersonalData ? 'userPersonalDataQuestions' : 'newUsersQuestions');
+    private async updateQuestionOrders(list: Question[], isPersonalData: boolean, isMaskir: boolean = false, isApartment: boolean = false) {
+        const collectionName = isApartment ? 'apartmentQuestions' : (isMaskir ? 'maskirQuestions' : (isPersonalData ? 'userPersonalDataQuestions' : 'newUsersQuestions'));
 
         try {
             // Update order for each question
             for (let i = 0; i < list.length; i++) {
                 const q = list[i];
+                if (!q) continue; // skip empty/undefined entries
                 if (q.id) {
                     await this.updateQuestionInFirebase(collectionName, q.id, { order: i });
                     q.order = i; // Update local copy
@@ -757,13 +855,14 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     // === EDIT QUESTION METHODS ===
-    openEditQuestion(q: Question, isPersonalData: boolean, isMaskir: boolean = false) {
+    openEditQuestion(q: Question, isPersonalData: boolean, isMaskir: boolean = false, isApartment: boolean = false) {
         if (q.permanent) {
             this.msg.show('שאלה זו קבועה ולא ניתנת לעריכה ישירות.');
             return;
         }
         this.isEditPersonalData = isPersonalData;
         this.isEditMaskir = !!isMaskir;
+        this.isEditApartment = !!isApartment;
         this.editingQuestion = JSON.parse(JSON.stringify(q));
         if (!this.editingQuestion!.options) {
             this.editingQuestion!.options = [];
@@ -779,7 +878,7 @@ export class QuestionsManagerComponent implements OnInit {
     async updateQuestion() {
         if (!this.editingQuestion || !this.editingQuestion.id) return;
         // Do not allow updating permanent flag via UI
-        const origList = this.isEditMaskir ? this.maskirQuestions : (this.isEditPersonalData ? this.personalDataQuestions : this.questions);
+    const origList = this.isEditApartment ? this.apartmentQuestions : (this.isEditMaskir ? this.maskirQuestions : (this.isEditPersonalData ? this.personalDataQuestions : this.questions));
         const orig = origList.find(x => x.id === this.editingQuestion!.id);
         if (orig && orig.permanent) {
             this.msg.show('שאלה זו קבועה ולא ניתנת לעריכה ישירות.');
@@ -787,7 +886,7 @@ export class QuestionsManagerComponent implements OnInit {
             return;
         }
         try {
-            const collectionName = this.isEditMaskir ? 'maskirQuestions' : (this.isEditPersonalData ? 'userPersonalDataQuestions' : 'newUsersQuestions');
+            const collectionName = this.isEditApartment ? 'apartmentQuestions' : (this.isEditMaskir ? 'maskirQuestions' : (this.isEditPersonalData ? 'userPersonalDataQuestions' : 'newUsersQuestions'));
             const questionData = this.prepareQuestionPayload(this.editingQuestion);
             delete questionData.key;
             delete questionData.createdAt;
@@ -944,7 +1043,11 @@ export class QuestionsManagerComponent implements OnInit {
             } else if (q.type === 'radio') {
                 answers[key] = ans;
             } else {
-                answers[key] = ans || '';
+                if (q.type === 'city_neighborhood') {
+                    answers[key] = ans || { cityId: '', neighborhood: '' };
+                } else {
+                    answers[key] = ans || '';
+                }
             }
         }
 
@@ -1073,7 +1176,11 @@ export class QuestionsManagerComponent implements OnInit {
             } else if (q.type === 'radio') {
                 updatedAnswers[key] = ans;
             } else {
-                updatedAnswers[key] = ans || '';
+                if (q.type === 'city_neighborhood') {
+                    updatedAnswers[key] = ans || { cityId: '', neighborhood: '' };
+                } else {
+                    updatedAnswers[key] = ans || '';
+                }
             }
         }
 

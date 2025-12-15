@@ -33,6 +33,10 @@ export class AuthService {
     private _profile$ = new BehaviorSubject<any | null>(null);
     public profile$ = this._profile$.asObservable();
 
+    // Emits true once the initial Firebase auth state has been processed.
+    private _initialized$ = new BehaviorSubject<boolean>(false);
+    public initialized$ = this._initialized$.asObservable();
+
     // Modal control for global open/close of auth modal
     private _showAuthModal$ = new BehaviorSubject<boolean>(false);
     public showAuthModal$ = this._showAuthModal$.asObservable();
@@ -73,14 +77,19 @@ export class AuthService {
                                 // ensure users collection has a corresponding entry
                                 // await this.ensureUserExists(user); // REMOVED: using profiles only
                             }
+                // signal that initialization has completed after profile load
+                this._initialized$.next(true);
                         } else {
                             this._profile$.next(null);
+                // signal that initialization has completed when there is no user
+                this._initialized$.next(true);
                         }
                     });
                 } catch (e) {
                     console.error('Error in auth state change:', e);
                     // fallback
                     this._user$.next(user || null);
+            this._initialized$.next(true);
                 }
             });
         }
