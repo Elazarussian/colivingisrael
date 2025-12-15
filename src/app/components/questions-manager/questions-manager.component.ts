@@ -76,6 +76,9 @@ export class QuestionsManagerComponent implements OnInit {
 
     // Geo data (cities & neighborhoods)
     cities: Array<{ id: string; name: string; neighborhoods?: string[] }> = [];
+    // Suggestions state per question id
+    citySuggestions: { [qid: string]: Array<{ id: string; name: string; neighborhoods?: string[] }> } = {};
+    neighborhoodSuggestions: { [qid: string]: string[] } = {};
 
     // UI state
     currentQuestionIndex = 0;
@@ -95,6 +98,36 @@ export class QuestionsManagerComponent implements OnInit {
         private cdr: ChangeDetectorRef,
         private msg: MessageService
     ) { }
+
+    // Resize text inputs to show ~2 words by default and grow as user types
+    autoSizeTextInput(el: HTMLInputElement | null) {
+        if (!el) return;
+        try {
+            const text = el.value || el.getAttribute('placeholder') || '';
+            // create a hidden measurer span if not present
+            let measurer = document.getElementById('__input_measurer__') as HTMLSpanElement | null;
+            if (!measurer) {
+                measurer = document.createElement('span');
+                measurer.id = '__input_measurer__';
+                measurer.style.position = 'absolute';
+                measurer.style.visibility = 'hidden';
+                measurer.style.whiteSpace = 'pre';
+                measurer.style.font = window.getComputedStyle(el).font || '16px sans-serif';
+                document.body.appendChild(measurer);
+            }
+            // copy font styles for accurate measurement
+            const cs = window.getComputedStyle(el);
+            measurer.style.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+            // measure text width, add small padding
+            measurer.textContent = text || '';
+            const padding = 24; // allow for caret & padding
+            const px = Math.min(Math.max(measurer.offsetWidth + padding, 120), 900); // min 120px, max 900px
+            el.style.width = px + 'px';
+        } catch (err) {
+            // fallback: ensure a reasonable min width
+            if (el) el.style.width = '120px';
+        }
+    }
 
     // show-message state
     showMessageVisible = false;
@@ -202,25 +235,106 @@ export class QuestionsManagerComponent implements OnInit {
         const ans: any = this.getOrInitAnswer(model, q) as any;
         ans.cityName = value || '';
         // try to find matching city by exact name
-        const city = this.cities.find(c => c.name === value);
-        if (city) {
-            ans.cityId = city.id;
-            // reset neighborhood when city changes
+        // Populate client-side suggestions (prefix match)
+        const qid = q.id || '';
+        if (!value || value.trim().length === 0) {
+            this.citySuggestions[qid] = [];
+            ans.cityId = '';
             ans.neighborhood = '';
             ans.neighborhoodName = '';
-        } else {
-            ans.cityId = '';
+            return;
         }
+        const inputLower = value.trim().toLowerCase();
+        this.citySuggestions[qid] = this.cities.filter(c => (c.name || '').toLowerCase().includes(inputLower)).slice(0, 8);
+        // don't set cityId until user selects
+        ans.cityId = '';
+        ans.neighborhood = '';
+        ans.neighborhoodName = '';
     }
 
     onNeighborhoodInput(q: Question, model: any, value: string) {
         const ans: any = this.getOrInitAnswer(model, q) as any;
         ans.neighborhoodName = value || '';
         const city = this.cities.find(c => c.id === ans.cityId);
-        if (city && Array.isArray(city.neighborhoods) && city.neighborhoods.includes(value)) {
-            ans.neighborhood = value;
-        } else {
+        const qid = q.id || '';
+        if (!city) {
+            this.neighborhoodSuggestions[qid] = [];
             ans.neighborhood = '';
+            return;
+        }
+        if (!value || value.trim().length === 0) {
+            this.neighborhoodSuggestions[qid] = [];
+            ans.neighborhood = '';
+            return;
+        }
+        const inputLower = value.trim().toLowerCase();
+        this.neighborhoodSuggestions[qid] = (city.neighborhoods || []).filter(n => (n || '').toLowerCase().includes(inputLower)).slice(0, 8);
+        ans.neighborhood = '';
+    }
+
+    // Called when user selects a city from app suggestions
+    onCitySelect(q: Question, model: any, city: { id: string; name: string; neighborhoods?: string[] }) {
+        const ans: any = this.getOrInitAnswer(model, q) as any;
+        ans.cityId = city.id;
+        ans.cityName = city.name;
+        ans.neighborhood = '';
+        ans.neighborhoodName = '';
+        this.citySuggestions[q.id || ''] = [];
+        // prefill neighborhood suggestions list for this city if needed
+        this.neighborhoodSuggestions[q.id || ''] = (city.neighborhoods || []).slice(0, 8);
+    }
+
+    onNeighborhoodSelect(q: Question, model: any, neighborhood: string) {
+        const ans: any = this.getOrInitAnswer(model, q) as any;
+        ans.neighborhood = neighborhood;
+        ans.neighborhoodName = neighborhood;
+        this.neighborhoodSuggestions[q.id || ''] = [];
+    }
+
+    // Called when city input loses focus. Enforce that only exact city names are accepted.
+    onCityBlur(q: Question, model: any) {
+        const ans: any = this.getOrInitAnswer(model, q) as any;
+        const typed = (ans.cityName || '').trim();
+        if (!typed) {
+            // empty -> clear selection
+            ans.cityId = '';
+            ans.neighborhood = '';
+            ans.neighborhoodName = '';
+            return;
+        }
+        // Find exact match (case-sensitive name stored in DB). Allow common whitespace normalization.
+        const matched = this.cities.find(c => c.name && c.name.trim() === typed);
+        if (matched) {
+            ans.cityId = matched.id;
+            ans.cityName = matched.name; // normalize to stored name
+            // clear neighborhood when city set/changed
+            ans.neighborhood = '';
+            ans.neighborhoodName = '';
+        } else {
+            // No exact match -> clear input to force user to choose one from list
+            ans.cityId = '';
+            ans.cityName = '';
+            ans.neighborhood = '';
+            ans.neighborhoodName = '';
+        }
+    }
+
+    // Called when neighborhood input loses focus. Enforce that only exact neighborhood names are accepted for the selected city.
+    onNeighborhoodBlur(q: Question, model: any) {
+        const ans: any = this.getOrInitAnswer(model, q) as any;
+        const typed = (ans.neighborhoodName || '').trim();
+        if (!typed) {
+            ans.neighborhood = '';
+            return;
+        }
+        const city = this.cities.find(c => c.id === ans.cityId);
+        if (city && Array.isArray(city.neighborhoods) && city.neighborhoods.includes(typed)) {
+            ans.neighborhood = typed; // exact match
+            ans.neighborhoodName = typed;
+        } else {
+            // clear invalid neighborhood
+            ans.neighborhood = '';
+            ans.neighborhoodName = '';
         }
     }
 

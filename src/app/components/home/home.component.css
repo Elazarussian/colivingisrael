@@ -4,3 +4,36 @@
 .scroll-down span { display:block; width:10px; height:10px; border-bottom:4px solid white; border-right:4px solid white; transform: rotate(45deg); margin:0 auto; animation: scrollDown 1s infinite; }
 @keyframes scrollDown { 0% { transform: rotate(45deg) translate(0,0); opacity: 0; } 50% { transform: rotate(45deg) translate(0,15px); opacity: 1; } 100% { transform: rotate(45deg) translate(0,30px); opacity: 0; } }
 main { position: relative; z-index: 1; padding: 4rem 2rem; min-height: 50vh; }
+
+/* Mobile adjustments: center CTAs and make buttons fit content */
+@media (max-width: 640px) {
+	.hero {
+		align-items: center; /* center vertically */
+		justify-content: center;
+	}
+
+	.hero-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		padding: 1.5rem;
+	}
+
+	.cta-buttons {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		align-items: center;
+		width: 100%;
+	}
+
+	.cta-buttons .btn {
+		width: auto !important; /* fit content */
+		padding: 0.5rem 1rem;
+		min-width: 0;
+	}
+
+	/* ensure the hero takes reasonable height on mobile so buttons appear centered */
+	header.hero { height: calc(100vh - var(--topbar-height)); }
+}

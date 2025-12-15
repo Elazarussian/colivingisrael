@@ -48,6 +48,64 @@
     flex: 1;
 }
 
+/* Action buttons container for each question item */
+.question-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    /* prevent actions from shrinking too small on narrow screens */
+    flex-shrink: 0;
+}
+
+.permanent-badge {
+    font-size: 0.95rem;
+    color: #b00;
+    margin-right: 0.5rem;
+    font-weight: 700;
+}
+
+/* Make all question items visually similar height and avoid layout shifts */
+.question-item {
+    min-height: 64px; /* matches topbar variable in global styles roughly */
+    align-items: center; /* vertically center content */
+}
+
+/* Ensure long question text doesn't push actions off-screen: clamp and ellipsis */
+.question-info strong {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Responsive: on small screens allow actions to wrap below the question text */
+@media (max-width: 640px) {
+    .question-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .question-info {
+        width: 100%;
+    }
+
+    .question-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    /* Make buttons smaller on mobile but still tappable */
+    .question-actions .btn {
+        padding: 0.45rem 0.6rem;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+}
+
 .question-info strong {
     color: rgba(255, 255, 255, 0.95);
     font-size: 1.05rem;
@@ -251,4 +309,35 @@ select.form-control-auto {
 .yesno-buttons .btn {
     min-width: 100px;
     padding: 1rem 2rem;
+}
+
+/* Autocomplete suggestions (app-rendered) */
+.autocomplete { position: relative; }
+.autocomplete-suggestions {
+    /* Keep suggestions in normal flow so they push content down instead of overlaying headings */
+    position: static;
+    display: block;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    max-height: 220px;
+    overflow: auto;
+    border-radius: 8px;
+    padding: 0.25rem 0;
+    margin-top: 6px;
+}
+.autocomplete-suggestions li {
+    list-style: none;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    color: rgba(255,255,255,0.95);
+}
+.autocomplete-suggestions li:hover { background: rgba(255,255,255,0.03); }
+
+/* Auto-size text answers: start small (~2 words) and grow as user types */
+.auto-size-input {
+    display: inline-block;
+    width: 120px; /* default width for ~2 short words */
+    min-width: 80px;
+    max-width: 100%;
+    transition: width 0.12s ease;
 }
