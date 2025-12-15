@@ -1,5 +1,6 @@
 import { Injectable, NgZone } from '@angular/core';
 import { auth, db } from '../firebase-config';
+import { environment } from '../../environments/environment';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import {
     signInWithEmailAndPassword,
@@ -20,6 +21,11 @@ import { signOut } from 'firebase/auth';
     providedIn: 'root'
 })
 export class AuthService {
+    // Current DB state: 'real' | 'test'
+    // Default to 'real' in production unless overridden by localStorage (only for admins)
+    private _isTestMode = false;
+    get isTestMode() { return this._isTestMode; }
+
 
     private _user$ = new BehaviorSubject<User | null>(null);
     public user$: Observable<User | null> = this._user$.asObservable();
@@ -40,7 +46,8 @@ export class AuthService {
                         this._user$.next(user || null);
                         if (user && db) {
                             // load profile document
-                            const docRef = doc(db, 'profiles', user.uid);
+                            const docRef = doc(db, `${this.dbPath}profiles`, user.uid);
+                            console.log('AuthService: Loading profile from:', docRef.path);
                             const snap = await getDoc(docRef);
 
                             if (snap.exists()) {
@@ -77,6 +84,18 @@ export class AuthService {
                 }
             });
         }
+
+        // Initialize DB mode from local storage if set
+        const savedMode = localStorage.getItem('admin_db_mode');
+        if (savedMode) {
+            this._isTestMode = (savedMode === 'test');
+        } else {
+            // Default behavior: Users always see Real.
+            // In dev environment, if environment.TABLE points to testdata, we respect that as default.
+            if (environment.TABLE.includes('testdata')) {
+                this._isTestMode = true;
+            }
+        }
     }
 
     get auth() {
@@ -85,10 +104,27 @@ export class AuthService {
 
     get db() { return db; }
 
+    get dbPath(): string {
+        // If explicitly in test mode (via toggle or dev env), return test path
+        if (this._isTestMode) {
+            return 'testdata/db/';
+        }
+        // Otherwise return root path (Real Data)
+        return '';
+    }
+
+    toggleDatabaseMode() {
+        this._isTestMode = !this._isTestMode;
+        localStorage.setItem('admin_db_mode', this._isTestMode ? 'test' : 'real');
+        // reload to ensure fresh data
+        window.location.reload();
+    }
+
+
     // Profile read/write
     async getProfile(uid: string) {
         if (!db) throw new Error('Firestore not configured');
-        const docRef = doc(db, 'profiles', uid);
+        const docRef = doc(db, `${this.dbPath}profiles`, uid);
         const snap = await getDoc(docRef);
         return snap.exists() ? snap.data() : null;
     }
@@ -100,7 +136,7 @@ export class AuthService {
         }
         console.log('AuthService: saveProfile called for', uid, data);
 
-        const docRef = doc(db, 'profiles', uid);
+        const docRef = doc(db, `${this.dbPath}profiles`, uid);
         let payload: any = { ...data, uid };
         // remove empty-string fields so we don't persist blanks
         Object.keys(payload).forEach(k => {
@@ -133,7 +169,7 @@ export class AuthService {
     async reloadProfile() {
         const user = this._user$.getValue();
         if (user && db) {
-            const docRef = doc(db, 'profiles', user.uid);
+            const docRef = doc(db, `${this.dbPath}profiles`, user.uid);
             const snap = await getDoc(docRef);
             this._profile$.next(snap.exists() ? snap.data() : null);
         }
@@ -172,7 +208,7 @@ export class AuthService {
     private async ensureProfileExists(user: User): Promise<void> {
         if (!db) return;
 
-        const docRef = doc(db, 'profiles', user.uid);
+        const docRef = doc(db, `${this.dbPath}profiles`, user.uid);
         const snap = await getDoc(docRef);
 
         if (!snap.exists()) {
@@ -220,7 +256,7 @@ export class AuthService {
             this._user$.next(cred.user);
             // Create profile with the selected role
             if (db) {
-                const docRef = doc(db, 'profiles', cred.user.uid);
+                const docRef = doc(db, `${this.dbPath}profiles`, cred.user.uid);
                 const newProfile = {
                     uid: cred.user.uid,
                     email: cred.user.email || '',

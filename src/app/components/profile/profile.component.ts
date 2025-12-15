@@ -103,7 +103,7 @@ export class ProfileComponent implements OnInit {
     try {
       this.allUsersError = null;
       const { collection, getDocs } = await import('firebase/firestore');
-      const profilesCol = collection(this.auth.db, 'profiles');
+      const profilesCol = collection(this.auth.db, `${this.auth.dbPath}profiles`);
       const snapshot = await getDocs(profilesCol);
       this.allUsers = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       this.cdr.detectChanges();

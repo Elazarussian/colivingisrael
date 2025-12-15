@@ -41,8 +41,8 @@ export class ApartmentsComponent {
 
     onApartmentSaved() {
         this.showAddApartment = false;
-    // Reload listings after a new apartment is saved
-    this.loadApartments();
+        // Reload listings after a new apartment is saved
+        this.loadApartments();
     }
 
     closeAddApartment() {
@@ -54,7 +54,7 @@ export class ApartmentsComponent {
         if (!this.auth.db) return;
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snap = await getDocs(collection(this.auth.db, 'apartmentQuestions'));
+            const snap = await getDocs(collection(this.auth.db, `${this.auth.dbPath}apartmentQuestions`));
             const qs = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
             // build map by key or id
             const map: { [k: string]: string } = {};
@@ -72,7 +72,7 @@ export class ApartmentsComponent {
         if (!this.auth.db) return;
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snap = await getDocs(collection(this.auth.db, 'apartments'));
+            const snap = await getDocs(collection(this.auth.db, `${this.auth.dbPath}apartments`));
             const items = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
             // sort by createdAt desc if available
             items.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));

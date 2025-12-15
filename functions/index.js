@@ -17,10 +17,19 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
         );
     }
 
+    // Get the dbPath from data (defaults to 'realdata/db' or 'profiles' if missing, but we should enforce it)
+    const dbPath = data.dbPath;
+    if (!dbPath || typeof dbPath !== 'string') {
+        throw new functions.https.HttpsError(
+            'invalid-argument',
+            'dbPath is required'
+        );
+    }
+
     // Get the calling user's profile to check if they're an admin
     const callerUid = context.auth.uid;
     const callerProfileDoc = await admin.firestore()
-        .collection('profiles')
+        .collection(`${dbPath}profiles`)
         .doc(callerUid)
         .get();
 
@@ -58,7 +67,7 @@ exports.deleteUser = functions.https.onCall(async (data, context) => {
 
         // Also delete from Firestore profiles collection
         await admin.firestore()
-            .collection('profiles')
+            .collection(`${dbPath}profiles`)
             .doc(uid)
             .delete();
 
@@ -121,9 +130,14 @@ exports.deleteUserHttp = functions.https.onRequest(async (req, res) => {
         const decoded = await admin.auth().verifyIdToken(idToken);
         const callerUid = decoded.uid;
 
+        const dbPath = (req.body && req.body.dbPath) || '';
+        if (req.body.dbPath && typeof req.body.dbPath !== 'string') {
+            return res.status(400).json({ error: 'invalid-argument: dbPath must be a string' });
+        }
+
         // Get caller profile
         const callerProfileDoc = await admin.firestore()
-            .collection('profiles')
+            .collection(`${dbPath}profiles`)
             .doc(callerUid)
             .get();
         const callerProfile = callerProfileDoc.data();
@@ -143,7 +157,7 @@ exports.deleteUserHttp = functions.https.onRequest(async (req, res) => {
 
         // Delete user from Auth and Firestore
         await admin.auth().deleteUser(uid);
-        await admin.firestore().collection('profiles').doc(uid).delete();
+        await admin.firestore().collection(`${dbPath}profiles`).doc(uid).delete();
 
         console.log(`User ${uid} deleted successfully by admin ${callerUid}`);
 

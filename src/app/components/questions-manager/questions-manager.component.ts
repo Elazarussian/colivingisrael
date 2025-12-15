@@ -169,7 +169,7 @@ export class QuestionsManagerComponent implements OnInit {
         if (!this.auth.db) return [];
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snapshot = await getDocs(collection(this.auth.db, 'newUsersQuestions'));
+            const snapshot = await getDocs(collection(this.auth.db, `${this.auth.dbPath}newUsersQuestions`));
             const questions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
             // Sort by order field if present, otherwise by createdAt
             return questions.sort((a, b) => {
@@ -190,7 +190,7 @@ export class QuestionsManagerComponent implements OnInit {
         if (!this.auth.db) return [];
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snapshot = await getDocs(collection(this.auth.db, 'maskirQuestions'));
+            const snapshot = await getDocs(collection(this.auth.db, `${this.auth.dbPath}maskirQuestions`));
             const questions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
             return questions.sort((a, b) => {
                 if (a.order !== undefined && b.order !== undefined) {
@@ -210,7 +210,7 @@ export class QuestionsManagerComponent implements OnInit {
         if (!this.auth.db) return [];
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snapshot = await getDocs(collection(this.auth.db, 'userPersonalDataQuestions'));
+            const snapshot = await getDocs(collection(this.auth.db, `${this.auth.dbPath}userPersonalDataQuestions`));
             const questions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
             // Sort by order field if present, otherwise by createdAt
             return questions.sort((a, b) => {
@@ -231,7 +231,7 @@ export class QuestionsManagerComponent implements OnInit {
         if (!this.auth.db) return [];
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snapshot = await getDocs(collection(this.auth.db, 'apartmentQuestions'));
+            const snapshot = await getDocs(collection(this.auth.db, `${this.auth.dbPath}apartmentQuestions`));
             const questions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
             return questions.sort((a, b) => {
                 if (a.order !== undefined && b.order !== undefined) {
@@ -251,7 +251,8 @@ export class QuestionsManagerComponent implements OnInit {
         if (!this.auth.db) return;
         try {
             const { collection, addDoc } = await import('firebase/firestore');
-            await addDoc(collection(this.auth.db, collectionName), questionData);
+            // collectionName passed in is short name, need to prepend TABLE
+            await addDoc(collection(this.auth.db, `${this.auth.dbPath}${collectionName}`), questionData);
         } catch (err) {
             console.error('Error adding question:', err);
             throw err;
@@ -262,7 +263,7 @@ export class QuestionsManagerComponent implements OnInit {
         if (!this.auth.db) return;
         try {
             const { doc, deleteDoc } = await import('firebase/firestore');
-            await deleteDoc(doc(this.auth.db, collectionName, id));
+            await deleteDoc(doc(this.auth.db, `${this.auth.dbPath}${collectionName}`, id));
         } catch (err) {
             console.error('Error deleting question:', err);
             throw err;
@@ -273,7 +274,7 @@ export class QuestionsManagerComponent implements OnInit {
         if (!this.auth.db) return;
         try {
             const { doc, updateDoc } = await import('firebase/firestore');
-            await updateDoc(doc(this.auth.db, collectionName, id), questionData);
+            await updateDoc(doc(this.auth.db, `${this.auth.dbPath}${collectionName}`, id), questionData);
         } catch (err) {
             console.error('Error updating question:', err);
             throw err;
@@ -284,7 +285,7 @@ export class QuestionsManagerComponent implements OnInit {
         if (!this.auth.db) return {};
         try {
             const { doc, getDoc } = await import('firebase/firestore');
-            const ref = doc(this.auth.db, 'profiles', uid);
+            const ref = doc(this.auth.db, `${this.auth.dbPath}profiles`, uid);
             const snap = await getDoc(ref);
             return snap.exists() ? (snap.data() as any).questions || {} : {};
         } catch (err) {
@@ -307,9 +308,9 @@ export class QuestionsManagerComponent implements OnInit {
             if (q.key) textMap[q.key] = q.text;
         };
 
-    regQs.forEach(mapQ);
-    pdQs.forEach(mapQ);
-    mkQs.forEach(mapQ);
+        regQs.forEach(mapQ);
+        pdQs.forEach(mapQ);
+        mkQs.forEach(mapQ);
 
         return textMap;
     }
@@ -514,9 +515,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     async loadOnboardingQuestions() {
-    this.onboardingPersonalDataQuestions = await this.getPersonalDataQuestions();
-    this.onboardingQuestions = await this.getRegistrationQuestions();
-    this.onboardingMaskirQuestions = await this.getMaskirQuestions();
+        this.onboardingPersonalDataQuestions = await this.getPersonalDataQuestions();
+        this.onboardingQuestions = await this.getRegistrationQuestions();
+        this.onboardingMaskirQuestions = await this.getMaskirQuestions();
         this.cdr.detectChanges();
     }
 
@@ -563,7 +564,7 @@ export class QuestionsManagerComponent implements OnInit {
             const payload = this.mapAnswersForSave(this.apartmentQuestions, this.apartmentAnswers || {});
             // mark as apartment listing and include createdAt
             payload.createdAt = new Date().toISOString();
-            const ref = await addDoc(collection(this.auth.db, 'apartments'), payload);
+            const ref = await addDoc(collection(this.auth.db, `${this.auth.dbPath}apartments`), payload);
             this.msg.show('הדירה נשמרה במאגר');
             this.completed.emit();
             this.close();
@@ -658,9 +659,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     async deleteApartmentQuestion(id: string) {
-    const q = this.apartmentQuestions.find(x => x.id === id);
-    if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
-    if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
+        const q = this.apartmentQuestions.find(x => x.id === id);
+        if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
+        if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
         try {
             await this.deleteQuestionFromFirebase('apartmentQuestions', id);
             await this.loadApartmentQuestions();
@@ -671,9 +672,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     async deleteQuestion(id: string) {
-    const q = this.questions.find(x => x.id === id);
-    if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
-    if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
+        const q = this.questions.find(x => x.id === id);
+        if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
+        if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
         try {
             await this.deleteQuestionFromFirebase('newUsersQuestions', id);
             await this.loadQuestions();
@@ -684,9 +685,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     async deletePersonalDataQuestion(id: string) {
-    const q = this.personalDataQuestions.find(x => x.id === id);
-    if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
-    if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
+        const q = this.personalDataQuestions.find(x => x.id === id);
+        if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
+        if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
         try {
             await this.deleteQuestionFromFirebase('userPersonalDataQuestions', id);
             await this.loadPersonalDataQuestions();
@@ -697,9 +698,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     async deleteMaskirQuestion(id: string) {
-    const q = this.maskirQuestions.find(x => x.id === id);
-    if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
-    if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
+        const q = this.maskirQuestions.find(x => x.id === id);
+        if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
+        if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
         try {
             await this.deleteQuestionFromFirebase('maskirQuestions', id);
             await this.loadMaskirQuestions();
@@ -720,7 +721,7 @@ export class QuestionsManagerComponent implements OnInit {
         list[index - 1] = temp;
 
         // Update order values
-    await this.updateQuestionOrders(list, isPersonalData, isMaskir);
+        await this.updateQuestionOrders(list, isPersonalData, isMaskir);
     }
 
     async moveQuestionDown(index: number, isPersonalData: boolean, isMaskir: boolean = false) {
@@ -733,7 +734,7 @@ export class QuestionsManagerComponent implements OnInit {
         list[index + 1] = temp;
 
         // Update order values
-    await this.updateQuestionOrders(list, isPersonalData, isMaskir);
+        await this.updateQuestionOrders(list, isPersonalData, isMaskir);
     }
 
     private async updateQuestionOrders(list: Question[], isPersonalData: boolean, isMaskir: boolean = false) {
@@ -899,7 +900,7 @@ export class QuestionsManagerComponent implements OnInit {
         this.currentQuestionIndex = 0;
         // Start with registration questions (group 0)
         // If no registration questions, skip to personal data questions (group 1)
-    this.currentQuestionGroup = this.onboardingQuestions.length > 0 ? 0 : 1;
+        this.currentQuestionGroup = this.onboardingQuestions.length > 0 ? 0 : 1;
 
         console.log('🔍 Onboarding Debug:', {
             personalDataCount: this.onboardingPersonalDataQuestions.length,
@@ -910,9 +911,9 @@ export class QuestionsManagerComponent implements OnInit {
             groupName: this.currentQuestionGroup === 0 ? 'Registration' : 'Personal Data'
         });
 
-    const isMaskir = this.profile?.role === 'maskir';
-    const secondGroup = isMaskir ? this.onboardingMaskirQuestions : this.onboardingPersonalDataQuestions;
-    const allQuestions = [...this.onboardingQuestions, ...secondGroup];
+        const isMaskir = this.profile?.role === 'maskir';
+        const secondGroup = isMaskir ? this.onboardingMaskirQuestions : this.onboardingPersonalDataQuestions;
+        const allQuestions = [...this.onboardingQuestions, ...secondGroup];
         const existingAnswers = this.profile?.questions;
         this.onboardingAnswers = this.prepareAnswersMap(allQuestions, existingAnswers);
     }
@@ -922,10 +923,10 @@ export class QuestionsManagerComponent implements OnInit {
         const uid = currentUser?.uid || this.profile?.uid;
         if (!uid) return;
 
-    const answers: any = {};
-    const isMaskir = this.profile?.role === 'maskir';
-    const secondGroup = isMaskir ? this.onboardingMaskirQuestions : this.onboardingPersonalDataQuestions;
-    const allQuestions = [...this.onboardingQuestions, ...secondGroup];
+        const answers: any = {};
+        const isMaskir = this.profile?.role === 'maskir';
+        const secondGroup = isMaskir ? this.onboardingMaskirQuestions : this.onboardingPersonalDataQuestions;
+        const allQuestions = [...this.onboardingQuestions, ...secondGroup];
 
         for (const q of allQuestions) {
             const id = q.id || '';
@@ -953,7 +954,7 @@ export class QuestionsManagerComponent implements OnInit {
                 onboardingCompleted: true
             });
             this.completed.emit();
-            } catch (err) {
+        } catch (err) {
             console.error('Error saving onboarding answers:', err);
             this.msg.show('שגיאה בשמירת תשובות. יש לנסות שוב מאוחר יותר.');
         }
@@ -1198,7 +1199,7 @@ export class QuestionsManagerComponent implements OnInit {
     private resetApartmentQuestionForm() {
         this.newApartmentQuestion = this.getEmptyQuestion();
         this.newApartmentOption = '';
-    this.currentLang = 'he';
-    this.apartmentKeyManualMode = false;
+        this.currentLang = 'he';
+        this.apartmentKeyManualMode = false;
     }
 }

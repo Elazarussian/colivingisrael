@@ -1,58 +1,93 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if the user is an admin
-    // We check the role in the 'profiles' collection
-    function isAdmin() {
-      let profilePath = /databases/$(database)/documents/profiles/$(request.auth.uid);
-      return request.auth != null && exists(profilePath) && get(profilePath).data.role == 'admin';
+
+    // --- HELPER FUNCTIONS ---
+
+    // Check if user has a specific role in the ROOT profiles collection
+    function hasRoleRoot(role) {
+      let p = /databases/$(database)/documents/profiles/$(request.auth.uid);
+      return request.auth != null && exists(p) && get(p).data.role == role;
     }
 
-    // Profiles collection - user profile data
+    // Check if user has a specific role in the TESTDATA profiles collection
+    function hasRoleTest(role) {
+      let p = /databases/$(database)/documents/testdata/db/profiles/$(request.auth.uid);
+      return request.auth != null && exists(p) && get(p).data.role == role;
+    }
+
+    // --- ROOT DATA RULES (Real Data) ---
+
     match /profiles/{userId} {
-      // Users can read their own profile, OR admins can read any profile
-      allow read: if (request.auth != null && request.auth.uid == userId) || isAdmin();
-
-      // Users can create/update their own profile
-      allow create, update: if request.auth != null 
-                            && request.auth.uid == userId
-                            && request.resource.data.uid == userId; // Ensure uid matches
-
-      // Allow admins to delete profiles (e.g., when an admin removes a user)
-      allow delete: if isAdmin();
-      // Optionally, allow users to delete their own profile (uncomment if desired)
-      // allow delete: if request.auth != null && request.auth.uid == userId;
+      allow read: if (request.auth != null && request.auth.uid == userId) || hasRoleRoot('admin');
+      allow create, update: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == userId;
+      allow delete: if hasRoleRoot('admin');
     }
 
-    // Registration Questions collection
     match /newUsersQuestions/{questionId} {
-      // Everyone can read questions (needed for registration form)
       allow read: if true;
-      
-      // Only admins can write (create, update, delete)
-      allow write: if isAdmin();
+      allow write: if hasRoleRoot('admin');
     }
 
-    // User Personal Data Questions collection
     match /userPersonalDataQuestions/{questionId} {
-      // Everyone can read questions (needed for user profile forms)
       allow read: if true;
-      
-      // Only admins can write (create, update, delete)
-      allow write: if isAdmin();
+      allow write: if hasRoleRoot('admin');
     }
     
-    // Maskir Questions collection
     match /maskirQuestions/{questionId} {
-      // Everyone can read questions (needed for onboarding and admin UI)
       allow read: if true;
+      allow write: if hasRoleRoot('admin');
+    }
 
-      // Only admins can write (create, update, delete)
-      allow write: if isAdmin();
+    match /apartmentQuestions/{questionId} {
+      allow read: if true;
+      allow write: if hasRoleRoot('admin');
+    }
+
+    match /apartments/{apartmentId} {
+      allow read: if true;
+      allow create, update: if hasRoleRoot('admin') || hasRoleRoot('maskir');
+      allow delete: if hasRoleRoot('admin') || hasRoleRoot('maskir');
+    }
+
+    // --- TEST DATA RULES (testdata/db) ---
+    
+    match /testdata/db {
+      
+      match /profiles/{userId} {
+        allow read: if (request.auth != null && request.auth.uid == userId) || hasRoleTest('admin');
+        allow create, update: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == userId;
+        allow delete: if hasRoleTest('admin');
+      }
+
+      match /newUsersQuestions/{questionId} {
+        allow read: if true;
+        allow write: if hasRoleTest('admin');
+      }
+
+      match /userPersonalDataQuestions/{questionId} {
+        allow read: if true;
+        allow write: if hasRoleTest('admin');
+      }
+      
+      match /maskirQuestions/{questionId} {
+        allow read: if true;
+        allow write: if hasRoleTest('admin');
+      }
+
+      match /apartmentQuestions/{questionId} {
+        allow read: if true;
+        allow write: if hasRoleTest('admin');
+      }
+
+      match /apartments/{apartmentId} {
+        allow read: if true;
+        allow create, update: if hasRoleTest('admin') || hasRoleTest('maskir');
+        allow delete: if hasRoleTest('admin') || hasRoleTest('maskir');
+      }
     }
     
-    // Default deny all other access
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }
