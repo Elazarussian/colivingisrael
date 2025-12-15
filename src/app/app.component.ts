@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { TopbarComponent } from './components/topbar/topbar.component';
+import { TopbarComponent } from './components/topbar/topbar.component'; // force rebuild
 import { AuthModalComponent } from './components/auth-modal/auth-modal.component';
 import { ShowMessageComponent } from './components/show-message/show-message.component';
 import { AuthService } from './services/auth.service';
@@ -33,7 +33,7 @@ export class AppComponent {
       this.messageToShow = m || '';
     });
   }
-  onMsgClosed(reason: 'ok'|'x') {
+  onMsgClosed(reason: 'ok' | 'x') {
     // hide message; real callers can react to reason
     this.messageToShow = '';
   }
