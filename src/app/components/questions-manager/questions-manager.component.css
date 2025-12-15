@@ -148,6 +148,28 @@
     transition: all 0.2s;
 }
 
+/* Two-column layout for many options (used in onboarding/edit views) */
+.two-column-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1rem;
+    align-items: start;
+}
+
+.two-column-options .checkbox-item,
+.two-column-options .radio-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* When two-column-options is used for the compact pill list (options-list), make items flow in columns */
+.two-column-options .options-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem 0.5rem;
+}
+
 .options-list li:hover {
     background: rgba(76, 175, 80, 0.3);
     transform: scale(1.05);

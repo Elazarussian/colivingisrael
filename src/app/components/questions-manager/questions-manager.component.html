@@ -1,4 +1,5 @@
 <div class="questions-manager-container">
+    <show-message *ngIf="showMessageVisible" [message]="showMessageText" (closed)="onShowMessageClosed($event)"></show-message>
 
     <!-- shared templates: language switcher, options preview, scale/range preview -->
     <ng-template #langSwitcher>
@@ -19,11 +20,12 @@
                     <span class="question-type">({{q.type}})</span>
                     <ng-container *ngTemplateOutlet="optionsPreview; context: { $implicit: q }"></ng-container>
                 </div>
-                <div style="display:flex;gap:0.5rem;">
+                <div style="display:flex;gap:0.5rem;align-items:center;">
                     <button class="btn btn-regular btn-sm" (click)="moveUpFn(i, moveArgs?.a, moveArgs?.b)" [disabled]="i === 0" title="העלה">↑</button>
                     <button class="btn btn-regular btn-sm" (click)="moveDownFn(i, moveArgs?.a, moveArgs?.b)" [disabled]="i === listLen - 1" title="הורד">↓</button>
-                    <button class="btn btn-special btn-sm" (click)="openEditFn(q, openArgs?.a, openArgs?.b)">ערוך</button>
-                    <button class="btn btn-cancel btn-sm" (click)="deleteFn(q.id || '')">מחק</button>
+                    <button *ngIf="!q.permanent" class="btn btn-special btn-sm" (click)="openEditFn(q, openArgs?.a, openArgs?.b)">ערוך</button>
+                    <button *ngIf="!q.permanent" class="btn btn-cancel btn-sm" (click)="deleteFn(q.id || '')">מחק</button>
+                    <span *ngIf="q.permanent" style="font-size:0.95rem;color:#b00;margin-right:0.5rem;font-weight:700;">שאלה קבועה</span>
                 </div>
             </div>
         </ng-template>
@@ -48,6 +50,11 @@
                             </label>
                         </div>
                         <input [(ngModel)]="model.key" [disabled]="!(keyManualMode)" class="form-control form-control-sm-custom" [style.opacity]="(keyManualMode) ? 1 : 0.5" placeholder="לדוגמה: firstname" />
+                            <div style="margin-top:0.5rem;">
+                                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                                    <input type="checkbox" [(ngModel)]="model.permanent" (change)="onPermanentCheckboxChanged(model.permanent)"> סמן על מנת להפוך את השאלה לקבועה (בלתי ניתנת למחיקה)
+                                </label>
+                            </div>
                     </div>
 
                     <label>סוג תשובה</label>
@@ -61,6 +68,7 @@
                         <option value="radio">בחירה יחידה</option>
                         <option value="phone">טלפון</option>
                     </select>
+
 
                     <div *ngIf="model.type === 'checklist' || model.type === 'radio'" class="options-manager">
                         <label>אפשרויות בחירה</label>
@@ -111,7 +119,7 @@
                     <button class="btn" [class.btn-cancel]="model[q.id || ''] === false" (click)="model[q.id || ''] = false">לא</button>
                 </div>
 
-                <div *ngIf="q.type === 'checklist'" class="checklist-options">
+                <div *ngIf="q.type === 'checklist'" [ngClass]="{'checklist-options': true, 'two-column-options': q.options && q.options.length > 5}">
                     <div *ngIf="q.maxSelections" style="margin-bottom:0.5rem;color:#666;font-size:0.9rem;">(ניתן לבחור עד {{q.maxSelections}} אפשרויות)</div>
                     <div *ngFor="let opt of q.options" class="checkbox-item" style="margin-bottom:0.5rem;">
                         <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
@@ -120,7 +128,7 @@
                     </div>
                 </div>
 
-                <div *ngIf="q.type === 'radio'" class="radio-options">
+                <div *ngIf="q.type === 'radio'" [ngClass]="{'radio-options': true, 'two-column-options': q.options && q.options.length > 5}">
                     <div *ngFor="let opt of q.options" class="radio-item" style="margin-bottom:0.5rem;">
                         <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
                             <input type="radio" [name]="q.id || ''" [value]="opt" [(ngModel)]="model[q.id || '']"> {{ opt }}

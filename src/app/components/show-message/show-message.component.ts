@@ -25,7 +25,8 @@ import { CommonModule } from '@angular/common';
       align-items: center;
       justify-content: center;
       background: rgba(0,0,0,0.4);
-      z-index: 1000;
+      z-index: 2147483647; /* max 32-bit signed int to be above anything */
+      pointer-events: auto;
     }
     .card {
       background: #fff;
@@ -35,6 +36,7 @@ import { CommonModule } from '@angular/common';
       max-width: 90%;
       box-shadow: 0 6px 20px rgba(0,0,0,0.16);
       position: relative;
+      z-index: 2147483648; /* ensure card is above the overlay backdrop */
       text-align: center;
     }
     .close-x {

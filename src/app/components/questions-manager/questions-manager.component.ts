@@ -1,6 +1,7 @@
 import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ShowMessageComponent } from '../show-message/show-message.component';
 import { AuthService } from '../../services/auth.service';
 import { MessageService } from '../../services/message.service';
 import { firstValueFrom } from 'rxjs';
@@ -19,12 +20,13 @@ export interface Question {
     maxSelections?: number;
     order?: number;
     createdAt?: string;
+    permanent?: boolean;
 }
 
 @Component({
     selector: 'app-questions-manager',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, ShowMessageComponent],
     templateUrl: './questions-manager.component.html',
     styleUrls: ['./questions-manager.component.css']
 })
@@ -90,6 +92,24 @@ export class QuestionsManagerComponent implements OnInit {
         private msg: MessageService
     ) { }
 
+    // show-message state
+    showMessageVisible = false;
+    showMessageText = '';
+
+    // called from template when show-message emits closed
+    public onShowMessageClosed(reason: any) {
+        this.showMessageVisible = false;
+        this.showMessageText = '';
+    }
+
+    // show the permanent-warning when checkbox is toggled on
+    public onPermanentCheckboxChanged(value: boolean) {
+        if (value) {
+            this.showMessageText = 'שים לב! לאחר סימון תיבה זאת - השאלה החדשה תהיינה קבוע ולא ניתנת למחיקה באופן ישיר, אלא רק על ידי מתכנת ישירות מהfirebase.';
+            this.showMessageVisible = true;
+        }
+    }
+
     async ngOnInit() {
         await this.initializeMode();
     }
@@ -139,7 +159,8 @@ export class QuestionsManagerComponent implements OnInit {
             options: [],
             min: 1,
             max: 5,
-            maxSelections: undefined
+            maxSelections: undefined,
+            permanent: false
         };
     }
 
@@ -378,6 +399,7 @@ export class QuestionsManagerComponent implements OnInit {
             textFr: q.textFr || '',
             key: q.key || null,
             type: q.type,
+            permanent: !!q.permanent,
             createdAt: q.createdAt || new Date().toISOString()
         };
 
@@ -386,12 +408,12 @@ export class QuestionsManagerComponent implements OnInit {
         }
 
         if (q.type === 'scale' || q.type === 'range') {
-            questionData.min = q.min;
-            questionData.max = q.max;
+            if (q.min !== undefined && q.min !== null) questionData.min = q.min;
+            if (q.max !== undefined && q.max !== null) questionData.max = q.max;
         }
 
         if (q.type === 'checklist') {
-            questionData.maxSelections = q.maxSelections;
+            if (q.maxSelections !== undefined && q.maxSelections !== null) questionData.maxSelections = q.maxSelections;
         }
 
         return questionData;
@@ -636,7 +658,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     async deleteApartmentQuestion(id: string) {
-        if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
+    const q = this.apartmentQuestions.find(x => x.id === id);
+    if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
+    if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
         try {
             await this.deleteQuestionFromFirebase('apartmentQuestions', id);
             await this.loadApartmentQuestions();
@@ -647,7 +671,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     async deleteQuestion(id: string) {
-        if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
+    const q = this.questions.find(x => x.id === id);
+    if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
+    if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
         try {
             await this.deleteQuestionFromFirebase('newUsersQuestions', id);
             await this.loadQuestions();
@@ -658,7 +684,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     async deletePersonalDataQuestion(id: string) {
-        if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
+    const q = this.personalDataQuestions.find(x => x.id === id);
+    if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
+    if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
         try {
             await this.deleteQuestionFromFirebase('userPersonalDataQuestions', id);
             await this.loadPersonalDataQuestions();
@@ -669,7 +697,9 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     async deleteMaskirQuestion(id: string) {
-        if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
+    const q = this.maskirQuestions.find(x => x.id === id);
+    if (q && q.permanent) { this.msg.show('שאלה זו קבועה ולא ניתנת למחיקה ישירות.'); return; }
+    if (!confirm('האם אתה בטוח שברצונך למחוק שאלה זו?')) return;
         try {
             await this.deleteQuestionFromFirebase('maskirQuestions', id);
             await this.loadMaskirQuestions();
@@ -727,6 +757,10 @@ export class QuestionsManagerComponent implements OnInit {
 
     // === EDIT QUESTION METHODS ===
     openEditQuestion(q: Question, isPersonalData: boolean, isMaskir: boolean = false) {
+        if (q.permanent) {
+            this.msg.show('שאלה זו קבועה ולא ניתנת לעריכה ישירות.');
+            return;
+        }
         this.isEditPersonalData = isPersonalData;
         this.isEditMaskir = !!isMaskir;
         this.editingQuestion = JSON.parse(JSON.stringify(q));
@@ -743,6 +777,14 @@ export class QuestionsManagerComponent implements OnInit {
 
     async updateQuestion() {
         if (!this.editingQuestion || !this.editingQuestion.id) return;
+        // Do not allow updating permanent flag via UI
+        const origList = this.isEditMaskir ? this.maskirQuestions : (this.isEditPersonalData ? this.personalDataQuestions : this.questions);
+        const orig = origList.find(x => x.id === this.editingQuestion!.id);
+        if (orig && orig.permanent) {
+            this.msg.show('שאלה זו קבועה ולא ניתנת לעריכה ישירות.');
+            this.closeEditQuestion();
+            return;
+        }
         try {
             const collectionName = this.isEditMaskir ? 'maskirQuestions' : (this.isEditPersonalData ? 'userPersonalDataQuestions' : 'newUsersQuestions');
             const questionData = this.prepareQuestionPayload(this.editingQuestion);
@@ -777,10 +819,11 @@ export class QuestionsManagerComponent implements OnInit {
     }
 
     // === OPTION MANAGEMENT ===
-    addOption() {
-        if (this.newOption.trim()) {
+    addOption(value?: string) {
+        const candidate = (value !== undefined && value !== null) ? String(value).trim() : (this.newOption || '').trim();
+        if (candidate) {
             if (!this.newQuestion.options) this.newQuestion.options = [];
-            this.newQuestion.options.push(this.newOption.trim());
+            this.newQuestion.options.push(candidate);
             this.newOption = '';
         }
     }
@@ -791,18 +834,20 @@ export class QuestionsManagerComponent implements OnInit {
         }
     }
 
-    addPersonalDataOption() {
-        if (this.newPersonalDataOption.trim()) {
+    addPersonalDataOption(value?: string) {
+        const candidate = (value !== undefined && value !== null) ? String(value).trim() : (this.newPersonalDataOption || '').trim();
+        if (candidate) {
             if (!this.newPersonalDataQuestion.options) this.newPersonalDataQuestion.options = [];
-            this.newPersonalDataQuestion.options.push(this.newPersonalDataOption.trim());
+            this.newPersonalDataQuestion.options.push(candidate);
             this.newPersonalDataOption = '';
         }
     }
 
-    addMaskirOption() {
-        if (this.newMaskirOption.trim()) {
+    addMaskirOption(value?: string) {
+        const candidate = (value !== undefined && value !== null) ? String(value).trim() : (this.newMaskirOption || '').trim();
+        if (candidate) {
             if (!this.newMaskirQuestion.options) this.newMaskirQuestion.options = [];
-            this.newMaskirQuestion.options.push(this.newMaskirOption.trim());
+            this.newMaskirQuestion.options.push(candidate);
             this.newMaskirOption = '';
         }
     }
@@ -813,10 +858,11 @@ export class QuestionsManagerComponent implements OnInit {
         }
     }
 
-    addApartmentOption() {
-        if (this.newApartmentOption.trim()) {
+    addApartmentOption(value?: string) {
+        const candidate = (value !== undefined && value !== null) ? String(value).trim() : (this.newApartmentOption || '').trim();
+        if (candidate) {
             if (!this.newApartmentQuestion.options) this.newApartmentQuestion.options = [];
-            this.newApartmentQuestion.options.push(this.newApartmentOption.trim());
+            this.newApartmentQuestion.options.push(candidate);
             this.newApartmentOption = '';
         }
     }
