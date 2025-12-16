@@ -1,1 +1,4 @@
+<app-topbar></app-topbar>
 <router-outlet></router-outlet>
+<app-auth-modal *ngIf="showAuthModal" (close)="auth.hideAuthModal()"></app-auth-modal>
+<show-message *ngIf="messageToShow" [message]="messageToShow" (closed)="onMsgClosed($event)"></show-message>

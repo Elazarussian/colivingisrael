@@ -7,7 +7,7 @@ import { firstValueFrom } from 'rxjs';
 @Component({
     selector: 'app-set-admin',
     standalone: true,
-    template: '' // no UI
+    templateUrl: './set-admin.component.html'
 })
 export class SetAdminComponent {
     userEmail = '';

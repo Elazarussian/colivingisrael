@@ -1,20 +1,6 @@
 /* Modal styles moved to global `src/styles.css` to avoid duplication */
 
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
 
-.modal-header h2 {
-    margin: 0;
-    font-size: 1.8rem;
-    color: rgba(255, 255, 255, 0.95);
-    font-weight: 700;
-}
 
 .questions-list {
     margin-bottom: 2rem;
@@ -66,8 +52,10 @@
 
 /* Make all question items visually similar height and avoid layout shifts */
 .question-item {
-    min-height: 64px; /* matches topbar variable in global styles roughly */
-    align-items: center; /* vertically center content */
+    min-height: 64px;
+    /* matches topbar variable in global styles roughly */
+    align-items: center;
+    /* vertically center content */
 }
 
 /* Ensure long question text doesn't push actions off-screen: clamp and ellipsis */
@@ -312,32 +300,87 @@ select.form-control-auto {
 }
 
 /* Autocomplete suggestions (app-rendered) */
-.autocomplete { position: relative; }
+.autocomplete {
+    position: relative;
+}
+
 .autocomplete-suggestions {
     /* Keep suggestions in normal flow so they push content down instead of overlaying headings */
     position: static;
     display: block;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     max-height: 220px;
     overflow: auto;
     border-radius: 8px;
     padding: 0.25rem 0;
     margin-top: 6px;
 }
+
 .autocomplete-suggestions li {
     list-style: none;
     padding: 0.5rem 0.75rem;
     cursor: pointer;
-    color: rgba(255,255,255,0.95);
+    color: rgba(255, 255, 255, 0.95);
 }
-.autocomplete-suggestions li:hover { background: rgba(255,255,255,0.03); }
+
+.autocomplete-suggestions li:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
 
 /* Auto-size text answers: start small (~2 words) and grow as user types */
 .auto-size-input {
     display: inline-block;
-    width: 120px; /* default width for ~2 short words */
-    min-width: 80px;
-    max-width: 100%;
+    /* start roughly wide enough for two short words while remaining compact */
+    width: 140px;
+    min-width: 120px; /* ensure two words fit comfortably */
+    max-width: 420px; /* cap to avoid overflowing typical modal widths */
+    box-sizing: border-box;
     transition: width 0.12s ease;
+}
+
+/* Input error visuals for validation messages */
+.input-error {
+    border-color: #ff6b6b !important;
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.12) !important;
+}
+
+.input-error-text {
+    color: #ff8a80;
+    font-size: 0.9rem;
+    margin-top: 0.35rem;
+}
+
+.city-list-toggle {
+    padding: 0.4rem 0.55rem;
+    min-width: 36px;
+    display: inline-grid;
+    place-items: center;
+}
+
+.autocomplete-suggestions {
+    position: static;
+    display: block;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    max-height: 240px;
+    overflow: auto;
+    border-radius: 8px;
+    padding: 0.25rem 0;
+    margin-top: 6px;
+}
+
+/* Make sure inputs inside narrow onboarding/edit modals don't overflow */
+.onboarding-modal .auto-size-input,
+.modal-content .auto-size-input {
+    max-width: calc(100% - 48px); /* respect modal padding and close button */
+}
+
+/* On smaller screens, allow inputs to grow but remain within the modal */
+@media (max-width: 640px) {
+    .auto-size-input {
+        width: 160px;
+        min-width: 120px;
+        max-width: calc(100% - 32px);
+    }
 }

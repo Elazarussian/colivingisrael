@@ -79,6 +79,8 @@ export class QuestionsManagerComponent implements OnInit {
     // Suggestions state per question id
     citySuggestions: { [qid: string]: Array<{ id: string; name: string; neighborhoods?: string[] }> } = {};
     neighborhoodSuggestions: { [qid: string]: string[] } = {};
+    // Validation state per question id (e.g., invalid typed city)
+    cityValidationErrors: { [qid: string]: string | null } = {};
 
     // UI state
     currentQuestionIndex = 0;
@@ -247,9 +249,11 @@ export class QuestionsManagerComponent implements OnInit {
         const inputLower = value.trim().toLowerCase();
         this.citySuggestions[qid] = this.cities.filter(c => (c.name || '').toLowerCase().includes(inputLower)).slice(0, 8);
         // don't set cityId until user selects
-        ans.cityId = '';
+    ans.cityId = '';
         ans.neighborhood = '';
         ans.neighborhoodName = '';
+    // mark validation error while user types a non-exact value
+    this.cityValidationErrors[qid] = 'אנא הכנס שם עיר מתוך הרשימה בלבד';
     }
 
     onNeighborhoodInput(q: Question, model: any, value: string) {
@@ -280,8 +284,26 @@ export class QuestionsManagerComponent implements OnInit {
         ans.neighborhood = '';
         ans.neighborhoodName = '';
         this.citySuggestions[q.id || ''] = [];
+    // clear validation error when a valid city is selected
+    this.cityValidationErrors[q.id || ''] = null;
         // prefill neighborhood suggestions list for this city if needed
         this.neighborhoodSuggestions[q.id || ''] = (city.neighborhoods || []).slice(0, 8);
+    }
+
+    // Toggle showing the full cities list for a question input
+    toggleShowAllCities(q: Question) {
+        const qid = q.id || '';
+        if (!this.cities || this.cities.length === 0) {
+            this.citySuggestions[qid] = [];
+            return;
+        }
+        const current = this.citySuggestions[qid] || [];
+        // if already showing full list, hide it; otherwise show up to 200 entries
+        if (current.length === this.cities.length) {
+            this.citySuggestions[qid] = [];
+        } else {
+            this.citySuggestions[qid] = this.cities.slice(0, 200);
+        }
     }
 
     onNeighborhoodSelect(q: Question, model: any, neighborhood: string) {
@@ -300,6 +322,7 @@ export class QuestionsManagerComponent implements OnInit {
             ans.cityId = '';
             ans.neighborhood = '';
             ans.neighborhoodName = '';
+            this.cityValidationErrors[q.id || ''] = null;
             return;
         }
         // Find exact match (case-sensitive name stored in DB). Allow common whitespace normalization.
@@ -310,12 +333,15 @@ export class QuestionsManagerComponent implements OnInit {
             // clear neighborhood when city set/changed
             ans.neighborhood = '';
             ans.neighborhoodName = '';
+            this.cityValidationErrors[q.id || ''] = null;
         } else {
             // No exact match -> clear input to force user to choose one from list
             ans.cityId = '';
             ans.cityName = '';
             ans.neighborhood = '';
             ans.neighborhoodName = '';
+            // set validation error message for this question id
+            this.cityValidationErrors[q.id || ''] = 'אנא הכנס שם עיר מתוך הרשימה בלבד';
         }
     }
 

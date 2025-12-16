@@ -11,12 +11,7 @@ import { MessageService } from './services/message.service';
   selector: 'app-root',
   standalone: true,
   imports: [CommonModule, RouterOutlet, TopbarComponent, AuthModalComponent, ShowMessageComponent],
-  template: `
-    <app-topbar></app-topbar>
-    <router-outlet></router-outlet>
-    <app-auth-modal *ngIf="showAuthModal" (close)="auth.hideAuthModal()"></app-auth-modal>
-    <show-message *ngIf="messageToShow" [message]="messageToShow" (closed)="onMsgClosed($event)"></show-message>
-  `,
+  templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
 export class AppComponent {

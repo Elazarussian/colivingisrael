@@ -1,0 +1,96 @@
+<div class="modal-overlay">
+  <div class="modal-content" style="width:460px; max-width:95%;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h3>ניהול ערים ושכונות - ישראל</h3>
+      <button class="btn-close icon-only" (click)="closeGeoManager()">×</button>
+    </div>
+
+      <!-- city and neighborhood list -->
+      <div class="geo-right geo-card">
+        <div class="geo-card-header">
+          <h4 class="geo-section-title">ערים ושכונות</h4>
+        </div>
+
+        <h5 class="geo-subtitle" style="margin-top:.5rem">ערים</h5>
+        <ul class="geo-list">
+          <li *ngFor="let c of cities">
+            <div class="geo-item">
+              <div class="geo-item-left">
+                <span *ngIf="!c._editing" class="city-name">{{ c.name }}</span>
+                <input *ngIf="c._editing" class="form-control" [(ngModel)]="c._editName" />
+                <small class="muted">({{ c.neighborhoods?.length || 0 }})</small>
+              </div>
+              <div class="geo-item-actions">
+                <button *ngIf="!c._editing" class="btn btn-special" (click)="startEditCity(c)">✎ ערוך</button>
+                <button *ngIf="c._editing" class="btn btn-special" (click)="saveCityEdit(c)">✔ שמור</button>
+                <button *ngIf="c._editing" class="btn btn-cancel" (click)="cancelCityEdit(c)">✕ בטל</button>
+                <button class="btn btn-special" (click)="toggleCityExpand(c)">{{ c._expanded ? 'הסתר שכונות' : 'הצג שכונות' }}</button>
+                <button class="btn btn-cancel" (click)="deleteCity(c)">🗑️ מחק</button>
+              </div>
+            </div>
+            <div *ngIf="c._expanded" class="city-neighborhoods">
+              <ul class="geo-list" style="margin:.5rem 0 1rem 1rem;">
+                <li *ngFor="let nn of (c.neighborhoods || []); let j = index">
+                  <div class="geo-item">
+                    <div class="geo-item-left">
+                      <span *ngIf="!isNeighborhoodEditing(c,j)">{{ nn }}</span>
+                        <input *ngIf="isNeighborhoodEditing(c,j)" class="form-control" [ngModel]="getCityNeighborhoodEditValue(c,j)" (ngModelChange)="setCityNeighborhoodEditValue(c,j,$event)" />
+                    </div>
+                    <div class="geo-item-actions">
+                      <button *ngIf="!isNeighborhoodEditing(c,j)" class="btn btn-regular" (click)="startEditNeighborhoodForCity(c, j)">✎ ערוך</button>
+                      <button *ngIf="isNeighborhoodEditing(c,j)" class="btn btn-special" (click)="saveNeighborhoodEditForCity(c, j)">✔ שמור</button>
+                      <button *ngIf="isNeighborhoodEditing(c,j)" class="btn btn-cancel" (click)="cancelNeighborhoodEditForCity(c, j)">✕ בטל</button>
+                      <button class="btn btn-cancel" (click)="deleteNeighborhoodForCity(c, j)">🗑️ מחק</button>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </li>
+        </ul>
+
+  <!-- inline city neighborhoods are shown directly under each city when expanded; no global bottom list -->
+      </div>
+        <hr />
+
+    <div class="geo-columns">
+      <div class="geo-left geo-card">
+        <div class="geo-card-header">
+          <h4 class="geo-section-title">הוספת עיר</h4>
+          <!-- <p class="geo-subtitle">הזן שם עיר חדשה או בחר עיר קיימת כדי להוסיף שכונה.</p> -->
+        </div>
+
+        <div class="geo-form-row">
+          <label>הוספת עיר חדשה</label>
+          <input class="form-control geo-input" placeholder="שם העיר" [(ngModel)]="newCityName" />
+          <div class="geo-controls">
+            <button class="btn btn-special geo-action-btn" (click)="addCity()">➕ הוסף עיר</button>
+          </div>
+        </div>
+
+        <hr />
+
+        <div class="geo-form-row">
+        <h4 class="geo-section-title">הוספת שכונה</h4>
+          <label>בחר עיר קיימת (להוספת/לעריכת שכונות)</label>
+          <select class="form-control geo-input" [(ngModel)]="selectedCityId" (ngModelChange)="updateSelectedCityNeighborhoods(selectedCityId)">
+            <option value="">-- בחר עיר --</option>
+            <option *ngFor="let c of cities" [value]="c.id">{{ c.name }}</option>
+          </select>
+        </div>
+
+        <div class="geo-form-row">
+          <label>הוספת שכונה לעיר שנבחרה</label>
+          <input class="form-control geo-input" placeholder="שם השכונה" [(ngModel)]="newNeighborhoodName" />
+          <div class="geo-controls">
+            <button class="btn btn-special geo-action-btn" (click)="addNeighborhood()">➕ הוסף שכונה</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-cancel" (click)="closeGeoManager()">סגור</button>
+    </div>
+  </div>
+</div>

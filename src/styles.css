@@ -146,7 +146,6 @@ h1 {
     background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
     color: #fff;
     box-shadow: 0 6px 18px rgba(76, 175, 80, 0.18)
- 
 }
 
 .btn-approve:hover {
@@ -159,6 +158,7 @@ h1 {
     background: linear-gradient(135deg, #81c784 0%, #4caf50 50%, #2e7d32 100%);
     color: #111;
 }
+
 .btn-special:hover {
     filter: brightness(.96);
     transform: translateY(-1px)
@@ -295,11 +295,11 @@ select:focus {
     height: var(--size);
     display: inline-grid;
     place-items: center;
-    background: linear-gradient(180deg,#e53935,#d32f2f);
+    background: linear-gradient(180deg, #e53935, #d32f2f);
     color: #fff;
     border-radius: 999px;
-    border: 1px solid rgba(255,255,255,0.12);
-    box-shadow: 0 6px 18px rgba(213,47,47,0.18);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 6px 18px rgba(213, 47, 47, 0.18);
     cursor: pointer;
     transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
     font-weight: 700;
@@ -311,36 +311,43 @@ select:focus {
 .btn-close:hover {
     transform: scale(1.06) translateY(-2px);
     filter: brightness(.96);
-    box-shadow: 0 10px 26px rgba(213,47,47,0.26);
+    box-shadow: 0 10px 26px rgba(213, 47, 47, 0.26);
 }
 
 .btn-close:active {
     transform: scale(.98);
-    box-shadow: 0 6px 18px rgba(213,47,47,0.18) inset;
+    box-shadow: 0 6px 18px rgba(213, 47, 47, 0.18) inset;
 }
 
 .btn-close:focus {
     outline: none;
-    box-shadow: 0 0 0 4px rgba(213,47,47,0.12);
+    box-shadow: 0 0 0 4px rgba(213, 47, 47, 0.12);
 }
 
 /* If you want an 'X' made from pseudo elements (no text needed) */
 .btn-close.icon-only {
     position: relative;
 }
+
 .btn-close.icon-only::before,
 .btn-close.icon-only::after {
     content: '';
     position: absolute;
     width: 50%;
     height: 2px;
-    background: rgba(255,255,255,0.95);
+    background: rgba(255, 255, 255, 0.95);
     left: 25%;
     top: 50%;
     transform-origin: center;
 }
-.btn-close.icon-only::before { transform: translateY(-50%) rotate(45deg); }
-.btn-close.icon-only::after  { transform: translateY(-50%) rotate(-45deg); }
+
+.btn-close.icon-only::before {
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.btn-close.icon-only::after {
+    transform: translateY(-50%) rotate(-45deg);
+}
 
 /* Fix dropdown options visibility globally */
 select option {
@@ -385,27 +392,142 @@ select option {
     display: none
 }
 
-/* Modal Styles - shared across components */
+/* Modal Styles - standardizing on one robust implementation */
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(10px);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2100;
+    display: flex !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 2100 !important;
+    pointer-events: auto !important;
 }
 
 .modal-content {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(20px);
+    background: rgba(6, 6, 6, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     padding: 2rem;
-    max-height: calc(100vh - 120px);
+    border-radius: 16px;
+    width: 92%;
+    max-width: 480px;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    animation: slideIn 0.28s ease-out;
+    max-height: calc(100vh - 80px);
     overflow-y: auto;
+}
+
+/* Ensure inputs inside modals respect modal padding and don't overflow on small screens */
+.modal-content input,
+.modal-content textarea,
+.modal-content select,
+.modal-content .form-control {
+    box-sizing: border-box;
+    max-width: calc(100% - 32px);
+    /* account for padding and potential close button */
+}
+
+@media (max-width: 480px) {
+
+    /* Shorten the main question text input and similar full-width inputs on narrow screens */
+    .modal-content .form-control {
+        max-width: calc(100% - 48px);
+        padding: 0.75rem;
+        font-size: 0.95rem;
+    }
+
+    /* Make auto-size inputs a bit more compact on very small screens */
+    .modal-content .auto-size-input {
+        width: 10ch !important;
+        min-width: 6ch !important;
+        max-width: calc(100% - 48px);
+    }
+}
+
+/* Force dark theme for modal content to fix "all white" report */
+.modal-content {
+    background-color: #1a1a1a !important;
+    color: #ffffff !important;
+}
+
+.modal-content input,
+.modal-content select,
+.modal-content textarea {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Adjust auto-size inputs to approximately 2 words */
+.auto-size-input {
+    width: 10ch !important;
+    min-width: 6ch !important;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 700;
+}
+
+/* Admin Badge used in profile and elsewhere */
+.admin-badge {
+    display: inline-block;
+    margin: 0 0 1.5rem 0;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #d32f2f, #e53935);
+    color: #fff;
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-align: center;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(211, 47, 47, 0.5);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    animation: adminPulse 2s ease-in-out infinite;
+}
+
+@keyframes adminPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 8px 24px rgba(211, 47, 47, 0.5);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 12px 32px rgba(211, 47, 47, 0.7);
+        transform: scale(1.02);
+    }
 }
 
 /* Language flag icons used in admin question forms */
@@ -420,14 +542,17 @@ select option {
     transition: transform .12s ease, opacity .12s ease;
     /* emoji-friendly stack: prefer system color emoji fonts then fall back */
     font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", "Segoe UI Symbol", sans-serif;
-    font-size: 20px; /* ensure emoji is large enough */
+    font-size: 20px;
+    /* ensure emoji is large enough */
 }
+
 .lang-flag:hover {
     transform: translateY(-2px) scale(1.03);
 }
 
 /* Twemoji output (images) sizing to match emoji spans */
-.emoji, img.emoji {
+.emoji,
+img.emoji {
     width: 20px !important;
     height: 20px !important;
     display: inline-block;
@@ -464,23 +589,26 @@ select option {
     max-height: 320px;
     overflow: auto;
 }
+
 .geo-list li {
     padding: .5rem .75rem;
     border-radius: 8px;
     margin-bottom: .4rem;
-    background: rgba(255,255,255,0.03);
+    background: rgba(255, 255, 255, 0.03);
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-weight: 500;
 }
+
 .geo-list li .muted {
-    color: rgba(255,255,255,0.6);
+    color: rgba(255, 255, 255, 0.6);
     font-size: .85rem;
 }
 
 /* ensure modal-content in geo manager is readable on dark background */
-.modal-content h3, .modal-content h4 {
+.modal-content h3,
+.modal-content h4 {
     margin: 0 0 .5rem 0;
 }
 
@@ -491,20 +619,24 @@ select option {
     align-items: flex-start;
     flex-wrap: wrap;
 }
-.geo-left, .geo-right {
+
+.geo-left,
+.geo-right {
     flex: 1 1 260px;
     min-width: 220px;
 }
+
 .geo-form-row {
     display: flex;
     flex-direction: column;
     gap: .35rem;
     margin-bottom: .6rem;
 }
+
 .geo-form-row label {
     font-weight: 600;
     font-size: .95rem;
-    color: rgba(255,255,255,0.9);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 /* Make modal content scrollable on small screens and prevent buttons from overlaying inputs */
@@ -515,50 +647,130 @@ select option {
 }
 
 @media (max-width: 640px) {
-    .geo-columns { flex-direction: column; }
-    .geo-left, .geo-right { min-width: 100%; }
-    .btn-fit-content { width: 100%; }
+    .geo-columns {
+        flex-direction: column;
+    }
+
+    .geo-left,
+    .geo-right {
+        min-width: 100%;
+    }
+
+    .btn-fit-content {
+        width: 100%;
+    }
 }
 
 .geo-item {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: .75rem;
 }
-.geo-item-left { display:flex; align-items:center; gap:.5rem; }
-.geo-item-actions { display:flex; gap:.4rem; align-items:center; }
-.geo-item input.form-control { min-width: 130px; }
-.geo-item .btn { padding:.45rem .6rem; font-size:.9rem }
+
+.geo-item-left {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.geo-item-actions {
+    display: flex;
+    gap: .4rem;
+    align-items: center;
+}
+
+.geo-item input.form-control {
+    min-width: 130px;
+}
+
+.geo-item .btn {
+    padding: .45rem .6rem;
+    font-size: .9rem
+}
 
 /* Card-like panels for geo manager */
 .geo-card {
-    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
-    border: 1px solid rgba(255,255,255,0.06);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     padding: 1rem;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
-.geo-card-header { display:flex; justify-content:space-between; align-items:center; gap:1rem }
-.geo-section-title { margin:0; font-size:1.05rem; font-weight:700 }
-.geo-subtitle { margin:0; font-size:.9rem; color: rgba(255,255,255,0.75) }
-.geo-input { width:100%; margin-top:.3rem; max-width:320px }
-.geo-controls { margin-top:.35rem; display:flex; gap:.4rem; align-items:center }
-.geo-action-btn { padding:.35rem .6rem }
-.city-name { font-weight:600 }
+
+.geo-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem
+}
+
+.geo-section-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700
+}
+
+.geo-subtitle {
+    margin: 0;
+    font-size: .9rem;
+    color: rgba(255, 255, 255, 0.75)
+}
+
+.geo-input {
+    width: 100%;
+    margin-top: .3rem;
+    max-width: 320px
+}
+
+.geo-controls {
+    margin-top: .35rem;
+    display: flex;
+    gap: .4rem;
+    align-items: center
+}
+
+.geo-action-btn {
+    padding: .35rem .6rem
+}
+
+.city-name {
+    font-weight: 600
+}
 
 /* Limit input widths inside modal for better balance */
 .modal-content .form-control {
     max-width: 360px;
 }
-.geo-left .form-control, .geo-right .form-control { max-width: 360px }
-.geo-card { padding: .75rem }
+
+.geo-left .form-control,
+.geo-right .form-control {
+    max-width: 360px
+}
+
+.geo-card {
+    padding: .75rem
+}
 
 /* subtle hover for list items */
-.geo-list li:hover { background: rgba(255,255,255,0.02); transform: translateY(-2px); }
+.geo-list li:hover {
+    background: rgba(255, 255, 255, 0.02);
+    transform: translateY(-2px);
+}
 
 /* compact buttons inside lists */
-.geo-item-actions .btn { padding: .35rem .5rem; font-size:.85rem }
+.geo-item-actions .btn {
+    padding: .35rem .5rem;
+    font-size: .85rem
+}
 
-.city-neighborhoods { background: rgba(255,255,255,0.02); border-left: 3px solid rgba(255,255,255,0.04); padding-left: .75rem; margin-top: .4rem; }
-.city-neighborhoods .geo-item { padding: .25rem 0 }
+.city-neighborhoods {
+    background: rgba(255, 255, 255, 0.02);
+    border-left: 3px solid rgba(255, 255, 255, 0.04);
+    padding-left: .75rem;
+    margin-top: .4rem;
+}
+
+.city-neighborhoods .geo-item {
+    padding: .25rem 0
+}

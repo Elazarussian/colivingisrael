@@ -150,10 +150,14 @@
                 <div *ngIf="q.type === 'city_neighborhood'" style="display:flex;flex-direction:column;gap:0.5rem;">
                     <!-- City autocomplete (app-rendered suggestions). user must pick an existing city name -->
                     <div class="autocomplete" style="position:relative;">
-                        <input #cityInput autocomplete="off" class="form-control auto-size-input" id="input-city-{{q.id}}" [value]="getOrInitAnswer(model,q).cityName || ''" (input)="onCityInput(q, model, $any($event.target).value); autoSizeTextInput($any(cityInput))" (focus)="autoSizeTextInput($any(cityInput))" (blur)="onCityBlur(q, model)" placeholder="הכנס שם עיר" />
+                        <div style="display:flex;align-items:center;gap:0.35rem;">
+                            <input #cityInput autocomplete="off" [class.input-error]="cityValidationErrors[q.id || '']" class="form-control auto-size-input" id="input-city-{{q.id}}" [value]="getOrInitAnswer(model,q).cityName || ''" (input)="onCityInput(q, model, $any($event.target).value); autoSizeTextInput($any(cityInput))" (focus)="autoSizeTextInput($any(cityInput))" (blur)="onCityBlur(q, model)" placeholder="הכנס שם עיר" />
+                            <button type="button" class="btn btn-special btn-sm city-list-toggle" (click)="toggleShowAllCities(q)" title="הצג רשימת ערים">▾</button>
+                        </div>
                         <ul *ngIf="citySuggestions[q.id || '']?.length" class="autocomplete-suggestions">
                             <li *ngFor="let c of citySuggestions[q.id || '']" (mousedown)="onCitySelect(q, model, c)">{{ c.name }}</li>
                         </ul>
+                        <div *ngIf="cityValidationErrors[q.id || '']" class="input-error-text">{{ cityValidationErrors[q.id || ''] }}</div>
                     </div>
 
                     <!-- Neighborhood autocomplete (app-rendered suggestions). shown when a city is selected. must pick existing neighborhood or leave empty -->
