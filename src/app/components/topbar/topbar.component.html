@@ -1,64 +1,68 @@
-    <nav class="topbar" [class.expanded]="isMenuOpen">
-      <!-- Top Bar Header (All items aligned right) -->
-      <div class="bar-header">
-          <!-- Admin DB Switch (Only for Admins) -->
-          <ng-container *ngIf="auth.profile$ | async as profile">
-             <div *ngIf="auth.isAdmin(profile)" class="db-switch" (click)="toggleDb()" [class.test-mode]="auth.isTestMode">
-                <div class="knob"></div>
-                <span class="switch-text">{{ auth.isTestMode ? 'TEST' : 'REAL' }}</span>
-             </div>
-          </ng-container>
-
-          <!-- Logo / Brand -->
-          <a routerLink="/" class="brand-logo" (click)="closeMenu()">CoLiving</a>
-          
-          <!-- Mobile/Expand Toggle -->
-          <button class="menu-toggle" (click)="toggleMenu()" [class.active]="isMenuOpen" aria-label="Toggle Menu">
-             <span class="bar top"></span>
-             <span class="bar mid"></span>
-             <span class="bar bot"></span>
-          </button>
+<nav class="topbar" [class.expanded]="isMenuOpen">
+  <!-- Top Bar Header (All items aligned right) -->
+  <div class="bar-header">
+    <!-- Admin DB Switch (Only for Admins) -->
+    <ng-container *ngIf="auth.profile$ | async as profile">
+      <div *ngIf="auth.isAdmin(profile)" class="db-switch" (click)="toggleDb()" [class.test-mode]="auth.isTestMode">
+        <div class="knob"></div>
+        <span class="switch-text">{{ auth.isTestMode ? 'TEST' : 'REAL' }}</span>
       </div>
+    </ng-container>
 
-      <!-- Expanding Menu Content -->
-      <div class="menu-content" [class.open]="isMenuOpen">
-         <!-- Search Bar -->
-         <div class="search-wrapper">
-            <div class="search-box">
-              <span class="search-icon">🔍</span>
-              <input type="text" placeholder="חיפוש באתר..." [(ngModel)]="searchTerm" (keyup.enter)="performSearch()">
-            </div>
-         </div>
-         
-         <!-- Navigation Links -->
-         <div class="nav-links">
-            <a routerLink="/" (click)="closeMenu()" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
-              <span class="icon">🏠</span> בית
-            </a>
-            <a routerLink="/about" (click)="closeMenu()" routerLinkActive="active">
-              <span class="icon">ℹ️</span> אודות
-            </a>
-            <a routerLink="/apartments" (click)="closeMenu()" routerLinkActive="active">
-              <span class="icon">🏢</span> דירות
-            </a>
-            
-            <div class="divider"></div>
+    <!-- Logo / Brand -->
+    <a routerLink="/" class="brand-logo" (click)="closeMenu()">CoLiving</a>
 
-            <ng-container *ngIf="user$ | async as user; else guestLinks">
-               <a routerLink="/profile" (click)="closeMenu()" routerLinkActive="active" class="profile-link">
-                 <div class="avatar-circle">{{ (user.displayName || 'U')[0] | uppercase }}</div>
-                 <span class="user-name">{{ user.displayName || 'פרופיל' }}</span>
-               </a>
-               <a (click)="logout()" class="action-link logout">
-                 <span class="icon">🚪</span> התנתק
-               </a>
-            </ng-container>
-            
-            <ng-template #guestLinks>
-               <a (click)="openRegister(); closeMenu()" class="action-link login">
-                 <span class="icon">👤</span> הרשמה / התחברות
-               </a>
-            </ng-template>
-         </div>
+    <!-- Mobile/Expand Toggle -->
+    <button class="menu-toggle" (click)="toggleMenu()" [class.active]="isMenuOpen" aria-label="Toggle Menu">
+      <span class="bar top"></span>
+      <span class="bar mid"></span>
+      <span class="bar bot"></span>
+    </button>
+  </div>
+
+  <!-- Expanding Menu Content -->
+  <div class="menu-content" [class.open]="isMenuOpen">
+    <!-- Search Bar -->
+    <div class="search-wrapper">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="input-long" placeholder="חיפוש באתר..." [(ngModel)]="searchTerm"
+          (keyup.enter)="performSearch()">
       </div>
-    </nav>
+    </div>
+
+    <!-- Navigation Links -->
+    <div class="nav-links">
+      <a routerLink="/" (click)="closeMenu()" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+        <span class="icon">🏠</span> בית
+      </a>
+      <a routerLink="/about" (click)="closeMenu()" routerLinkActive="active">
+        <span class="icon">ℹ️</span> אודות
+      </a>
+      <a routerLink="/search-groups" (click)="closeMenu()" routerLinkActive="active">
+        <span class="icon">🔎</span> חפש שותפים
+      </a>
+      <a routerLink="/apartments" (click)="closeMenu()" routerLinkActive="active">
+        <span class="icon">🏢</span> דירות
+      </a>
+
+      <div class="divider"></div>
+
+      <ng-container *ngIf="user$ | async as user; else guestLinks">
+        <a routerLink="/profile" (click)="closeMenu()" routerLinkActive="active" class="profile-link">
+          <div class="avatar-circle">{{ (user.displayName || 'U')[0] | uppercase }}</div>
+          <span class="user-name">{{ user.displayName || 'פרופיל' }}</span>
+        </a>
+        <a (click)="logout()" class="action-link logout">
+          <span class="icon">🚪</span> התנתק
+        </a>
+      </ng-container>
+
+      <ng-template #guestLinks>
+        <a (click)="openRegister(); closeMenu()" class="action-link login">
+          <span class="icon">👤</span> הרשמה / התחברות
+        </a>
+      </ng-template>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,13 @@
+.search-groups-page {
+  padding: 24px;
+}
+.search-panel {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+.search-panel .input-long {
+  flex: 1;
+  padding: 8px;
+}

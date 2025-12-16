@@ -45,7 +45,7 @@ body::before {
     width: 100%;
     margin: 0;
     /* ensure page content is pushed below the fixed topbar */
-    padding-top: var(--topbar-height);
+    /* padding-top: var(--topbar-height); */
     padding: 0
 }
 
@@ -410,9 +410,13 @@ select option {
 }
 
 .modal-content {
-    background: rgba(6, 6, 6, 0.78);
+    /* Merged styles for dark theme and layout */
+    background: #1a1a1a !important;
+    /* Force dark theme */
+    color: #ffffff !important;
     border: 1px solid rgba(255, 255, 255, 0.06);
     padding: 2rem;
+    /* Initial padding, can be overridden by media queries */
     border-radius: 16px;
     width: 92%;
     max-width: 480px;
@@ -429,15 +433,28 @@ select option {
 .modal-content select,
 .modal-content .form-control {
     box-sizing: border-box;
-    max-width: calc(100% - 32px);
-    /* account for padding and potential close button */
+    /* max-width is handled by .input-short/long classes mostly, but this ensures no overflow */
+    max-width: 100%;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Specific overrides for modal inner elements ensuring they don't break layout */
+.modal-content h3,
+.modal-content h4 {
+    margin: 0 0 .5rem 0;
 }
 
 @media (max-width: 480px) {
+    .modal-content {
+        padding: 1.25rem;
+    }
 
     /* Shorten the main question text input and similar full-width inputs on narrow screens */
     .modal-content .form-control {
-        max-width: calc(100% - 48px);
+        max-width: 100%;
+        /* rely on box-sizing */
         padding: 0.75rem;
         font-size: 0.95rem;
     }
@@ -446,28 +463,7 @@ select option {
     .modal-content .auto-size-input {
         width: 10ch !important;
         min-width: 6ch !important;
-        max-width: calc(100% - 48px);
     }
-}
-
-/* Force dark theme for modal content to fix "all white" report */
-.modal-content {
-    background-color: #1a1a1a !important;
-    color: #ffffff !important;
-}
-
-.modal-content input,
-.modal-content select,
-.modal-content textarea {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Adjust auto-size inputs to approximately 2 words */
-.auto-size-input {
-    width: 10ch !important;
-    min-width: 6ch !important;
 }
 
 @keyframes slideIn {
@@ -640,12 +636,6 @@ img.emoji {
 }
 
 /* Make modal content scrollable on small screens and prevent buttons from overlaying inputs */
-.modal-content {
-    max-height: calc(100vh - 140px);
-    overflow-y: auto;
-    padding: 1.25rem;
-}
-
 @media (max-width: 640px) {
     .geo-columns {
         flex-direction: column;
@@ -656,8 +646,9 @@ img.emoji {
         min-width: 100%;
     }
 
+    /* .btn-fit-content width handled by global class mostly, ensuring full width on mobile if needed */
     .btn-fit-content {
-        width: 100%;
+        width: 100% !important;
     }
 }
 
@@ -738,19 +729,9 @@ img.emoji {
     font-weight: 600
 }
 
-/* Limit input widths inside modal for better balance */
-.modal-content .form-control {
-    max-width: 360px;
-}
 
-.geo-left .form-control,
-.geo-right .form-control {
-    max-width: 360px
-}
 
-.geo-card {
-    padding: .75rem
-}
+
 
 /* subtle hover for list items */
 .geo-list li:hover {
@@ -771,6 +752,17 @@ img.emoji {
     margin-top: .4rem;
 }
 
-.city-neighborhoods .geo-item {
-    padding: .25rem 0
+
+/* Standardized Input Sizes */
+.input-short {
+    width: 15ch !important;
+    min-width: 100px;
+    max-width: 100%;
+    display: inline-block;
+}
+
+.input-long {
+    width: 100% !important;
+    display: block;
+    box-sizing: border-box;
 }

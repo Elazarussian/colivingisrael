@@ -10,9 +10,10 @@
         </div>
 
         <form id="auth-form" (ngSubmit)="onSubmit()">
-            <input type="email" [(ngModel)]="email" name="email" placeholder="אימייל" required />
-            <input type="password" [(ngModel)]="password" name="password" placeholder="סיסמה"
-                [required]="activeTab === 'signup' || activeTab === 'login'" />
+            <input type="email" class="input-long form-control" [(ngModel)]="email" name="email" placeholder="אימייל"
+                required />
+            <input type="password" class="input-long form-control" [(ngModel)]="password" name="password"
+                placeholder="סיסמה" [required]="activeTab === 'signup' || activeTab === 'login'" />
             <div *ngIf="activeTab === 'signup' && !password" style="color:#ffcdd2;margin-bottom:0.5rem;">יש להזין סיסמה
                 להרשמה</div>
 

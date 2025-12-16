@@ -1,5 +1,6 @@
 <div class="questions-manager-container">
-    <show-message *ngIf="showMessageVisible" [message]="showMessageText" (closed)="onShowMessageClosed($event)"></show-message>
+    <show-message *ngIf="showMessageVisible" [message]="showMessageText"
+        (closed)="onShowMessageClosed($event)"></show-message>
 
     <!-- shared templates: language switcher, options preview, scale/range preview -->
     <ng-template #langSwitcher>
@@ -11,95 +12,124 @@
         </div>
     </ng-template>
 
-        <!-- shared question list item template -->
-        <ng-template #questionItem let-q let-i="index" let-listLen="listLen" let-moveUpFn="moveUpFn" let-moveDownFn="moveDownFn" let-openEditFn="openEditFn" let-deleteFn="deleteFn" let-moveArgs="moveArgs" let-openArgs="openArgs">
-            <div class="question-item">
-                <div class="question-info">
-                    <strong>{{q.text}}</strong>
-                    <span *ngIf="q.key" style="font-size:0.8rem;color:#666;margin-right:0.5rem;">(Key: {{q.key}})</span>
-                    <span class="question-type">({{q.type}})</span>
-                    <ng-container *ngTemplateOutlet="optionsPreview; context: { $implicit: q }"></ng-container>
+    <!-- shared question list item template -->
+    <ng-template #questionItem let-q let-i="index" let-listLen="listLen" let-moveUpFn="moveUpFn"
+        let-moveDownFn="moveDownFn" let-openEditFn="openEditFn" let-deleteFn="deleteFn" let-moveArgs="moveArgs"
+        let-openArgs="openArgs">
+        <div class="question-item">
+            <div class="question-info">
+                <strong>{{q.text}}</strong>
+                <span *ngIf="q.key" style="font-size:0.8rem;color:#666;margin-right:0.5rem;">(Key: {{q.key}})</span>
+                <span class="question-type">({{q.type}})</span>
+                <ng-container *ngTemplateOutlet="optionsPreview; context: { $implicit: q }"></ng-container>
+            </div>
+            <div class="question-actions">
+                <button class="btn btn-regular btn-sm" (click)="moveUpFn(i, moveArgs?.a, moveArgs?.b, moveArgs?.c)"
+                    [disabled]="i === 0" title="העלה">↑</button>
+                <button class="btn btn-regular btn-sm" (click)="moveDownFn(i, moveArgs?.a, moveArgs?.b, moveArgs?.c)"
+                    [disabled]="i === listLen - 1" title="הורד">↓</button>
+                <button *ngIf="!q.permanent" class="btn btn-special btn-sm"
+                    (click)="openEditFn(q, openArgs?.a, openArgs?.b, openArgs?.c)">ערוך</button>
+                <button *ngIf="!q.permanent" class="btn btn-cancel btn-sm" (click)="deleteFn(q.id || '')">מחק</button>
+                <span *ngIf="q.permanent" class="permanent-badge">שאלה קבועה</span>
+            </div>
+        </div>
+    </ng-template>
+
+    <!-- shared add-question form template -->
+    <ng-template #addQuestionForm let-model="model" let-addOptFn="addOptFn" let-removeOptFn="removeOptFn"
+        let-addFn="addFn" let-keyManualMode="keyManualMode" let-toggleKeyFn="toggleKeyFn" let-minmaxProps="minmaxProps">
+        <div class="add-question-form">
+            <h3>הוסף שאלה חדשה</h3>
+            <ng-container *ngTemplateOutlet="langSwitcher"></ng-container>
+
+            <label>נוסח השאלה ({{currentLang | uppercase}})</label>
+            <input *ngIf="currentLang === 'he'" [(ngModel)]="model.text"
+                (input)="onQuestionTextChange(minmaxProps?.flag1, minmaxProps?.flag2, minmaxProps?.flag3)"
+                class="form-control input-long" placeholder="הכנס שאלה (עברית)..." />
+            <input *ngIf="currentLang === 'en'" [(ngModel)]="model.textEn"
+                (input)="onQuestionTextChange(minmaxProps?.flag1, minmaxProps?.flag2, minmaxProps?.flag3)"
+                class="form-control input-long" placeholder="Enter question (English)..." />
+            <input *ngIf="currentLang === 'ru'" [(ngModel)]="model.textRu"
+                (input)="onQuestionTextChange(minmaxProps?.flag1, minmaxProps?.flag2, minmaxProps?.flag3)"
+                class="form-control input-long" placeholder="Введите вопрос (Russian)..." />
+            <input *ngIf="currentLang === 'fr'" [(ngModel)]="model.textFr"
+                (input)="onQuestionTextChange(minmaxProps?.flag1, minmaxProps?.flag2, minmaxProps?.flag3)"
+                class="form-control input-long" placeholder="Entrez la question (French)..." />
+
+            <div class="key-section-container">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+                    <label [style.opacity]="(keyManualMode) ? 1 : 0.5">מפתח (אנגלית) - אופציונלי</label>
+                    <label style="font-size:0.8rem;display:flex;align-items:center;gap:0.25rem;cursor:pointer;">
+                        <input type="checkbox" [checked]="(keyManualMode)"
+                            (change)="toggleKeyFn(minmaxProps?.flag1, minmaxProps?.flag2, minmaxProps?.flag3)"> ערוך
+                        ידנית
+                    </label>
                 </div>
-                <div class="question-actions">
-                    <button class="btn btn-regular btn-sm" (click)="moveUpFn(i, moveArgs?.a, moveArgs?.b, moveArgs?.c)" [disabled]="i === 0" title="העלה">↑</button>
-                    <button class="btn btn-regular btn-sm" (click)="moveDownFn(i, moveArgs?.a, moveArgs?.b, moveArgs?.c)" [disabled]="i === listLen - 1" title="הורד">↓</button>
-                    <button *ngIf="!q.permanent" class="btn btn-special btn-sm" (click)="openEditFn(q, openArgs?.a, openArgs?.b, openArgs?.c)">ערוך</button>
-                    <button *ngIf="!q.permanent" class="btn btn-cancel btn-sm" (click)="deleteFn(q.id || '')">מחק</button>
-                    <span *ngIf="q.permanent" class="permanent-badge">שאלה קבועה</span>
+                <input [(ngModel)]="model.key" [disabled]="!(keyManualMode)" class="form-control input-short"
+                    [style.opacity]="(keyManualMode) ? 1 : 0.5" placeholder="לדוגמה: firstname" />
+                <div style="margin-top:0.5rem;">
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                        <input type="checkbox" [(ngModel)]="model.permanent"
+                            (change)="onPermanentCheckboxChanged(model.permanent)"> סמן על מנת להפוך את השאלה לקבועה
+                        (בלתי ניתנת למחיקה)
+                    </label>
                 </div>
             </div>
-        </ng-template>
 
-            <!-- shared add-question form template -->
-            <ng-template #addQuestionForm let-model="model" let-addOptFn="addOptFn" let-removeOptFn="removeOptFn" let-addFn="addFn" let-keyManualMode="keyManualMode" let-toggleKeyFn="toggleKeyFn" let-minmaxProps="minmaxProps">
-                <div class="add-question-form">
-                    <h3>הוסף שאלה חדשה</h3>
-                    <ng-container *ngTemplateOutlet="langSwitcher"></ng-container>
-
-                    <label>נוסח השאלה ({{currentLang | uppercase}})</label>
-                    <input *ngIf="currentLang === 'he'" [(ngModel)]="model.text" (input)="onQuestionTextChange(minmaxProps?.flag1, minmaxProps?.flag2, minmaxProps?.flag3)" class="form-control" placeholder="הכנס שאלה (עברית)..." />
-                    <input *ngIf="currentLang === 'en'" [(ngModel)]="model.textEn" (input)="onQuestionTextChange(minmaxProps?.flag1, minmaxProps?.flag2, minmaxProps?.flag3)" class="form-control" placeholder="Enter question (English)..." />
-                    <input *ngIf="currentLang === 'ru'" [(ngModel)]="model.textRu" (input)="onQuestionTextChange(minmaxProps?.flag1, minmaxProps?.flag2, minmaxProps?.flag3)" class="form-control" placeholder="Введите вопрос (Russian)..." />
-                    <input *ngIf="currentLang === 'fr'" [(ngModel)]="model.textFr" (input)="onQuestionTextChange(minmaxProps?.flag1, minmaxProps?.flag2, minmaxProps?.flag3)" class="form-control" placeholder="Entrez la question (French)..." />
-
-                    <div class="key-section-container">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
-                            <label [style.opacity]="(keyManualMode) ? 1 : 0.5">מפתח (אנגלית) - אופציונלי</label>
-                            <label style="font-size:0.8rem;display:flex;align-items:center;gap:0.25rem;cursor:pointer;">
-                                <input type="checkbox" [checked]="(keyManualMode)" (change)="toggleKeyFn(minmaxProps?.flag1, minmaxProps?.flag2, minmaxProps?.flag3)"> ערוך ידנית
-                            </label>
-                        </div>
-                        <input [(ngModel)]="model.key" [disabled]="!(keyManualMode)" class="form-control form-control-sm-custom" [style.opacity]="(keyManualMode) ? 1 : 0.5" placeholder="לדוגמה: firstname" />
-                            <div style="margin-top:0.5rem;">
-                                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
-                                    <input type="checkbox" [(ngModel)]="model.permanent" (change)="onPermanentCheckboxChanged(model.permanent)"> סמן על מנת להפוך את השאלה לקבועה (בלתי ניתנת למחיקה)
-                                </label>
-                            </div>
-                    </div>
-
-                    <label>סוג תשובה</label>
-                    <select [(ngModel)]="model.type" class="form-control form-control-auto">
-                        <option value="text">טקסט חופשי</option>
-                        <option value="yesno">כן/לא</option>
-                        <option value="checklist">רשימת אפשרויות</option>
-                        <option value="date">תאריך</option>
-                        <option value="scale">דירוג</option>
-                        <option value="range">טווח מספרים</option>
-                        <option value="radio">בחירה יחידה</option>
-                        <option value="phone">טלפון</option>
-                        <option value="city_neighborhood">עיר ושכונה</option>
-                    </select>
+            <label>סוג תשובה</label>
+            <select [(ngModel)]="model.type" class="form-control input-long">
+                <option value="text">טקסט חופשי</option>
+                <option value="yesno">כן/לא</option>
+                <option value="checklist">רשימת אפשרויות</option>
+                <option value="date">תאריך</option>
+                <option value="scale">דירוג</option>
+                <option value="range">טווח מספרים</option>
+                <option value="radio">בחירה יחידה</option>
+                <option value="phone">טלפון</option>
+                <option value="city_neighborhood">עיר ושכונה</option>
+            </select>
 
 
-                    <div *ngIf="model.type === 'checklist' || model.type === 'radio'" class="options-manager">
-                        <label>אפשרויות בחירה</label>
-                        <div class="add-option-row">
-                            <input #optInput class="form-control-sm-custom" placeholder="אפשרות חדשה..." (keyup.enter)="addOptFn(optInput.value); optInput.value=''" />
-                            <button class="btn btn-special btn-sm" (click)="addOptFn(optInput.value); optInput.value=''">הוסף</button>
-                        </div>
-                        <ul class="options-list">
-                            <li *ngFor="let opt of model.options; let i = index">{{opt}} <span class="remove-opt" (click)="removeOptFn(i)">x</span></li>
-                        </ul>
-                    </div>
-
-                    <div *ngIf="model.type === 'scale' || model.type === 'range'" class="scale-manager" style="display:flex;gap:1rem;margin-bottom:1rem;">
-                        <div><label>מינימום</label><input type="number" [(ngModel)]="model.min" class="form-control form-control-sm-custom" style="width:80px" /></div>
-                        <div><label>מקסימום</label><input type="number" [(ngModel)]="model.max" class="form-control form-control-sm-custom" style="width:80px" /></div>
-                    </div>
-
-                    <div *ngIf="model.type === 'checklist'" class="max-selections-manager" style="margin-bottom:1rem;">
-                        <label>מקסימום בחירות (אופציונלי)</label>
-                        <input type="number" [(ngModel)]="model.maxSelections" class="form-control form-control-sm-custom" placeholder="השאר ריק ללא הגבלה" min="1" />
-                        <small style="color:#666;display:block;margin-top:0.25rem;">הגבל את מספר האפשרויות שהמשתמש יכול לבחור</small>
-                    </div>
-
-                    <button class="btn btn-approve btn-fit-content" (click)="addFn()" [disabled]="!model.text">הוסף שאלה</button>
+            <div *ngIf="model.type === 'checklist' || model.type === 'radio'" class="options-manager">
+                <label>אפשרויות בחירה</label>
+                <div class="add-option-row">
+                    <input #optInput class="form-control input-long" placeholder="אפשרות חדשה..."
+                        (keyup.enter)="addOptFn(optInput.value); optInput.value=''" />
+                    <button class="btn btn-special btn-sm"
+                        (click)="addOptFn(optInput.value); optInput.value=''">הוסף</button>
                 </div>
-            </ng-template>
+                <ul class="options-list">
+                    <li *ngFor="let opt of model.options; let i = index">{{opt}} <span class="remove-opt"
+                            (click)="removeOptFn(i)">x</span></li>
+                </ul>
+            </div>
+
+            <div *ngIf="model.type === 'scale' || model.type === 'range'" class="scale-manager"
+                style="display:flex;gap:1rem;margin-bottom:1rem;">
+                <div><label>מינימום</label><input type="number" [(ngModel)]="model.min"
+                        class="form-control input-short" /></div>
+                <div><label>מקסימום</label><input type="number" [(ngModel)]="model.max"
+                        class="form-control input-short" /></div>
+            </div>
+
+            <div *ngIf="model.type === 'checklist'" class="max-selections-manager" style="margin-bottom:1rem;">
+                <label>מקסימום בחירות (אופציונלי)</label>
+                <input type="number" [(ngModel)]="model.maxSelections" class="form-control input-short"
+                    placeholder="השאר ריק ללא הגבלה" min="1" />
+                <small style="color:#666;display:block;margin-top:0.25rem;">הגבל את מספר האפשרויות שהמשתמש יכול
+                    לבחור</small>
+            </div>
+
+            <button class="btn btn-approve btn-fit-content" (click)="addFn()" [disabled]="!model.text">הוסף
+                שאלה</button>
+        </div>
+    </ng-template>
 
 
     <ng-template #optionsPreview let-q>
-        <div *ngIf="(q.type === 'checklist' || q.type === 'radio') && q.options && q.options.length" class="options-preview">
+        <div *ngIf="(q.type === 'checklist' || q.type === 'radio') && q.options && q.options.length"
+            class="options-preview">
             <small>אפשרויות: {{ q.options.join(', ') }}</small>
         </div>
         <div *ngIf="q.type === 'scale' || q.type === 'range'" class="options-preview">
@@ -107,84 +137,115 @@
         </div>
     </ng-template>
 
-        <!-- shared answer input template for onboarding/edit views -->
-        <ng-template #answerInput let-q let-model="model">
-            <!-- model is the answers object (onboardingAnswers / editPersonalityAnswers) -->
-            <div>
-                <div *ngIf="q.type === 'text'">
-                    <input #textInput type="text" [(ngModel)]="model[q.id || '']" class="form-control auto-size-input" placeholder="התשובה שלך..." (input)="autoSizeTextInput($any(textInput))" (focus)="autoSizeTextInput($any(textInput))" />
-                </div>
+    <!-- shared answer input template for onboarding/edit views -->
+    <ng-template #answerInput let-q let-model="model">
+        <!-- model is the answers object (onboardingAnswers / editPersonalityAnswers) -->
+        <div>
+            <div *ngIf="q.type === 'text'">
+                <input #textInput type="text" [(ngModel)]="model[q.id || '']" class="form-control input-long"
+                    placeholder="התשובה שלך..." />
+            </div>
 
-                <div *ngIf="q.type === 'yesno'" class="yesno-buttons" style="display:flex;gap:1rem;justify-content:center;">
-                    <button class="btn" [class.btn-approve]="model[q.id || ''] === true" (click)="model[q.id || ''] = true">כן</button>
-                    <button class="btn" [class.btn-cancel]="model[q.id || ''] === false" (click)="model[q.id || ''] = false">לא</button>
-                </div>
+            <div *ngIf="q.type === 'yesno'" class="yesno-buttons" style="display:flex;gap:1rem;justify-content:center;">
+                <button class="btn" [class.btn-approve]="model[q.id || ''] === true"
+                    (click)="model[q.id || ''] = true">כן</button>
+                <button class="btn" [class.btn-cancel]="model[q.id || ''] === false"
+                    (click)="model[q.id || ''] = false">לא</button>
+            </div>
 
-                <div *ngIf="q.type === 'checklist'" [ngClass]="{'checklist-options': true, 'two-column-options': q.options && q.options.length > 5}">
-                    <div *ngIf="q.maxSelections" style="margin-bottom:0.5rem;color:#666;font-size:0.9rem;">(ניתן לבחור עד {{q.maxSelections}} אפשרויות)</div>
-                    <div *ngFor="let opt of q.options" class="checkbox-item" style="margin-bottom:0.5rem;">
-                        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
-                            <input type="checkbox" [checked]="model[q.id || '']?.includes(opt)" (change)="model[q.id || ''] = toggleChecklist(model[q.id || ''], opt, q.maxSelections)"> {{ opt }}
-                        </label>
-                    </div>
-                </div>
-
-                <div *ngIf="q.type === 'radio'" [ngClass]="{'radio-options': true, 'two-column-options': q.options && q.options.length > 5}">
-                    <div *ngFor="let opt of q.options" class="radio-item" style="margin-bottom:0.5rem;">
-                        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
-                            <input type="radio" [name]="q.id || ''" [value]="opt" [(ngModel)]="model[q.id || '']"> {{ opt }}
-                        </label>
-                    </div>
-                </div>
-
-                <div *ngIf="q.type === 'date'"><input type="date" [(ngModel)]="model[q.id || '']" class="form-control"></div>
-
-                <div *ngIf="q.type === 'phone'" class="phone-input" style="display:flex;gap:0.5rem;justify-content:center;direction:ltr;">
-                    <select [ngModel]="getPhonePrefix(model[q.id || ''])" (ngModelChange)="updatePhoneAnswer(q.id || '', 'prefix', $event, model)" class="form-control form-control-auto" style="width:80px">
-                        <option *ngFor="let p of phonePrefixes" [value]="p">{{p}}</option>
-                    </select>
-                    <input type="text" [ngModel]="getPhoneNumber(model[q.id || ''])" (ngModelChange)="updatePhoneAnswer(q.id || '', 'number', $event, model)" class="form-control" placeholder="Number" style="flex:1" maxlength="7" />
-                </div>
-
-                <!-- city + optional neighborhood input -->
-                <div *ngIf="q.type === 'city_neighborhood'" style="display:flex;flex-direction:column;gap:0.5rem;">
-                    <!-- City autocomplete (app-rendered suggestions). user must pick an existing city name -->
-                    <div class="autocomplete" style="position:relative;">
-                        <div style="display:flex;align-items:center;gap:0.35rem;">
-                            <input #cityInput autocomplete="off" [class.input-error]="cityValidationErrors[q.id || '']" class="form-control auto-size-input" id="input-city-{{q.id}}" [value]="getOrInitAnswer(model,q).cityName || ''" (input)="onCityInput(q, model, $any($event.target).value); autoSizeTextInput($any(cityInput))" (focus)="autoSizeTextInput($any(cityInput))" (blur)="onCityBlur(q, model)" placeholder="הכנס שם עיר" />
-                            <button type="button" class="btn btn-special btn-sm city-list-toggle" (click)="toggleShowAllCities(q)" title="הצג רשימת ערים">▾</button>
-                        </div>
-                        <ul *ngIf="citySuggestions[q.id || '']?.length" class="autocomplete-suggestions">
-                            <li *ngFor="let c of citySuggestions[q.id || '']" (mousedown)="onCitySelect(q, model, c)">{{ c.name }}</li>
-                        </ul>
-                        <div *ngIf="cityValidationErrors[q.id || '']" class="input-error-text">{{ cityValidationErrors[q.id || ''] }}</div>
-                    </div>
-
-                    <!-- Neighborhood autocomplete (app-rendered suggestions). shown when a city is selected. must pick existing neighborhood or leave empty -->
-                    <div class="autocomplete" *ngIf="getOrInitAnswer(model,q).cityId" style="position:relative;">
-                        <input #nbInput autocomplete="off" class="form-control auto-size-input" id="input-nb-{{q.id}}" [value]="getOrInitAnswer(model,q).neighborhoodName || ''" (input)="onNeighborhoodInput(q, model, $any($event.target).value); autoSizeTextInput($any(nbInput))" (focus)="autoSizeTextInput($any(nbInput))" (blur)="onNeighborhoodBlur(q, model)" placeholder="הכנס שם שכונה" />
-                        <ul *ngIf="neighborhoodSuggestions[q.id || '']?.length" class="autocomplete-suggestions">
-                            <li *ngFor="let n of neighborhoodSuggestions[q.id || '']" (mousedown)="onNeighborhoodSelect(q, model, n)">{{ n }}</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div *ngIf="q.type === 'scale'" class="scale-input" style="text-align:center;">
-                    <input type="range" [min]="q.min || 1" [max]="q.max || 5" [(ngModel)]="model[q.id || '']" style="width:100%">
-                    <div class="scale-value" style="font-size:1.2rem;font-weight:bold;margin-top:0.5rem;">{{ model[q.id || ''] }}</div>
-                </div>
-
-                <div *ngIf="q.type === 'range'" class="range-input">
-                    <div class="range-inputs" style="display:flex;align-items:center;gap:0.5rem;justify-content:center;">
-                            <label>מינימום</label>
-                            <input type="number" [(ngModel)]="ensureRangeAnswer(model, q).min" [min]="q.min || 0" [max]="q.max || 100" class="form-control" style="width:80px">
-                            <label>מקסימום</label>
-                            <input type="number" [(ngModel)]="ensureRangeAnswer(model, q).max" [min]="q.min || 0" [max]="q.max || 100" class="form-control" style="width:80px">
-                    </div>
-                    <div style="text-align:center;margin-top:0.5rem;color:#666;"><small>טווח אפשרי: {{q.min || 0}} - {{q.max || 100}}</small></div>
+            <div *ngIf="q.type === 'checklist'"
+                [ngClass]="{'checklist-options': true, 'two-column-options': q.options && q.options.length > 5}">
+                <div *ngIf="q.maxSelections" style="margin-bottom:0.5rem;color:#666;font-size:0.9rem;">(ניתן לבחור עד
+                    {{q.maxSelections}} אפשרויות)</div>
+                <div *ngFor="let opt of q.options" class="checkbox-item" style="margin-bottom:0.5rem;">
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                        <input type="checkbox" [checked]="model[q.id || '']?.includes(opt)"
+                            (change)="model[q.id || ''] = toggleChecklist(model[q.id || ''], opt, q.maxSelections)"> {{
+                        opt }}
+                    </label>
                 </div>
             </div>
-        </ng-template>
+
+            <div *ngIf="q.type === 'radio'"
+                [ngClass]="{'radio-options': true, 'two-column-options': q.options && q.options.length > 5}">
+                <div *ngFor="let opt of q.options" class="radio-item" style="margin-bottom:0.5rem;">
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;">
+                        <input type="radio" [name]="q.id || ''" [value]="opt" [(ngModel)]="model[q.id || '']"> {{ opt }}
+                    </label>
+                </div>
+            </div>
+
+            <div *ngIf="q.type === 'date'"><input type="date" [(ngModel)]="model[q.id || '']"
+                    class="form-control input-short">
+            </div>
+
+            <div *ngIf="q.type === 'phone'" class="phone-input"
+                style="display:flex;gap:0.5rem;justify-content:center;direction:ltr;">
+                <select [ngModel]="getPhonePrefix(model[q.id || ''])"
+                    (ngModelChange)="updatePhoneAnswer(q.id || '', 'prefix', $event, model)"
+                    class="form-control input-short" style="width:auto">
+                    <option *ngFor="let p of phonePrefixes" [value]="p">{{p}}</option>
+                </select>
+                <input type="text" [ngModel]="getPhoneNumber(model[q.id || ''])"
+                    (ngModelChange)="updatePhoneAnswer(q.id || '', 'number', $event, model)"
+                    class="form-control input-short" placeholder="Number" style="flex:1" maxlength="7" />
+            </div>
+
+            <!-- city + optional neighborhood input -->
+            <div *ngIf="q.type === 'city_neighborhood'" style="display:flex;flex-direction:column;gap:0.5rem;">
+                <!-- City autocomplete (app-rendered suggestions). user must pick an existing city name -->
+                <div class="autocomplete" style="position:relative;">
+                    <div style="display:flex;align-items:center;gap:0.35rem;">
+                        <input #cityInput autocomplete="off" [class.input-error]="cityValidationErrors[q.id || '']"
+                            class="form-control input-short" id="input-city-{{q.id}}"
+                            [value]="getOrInitAnswer(model,q).cityName || ''"
+                            (input)="onCityInput(q, model, $any($event.target).value)" (blur)="onCityBlur(q, model)"
+                            placeholder="הכנס שם עיר" />
+                        <button type="button" class="btn btn-special btn-sm city-list-toggle"
+                            (click)="toggleShowAllCities(q)" title="הצג רשימת ערים">▾</button>
+                    </div>
+                    <ul *ngIf="citySuggestions[q.id || '']?.length" class="autocomplete-suggestions">
+                        <li *ngFor="let c of citySuggestions[q.id || '']" (mousedown)="onCitySelect(q, model, c)">{{
+                            c.name }}</li>
+                    </ul>
+                    <div *ngIf="cityValidationErrors[q.id || '']" class="input-error-text">{{ cityValidationErrors[q.id
+                        || ''] }}</div>
+                </div>
+
+                <!-- Neighborhood autocomplete (app-rendered suggestions). shown when a city is selected. must pick existing neighborhood or leave empty -->
+                <div class="autocomplete" *ngIf="getOrInitAnswer(model,q).cityId" style="position:relative;">
+                    <input #nbInput autocomplete="off" class="form-control input-short" id="input-nb-{{q.id}}"
+                        [value]="getOrInitAnswer(model,q).neighborhoodName || ''"
+                        (input)="onNeighborhoodInput(q, model, $any($event.target).value)"
+                        (blur)="onNeighborhoodBlur(q, model)" placeholder="הכנס שם שכונה" />
+                    <ul *ngIf="neighborhoodSuggestions[q.id || '']?.length" class="autocomplete-suggestions">
+                        <li *ngFor="let n of neighborhoodSuggestions[q.id || '']"
+                            (mousedown)="onNeighborhoodSelect(q, model, n)">{{ n }}</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div *ngIf="q.type === 'scale'" class="scale-input" style="text-align:center;">
+                <input type="range" class="input-long" [min]="q.min || 1" [max]="q.max || 5"
+                    [(ngModel)]="model[q.id || '']" style="width:100%">
+                <div class="scale-value" style="font-size:1.2rem;font-weight:bold;margin-top:0.5rem;">{{ model[q.id ||
+                    ''] }}</div>
+            </div>
+
+            <div *ngIf="q.type === 'range'" class="range-input">
+                <div class="range-inputs" style="display:flex;align-items:center;gap:0.5rem;justify-content:center;">
+                    <label>מינימום</label>
+                    <input type="number" [(ngModel)]="ensureRangeAnswer(model, q).min" [min]="q.min || 0"
+                        [max]="q.max || 100" class="form-control input-short">
+                    <label>מקסימום</label>
+                    <input type="number" [(ngModel)]="ensureRangeAnswer(model, q).max" [min]="q.min || 0"
+                        [max]="q.max || 100" class="form-control input-short">
+                </div>
+                <div style="text-align:center;margin-top:0.5rem;color:#666;"><small>טווח אפשרי: {{q.min || 0}} - {{q.max
+                        || 100}}</small></div>
+            </div>
+        </div>
+    </ng-template>
 
     <!-- registration modal -->
     <div *ngIf="mode === 'admin-registration'" class="modal-overlay">
@@ -199,14 +260,16 @@
                     <h3>שאלות קיימות</h3>
                     <div *ngIf="questions.length === 0">אין שאלות עדיין.</div>
 
-                                        <ng-container *ngFor="let q of questions; let i = index">
-                                            <ng-container *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: questions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteQuestion.bind(this), moveArgs: { a: false }, openArgs: { a: false } }"></ng-container>
-                                        </ng-container>
+                    <ng-container *ngFor="let q of questions; let i = index">
+                        <ng-container
+                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: questions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteQuestion.bind(this), moveArgs: { a: false }, openArgs: { a: false } }"></ng-container>
+                    </ng-container>
                 </div>
 
                 <hr>
 
-                <ng-container *ngTemplateOutlet="addQuestionForm; context: { model: newQuestion, addOptFn: addOption.bind(this), removeOptFn: removeOption.bind(this), addFn: addQuestion.bind(this), keyManualMode: registrationKeyManualMode, toggleKeyFn: toggleKeyManualMode.bind(this), minmaxProps: { flag1: false } }"></ng-container>
+                <ng-container
+                    *ngTemplateOutlet="addQuestionForm; context: { model: newQuestion, addOptFn: addOption.bind(this), removeOptFn: removeOption.bind(this), addFn: addQuestion.bind(this), keyManualMode: registrationKeyManualMode, toggleKeyFn: toggleKeyManualMode.bind(this), minmaxProps: { flag1: false } }"></ng-container>
             </div>
         </div>
     </div>
@@ -224,14 +287,16 @@
                     <h3>שאלות קיימות</h3>
                     <div *ngIf="personalDataQuestions.length === 0">אין שאלות עדיין.</div>
 
-                                        <ng-container *ngFor="let q of personalDataQuestions; let i = index">
-                                            <ng-container *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: personalDataQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deletePersonalDataQuestion.bind(this), moveArgs: { a: true }, openArgs: { a: true } }"></ng-container>
-                                        </ng-container>
+                    <ng-container *ngFor="let q of personalDataQuestions; let i = index">
+                        <ng-container
+                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: personalDataQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deletePersonalDataQuestion.bind(this), moveArgs: { a: true }, openArgs: { a: true } }"></ng-container>
+                    </ng-container>
                 </div>
 
                 <hr>
 
-                <ng-container *ngTemplateOutlet="addQuestionForm; context: { model: newPersonalDataQuestion, addOptFn: addPersonalDataOption.bind(this), removeOptFn: removePersonalDataOption.bind(this), addFn: addPersonalDataQuestion.bind(this), keyManualMode: personalDataKeyManualMode, toggleKeyFn: toggleKeyManualMode.bind(this), minmaxProps: { flag1: true } }"></ng-container>
+                <ng-container
+                    *ngTemplateOutlet="addQuestionForm; context: { model: newPersonalDataQuestion, addOptFn: addPersonalDataOption.bind(this), removeOptFn: removePersonalDataOption.bind(this), addFn: addPersonalDataQuestion.bind(this), keyManualMode: personalDataKeyManualMode, toggleKeyFn: toggleKeyManualMode.bind(this), minmaxProps: { flag1: true } }"></ng-container>
             </div>
         </div>
     </div>
@@ -249,14 +314,16 @@
                     <h3>שאלות קיימות</h3>
                     <div *ngIf="maskirQuestions.length === 0">אין שאלות עדיין.</div>
 
-                                        <ng-container *ngFor="let q of maskirQuestions; let i = index">
-                                            <ng-container *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: maskirQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteMaskirQuestion.bind(this), moveArgs: { a: false, b: true }, openArgs: { a: false, b: true } }"></ng-container>
-                                        </ng-container>
+                    <ng-container *ngFor="let q of maskirQuestions; let i = index">
+                        <ng-container
+                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: maskirQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteMaskirQuestion.bind(this), moveArgs: { a: false, b: true }, openArgs: { a: false, b: true } }"></ng-container>
+                    </ng-container>
                 </div>
 
                 <hr>
 
-                <ng-container *ngTemplateOutlet="addQuestionForm; context: { model: newMaskirQuestion, addOptFn: addMaskirOption.bind(this), removeOptFn: removeMaskirOption.bind(this), addFn: addMaskirQuestion.bind(this), keyManualMode: maskirKeyManualMode, toggleKeyFn: toggleKeyManualMode.bind(this), minmaxProps: { flag1: false, flag2: true } }"></ng-container>
+                <ng-container
+                    *ngTemplateOutlet="addQuestionForm; context: { model: newMaskirQuestion, addOptFn: addMaskirOption.bind(this), removeOptFn: removeMaskirOption.bind(this), addFn: addMaskirQuestion.bind(this), keyManualMode: maskirKeyManualMode, toggleKeyFn: toggleKeyManualMode.bind(this), minmaxProps: { flag1: false, flag2: true } }"></ng-container>
             </div>
         </div>
     </div>
@@ -275,13 +342,15 @@
                     <div *ngIf="apartmentQuestions.length === 0">אין שאלות עדיין.</div>
 
                     <ng-container *ngFor="let q of apartmentQuestions; let i = index">
-                        <ng-container *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: apartmentQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteApartmentQuestion.bind(this), moveArgs: { a: false, b: false, c: true }, openArgs: { a: false, b: false, c: true } }"></ng-container>
+                        <ng-container
+                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: apartmentQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteApartmentQuestion.bind(this), moveArgs: { a: false, b: false, c: true }, openArgs: { a: false, b: false, c: true } }"></ng-container>
                     </ng-container>
                 </div>
 
                 <hr>
 
-                <ng-container *ngTemplateOutlet="addQuestionForm; context: { model: newApartmentQuestion, addOptFn: addApartmentOption.bind(this), removeOptFn: removeApartmentOption.bind(this), addFn: addApartmentQuestion.bind(this), keyManualMode: apartmentKeyManualMode, toggleKeyFn: toggleKeyManualMode.bind(this), minmaxProps: { flag1: false, flag2: false, flag3: true } }"></ng-container>
+                <ng-container
+                    *ngTemplateOutlet="addQuestionForm; context: { model: newApartmentQuestion, addOptFn: addApartmentOption.bind(this), removeOptFn: removeApartmentOption.bind(this), addFn: addApartmentQuestion.bind(this), keyManualMode: apartmentKeyManualMode, toggleKeyFn: toggleKeyManualMode.bind(this), minmaxProps: { flag1: false, flag2: false, flag3: true } }"></ng-container>
             </div>
         </div>
     </div>
@@ -301,7 +370,8 @@
                 <div *ngFor="let q of apartmentQuestions" class="answer-item" style="margin-bottom:1rem;">
                     <strong>{{ q.text }}</strong>
                     <div style="margin-top:0.5rem;">
-                        <ng-container *ngTemplateOutlet="answerInput; context: { $implicit: q, model: apartmentAnswers }"></ng-container>
+                        <ng-container
+                            *ngTemplateOutlet="answerInput; context: { $implicit: q, model: apartmentAnswers }"></ng-container>
                     </div>
                 </div>
 
@@ -310,7 +380,8 @@
                     <button class="btn btn-approve" (click)="submitApartment()">שמור דירה</button>
                 </div>
             </div>
-            <div *ngIf="!apartmentQuestions || apartmentQuestions.length === 0" style="padding:1rem;">אין שאלות לדירה. יש להוסיף שאלות לדירה בממשק ניהול.</div>
+            <div *ngIf="!apartmentQuestions || apartmentQuestions.length === 0" style="padding:1rem;">אין שאלות לדירה.
+                יש להוסיף שאלות לדירה בממשק ניהול.</div>
         </div>
     </div>
 
@@ -326,7 +397,8 @@
                 <div *ngIf="!viewedQuestionIds || viewedQuestionIds.length === 0">אין תשובות</div>
                 <div *ngFor="let qid of viewedQuestionIds" class="answer-item">
                     <strong>{{ questionTextMap[qid] || qid }}</strong>
-                    <div class="answer-value">{{ formatAnswer(viewedUserAnswers ? viewedUserAnswers[qid] : null) }}</div>
+                    <div class="answer-value">{{ formatAnswer(viewedUserAnswers ? viewedUserAnswers[qid] : null) }}
+                    </div>
                 </div>
             </div>
         </div>
@@ -343,7 +415,9 @@
                         <span style="margin:0 0.5rem;">•</span>
                         <span>סה"כ: {{ totalQuestionsCount }}</span>
                     </div>
-                    <div *ngIf="nextGroupPreview" style="font-size:0.85rem;color:#888;margin-top:0.25rem;font-style:italic;">{{ nextGroupPreview }}</div>
+                    <div *ngIf="nextGroupPreview"
+                        style="font-size:0.85rem;color:#888;margin-top:0.25rem;font-style:italic;">{{ nextGroupPreview
+                        }}</div>
                 </div>
             </div>
 
@@ -351,13 +425,17 @@
                 <h3 class="question-text">{{ q.text }}</h3>
 
                 <div class="answer-area" style="margin: 1.5rem 0;">
-                    <ng-container *ngTemplateOutlet="answerInput; context: { $implicit: q, model: onboardingAnswers }"></ng-container>
+                    <ng-container
+                        *ngTemplateOutlet="answerInput; context: { $implicit: q, model: onboardingAnswers }"></ng-container>
                 </div>
 
                 <div class="onboarding-actions" style="display:flex;justify-content:space-between;margin-top:2rem;">
-                    <button class="btn btn-special" (click)="prevQuestion()" [disabled]="currentQuestionIndex === 0 && currentQuestionGroup === 0">הקודם</button>
-                    <button *ngIf="!isLastOnboardingQuestion || !isLastGroup" class="btn btn-approve" (click)="nextQuestion()" [disabled]="!canProceedWithQuestion()">הבא</button>
-                    <button *ngIf="isLastOnboardingQuestion && isLastGroup" class="btn btn-approve" (click)="submitOnboardingAnswers()" [disabled]="!canSubmitOnboarding()">סיים ושלח</button>
+                    <button class="btn btn-special" (click)="prevQuestion()"
+                        [disabled]="currentQuestionIndex === 0 && currentQuestionGroup === 0">הקודם</button>
+                    <button *ngIf="!isLastOnboardingQuestion || !isLastGroup" class="btn btn-approve"
+                        (click)="nextQuestion()" [disabled]="!canProceedWithQuestion()">הבא</button>
+                    <button *ngIf="isLastOnboardingQuestion && isLastGroup" class="btn btn-approve"
+                        (click)="submitOnboardingAnswers()" [disabled]="!canSubmitOnboarding()">סיים ושלח</button>
                 </div>
             </div>
         </div>
@@ -369,7 +447,8 @@
             <div class="modal-header">
                 <div style="flex:1;">
                     <h2>ערוך תשובות אישיות</h2>
-                    <div style="font-size:0.9rem;color:#666;margin-top:0.25rem;"><span>{{ editQuestionProgress }}</span></div>
+                    <div style="font-size:0.9rem;color:#666;margin-top:0.25rem;"><span>{{ editQuestionProgress }}</span>
+                    </div>
                 </div>
             </div>
 
@@ -377,14 +456,18 @@
                 <h3 class="question-text">{{ q.text }}</h3>
 
                 <div class="answer-area" style="margin: 1.5rem 0;">
-                    <ng-container *ngTemplateOutlet="answerInput; context: { $implicit: q, model: editPersonalityAnswers }"></ng-container>
+                    <ng-container
+                        *ngTemplateOutlet="answerInput; context: { $implicit: q, model: editPersonalityAnswers }"></ng-container>
                 </div>
 
                 <div class="onboarding-actions" style="display:flex;justify-content:space-between;margin-top:2rem;">
-                    <button class="btn btn-special" (click)="prevEditQuestion()" [disabled]="currentEditQuestionIndex === 0">הקודם</button>
+                    <button class="btn btn-special" (click)="prevEditQuestion()"
+                        [disabled]="currentEditQuestionIndex === 0">הקודם</button>
                     <button class="btn btn-cancel" (click)="cancelEdit()">ביטול</button>
-                    <button *ngIf="!isLastEditQuestion" class="btn btn-approve" (click)="nextEditQuestion()" [disabled]="!canProceedWithEditQuestion()">הבא</button>
-                    <button *ngIf="isLastEditQuestion" class="btn btn-approve" (click)="submitEditPersonalityAnswers()" [disabled]="!canSubmitEditAnswers()">שמור שינויים</button>
+                    <button *ngIf="!isLastEditQuestion" class="btn btn-approve" (click)="nextEditQuestion()"
+                        [disabled]="!canProceedWithEditQuestion()">הבא</button>
+                    <button *ngIf="isLastEditQuestion" class="btn btn-approve" (click)="submitEditPersonalityAnswers()"
+                        [disabled]="!canSubmitEditAnswers()">שמור שינויים</button>
                 </div>
             </div>
         </div>
@@ -402,18 +485,23 @@
                 <ng-container *ngTemplateOutlet="langSwitcher"></ng-container>
 
                 <label>נוסח השאלה ({{currentLang | uppercase}})</label>
-                <input *ngIf="currentLang === 'he'" [(ngModel)]="editingQuestion.text" class="form-control" placeholder="הכנס שאלה (עברית)..." />
-                <input *ngIf="currentLang === 'en'" [(ngModel)]="editingQuestion.textEn" class="form-control" placeholder="Enter question (English)..." />
-                <input *ngIf="currentLang === 'ru'" [(ngModel)]="editingQuestion.textRu" class="form-control" placeholder="Введите вопрос (Russian)..." />
-                <input *ngIf="currentLang === 'fr'" [(ngModel)]="editingQuestion.textFr" class="form-control" placeholder="Entrez la question (French)..." />
+                <input *ngIf="currentLang === 'he'" [(ngModel)]="editingQuestion.text" class="form-control input-long"
+                    placeholder="הכנס שאלה (עברית)..." />
+                <input *ngIf="currentLang === 'en'" [(ngModel)]="editingQuestion.textEn" class="form-control input-long"
+                    placeholder="Enter question (English)..." />
+                <input *ngIf="currentLang === 'ru'" [(ngModel)]="editingQuestion.textRu" class="form-control input-long"
+                    placeholder="Введите вопрос (Russian)..." />
+                <input *ngIf="currentLang === 'fr'" [(ngModel)]="editingQuestion.textFr" class="form-control input-long"
+                    placeholder="Entrez la question (French)..." />
 
                 <div class="key-section-container">
                     <label style="opacity:0.5">מפתח (לא ניתן לעריכה)</label>
-                    <input [ngModel]="editingQuestion.key" disabled class="form-control form-control-sm-custom" style="opacity:0.5" />
+                    <input [ngModel]="editingQuestion.key" disabled class="form-control input-short"
+                        style="opacity:0.5" />
                 </div>
 
                 <label>סוג תשובה</label>
-                <select [(ngModel)]="editingQuestion.type" class="form-control form-control-auto">
+                <select [(ngModel)]="editingQuestion.type" class="form-control input-long">
                     <option value="text">טקסט חופשי</option>
                     <option value="yesno">כן/לא</option>
                     <option value="checklist">רשימת אפשרויות</option>
@@ -425,29 +513,39 @@
                     <option value="city_neighborhood">עיר ושכונה</option>
                 </select>
 
-                <div *ngIf="editingQuestion.type === 'checklist' || editingQuestion.type === 'radio'" class="options-manager">
+                <div *ngIf="editingQuestion.type === 'checklist' || editingQuestion.type === 'radio'"
+                    class="options-manager">
                     <label>אפשרויות בחירה</label>
                     <div class="add-option-row">
-                        <input [(ngModel)]="editOption" class="form-control-sm-custom" placeholder="אפשרות חדשה..." (keyup.enter)="addEditOption()" />
+                        <input [(ngModel)]="editOption" class="form-control input-long" placeholder="אפשרות חדשה..."
+                            (keyup.enter)="addEditOption()" />
                         <button class="btn btn-special btn-sm" (click)="addEditOption()">הוסף</button>
                     </div>
                     <ul class="options-list">
-                        <li *ngFor="let opt of editingQuestion.options; let i = index">{{opt}} <span class="remove-opt" (click)="removeEditOption(i)">x</span></li>
+                        <li *ngFor="let opt of editingQuestion.options; let i = index">{{opt}} <span class="remove-opt"
+                                (click)="removeEditOption(i)">x</span></li>
                     </ul>
                 </div>
 
-                <div *ngIf="editingQuestion.type === 'scale' || editingQuestion.type === 'range'" class="scale-manager" style="display:flex;gap:1rem;margin-bottom:1rem;">
-                    <div><label>מינימום</label><input type="number" [(ngModel)]="editingQuestion.min" class="form-control form-control-sm-custom" style="width:80px" /></div>
-                    <div><label>מקסימום</label><input type="number" [(ngModel)]="editingQuestion.max" class="form-control form-control-sm-custom" style="width:80px" /></div>
+                <div *ngIf="editingQuestion.type === 'scale' || editingQuestion.type === 'range'" class="scale-manager"
+                    style="display:flex;gap:1rem;margin-bottom:1rem;">
+                    <div><label>מינימום</label><input type="number" [(ngModel)]="editingQuestion.min"
+                            class="form-control input-short" /></div>
+                    <div><label>מקסימום</label><input type="number" [(ngModel)]="editingQuestion.max"
+                            class="form-control input-short" /></div>
                 </div>
 
-                <div *ngIf="editingQuestion.type === 'checklist'" class="max-selections-manager" style="margin-bottom:1rem;">
+                <div *ngIf="editingQuestion.type === 'checklist'" class="max-selections-manager"
+                    style="margin-bottom:1rem;">
                     <label>מקסימום בחירות (אופציונלי)</label>
-                    <input type="number" [(ngModel)]="editingQuestion.maxSelections" class="form-control form-control-sm-custom" placeholder="השאר ריק ללא הגבלה" min="1" />
-                    <small style="color:#666;display:block;margin-top:0.25rem;">הגבל את מספר האפשרויות שהמשתמש יכול לבחור</small>
+                    <input type="number" [(ngModel)]="editingQuestion.maxSelections" class="form-control input-short"
+                        placeholder="השאר ריק ללא הגבלה" min="1" />
+                    <small style="color:#666;display:block;margin-top:0.25rem;">הגבל את מספר האפשרויות שהמשתמש יכול
+                        לבחור</small>
                 </div>
 
-                <button class="btn btn-approve btn-fit-content" (click)="updateQuestion()" [disabled]="!editingQuestion.text">שמור שינויים</button>
+                <button class="btn btn-approve btn-fit-content" (click)="updateQuestion()"
+                    [disabled]="!editingQuestion.text">שמור שינויים</button>
             </div>
         </div>
     </div>

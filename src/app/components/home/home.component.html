@@ -6,7 +6,7 @@
         <div class="cta-buttons">
             <button *ngIf="!(auth.user$ | async)" id="register-btn" class="btn btn-approve"
                 (click)="showAuthModal()">הרשמה</button>
-            <button id="search-btn" class="btn btn-special">חפש שותפים - בפיתוח</button>
+            <button id="search-btn" class="btn btn-special" [routerLink]="['/search-groups']">חפש שותפים</button>
             <button id="apartments-btn" class="btn btn-special" [routerLink]="['/apartments']">מאגר דירות</button>
             <button id="about-btn" class="btn btn-special" [routerLink]="'/about'">אודות</button>
         </div>
