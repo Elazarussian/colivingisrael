@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, Output, EventEmitter, ChangeDetectorRef, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ShowMessageComponent } from '../show-message/show-message.component';
@@ -30,9 +30,10 @@ export interface Question {
     templateUrl: './questions-manager.component.html',
     styleUrls: ['./questions-manager.component.css']
 })
-export class QuestionsManagerComponent implements OnInit {
+export class QuestionsManagerComponent implements OnInit, OnChanges {
     @Input() mode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'admin-apartment' | 'onboarding' | 'edit-answers' | 'view-answers' | 'fill-apartment' = 'onboarding';
     @Input() profile: any = null;
+    @Input() editApartment: { id: string, data: any } | null = null; // if set, save will update this apartment
     @Input() userId?: string;
 
     @Output() completed = new EventEmitter<void>();
@@ -153,6 +154,19 @@ export class QuestionsManagerComponent implements OnInit {
         await this.initializeMode();
     }
 
+    ngOnChanges(changes: SimpleChanges) {
+        // If we're in fill-apartment mode and editApartment input changed (e.g., user clicked edit),
+        // re-prepare apartmentAnswers using the provided existing apartment data so the form is pre-filled.
+        if (changes['editApartment'] && this.mode === 'fill-apartment') {
+            // If apartment questions already loaded, apply answers now. Otherwise initializeMode will do it.
+            if (this.apartmentQuestions && this.apartmentQuestions.length > 0) {
+                const existing = this.editApartment && this.editApartment.data ? this.editApartment.data : {};
+                this.prepareApartmentAnswers(existing);
+                this.cdr.detectChanges();
+            }
+        }
+    }
+
     private async initializeMode() {
         switch (this.mode) {
             case 'admin-registration':
@@ -175,7 +189,8 @@ export class QuestionsManagerComponent implements OnInit {
             case 'fill-apartment':
                 await this.loadApartmentQuestionsForFill();
                 await this.loadCities();
-                this.prepareApartmentAnswers();
+                // If an editApartment was provided, use its data to prefill answers. Otherwise start empty.
+                this.prepareApartmentAnswers(this.editApartment && this.editApartment.data ? this.editApartment.data : {});
                 break;
             case 'edit-answers':
                 await this.loadEditPersonalityQuestions();
@@ -763,8 +778,10 @@ export class QuestionsManagerComponent implements OnInit {
         this.cdr.detectChanges();
     }
 
-    prepareApartmentAnswers() {
-        this.apartmentAnswers = this.prepareAnswersMap(this.apartmentQuestions || [], {});
+    prepareApartmentAnswers(existingAnswers: any = {}) {
+        // When editing, existingAnswers will contain the saved apartment document fields.
+        // prepareAnswersMap expects questions array + an answers object keyed by question key or id.
+        this.apartmentAnswers = this.prepareAnswersMap(this.apartmentQuestions || [], existingAnswers || {});
     }
 
     /** Ensure a range answer object exists for the given question on the provided model. Returns the answer object. */
@@ -797,12 +814,23 @@ export class QuestionsManagerComponent implements OnInit {
         }
 
         try {
-            const { collection, addDoc } = await import('firebase/firestore');
             const payload = this.mapAnswersForSave(this.apartmentQuestions, this.apartmentAnswers || {});
             // mark as apartment listing and include createdAt
             payload.createdAt = new Date().toISOString();
-            const ref = await addDoc(collection(this.auth.db, `${this.auth.dbPath}apartments`), payload);
-            this.msg.show('הדירה נשמרה במאגר');
+            // mark publisher / owner so we can filter later
+            payload.createdBy = this.profile?.uid || this.auth.auth?.currentUser?.uid || null;
+            payload.createdByDisplayName = this.profile?.displayName || this.auth.auth?.currentUser?.displayName || '';
+
+            if (this.editApartment && this.editApartment.id) {
+                const { updateDoc, doc } = await import('firebase/firestore');
+                await updateDoc(doc(this.auth.db, `${this.auth.dbPath}apartments`, this.editApartment.id), payload);
+                this.msg.show('הדירה עודכנה במאגר');
+            } else {
+                const { collection, addDoc } = await import('firebase/firestore');
+                await addDoc(collection(this.auth.db, `${this.auth.dbPath}apartments`), payload);
+                this.msg.show('הדירה נשמרה במאגר');
+            }
+
             this.completed.emit();
             this.close();
         } catch (err) {

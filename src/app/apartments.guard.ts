@@ -19,17 +19,24 @@ export class ApartmentsGuard implements CanActivate {
                 if (!user) {
                     // Not logged in - show message and block access
                     this.msg.show('אין כניסה למאגר דירות ללא הרשמה לאתר. יש להירשם לפני הצפייה במודעות.');
-                    return false;
+                    return this.router.parseUrl('/');
                 }
 
                 if (!profile) {
                     // No profile exists (shouldn't happen for logged in users) - block and show message
                     this.msg.show('אין כניסה למאגר דירות ללא פרופיל. פנה למערכת לרענון הפרופיל.');
-                    return false;
+                    return this.router.parseUrl('/');
                 }
 
-                // If profile exists, allow access
-                return true;
+                // Only allow admin or maskir roles to access the apartments section
+                const role = this.auth.getUserRole(profile);
+                if (role === 'admin' || role === 'maskir') {
+                    return true;
+                }
+
+                // Other roles (e.g., 'user') are not permitted
+                this.msg.show('אין הרשאה לצפות במאגר הדירות. יש לפנות למנהל המערכת לקבלת הרשאות.');
+                return this.router.parseUrl('/');
             })
         );
     }

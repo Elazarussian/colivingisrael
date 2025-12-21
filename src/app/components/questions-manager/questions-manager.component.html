@@ -360,7 +360,8 @@
         <div class="modal-content onboarding-modal">
             <div class="modal-header">
                 <div style="flex:1;">
-                    <h2>הוסף דירה למאגר</h2>
+                    <h2 *ngIf="!editApartment">הוסף דירה למאגר</h2>
+                    <h2 *ngIf="editApartment">שינוי פרטי דירה</h2>
                 </div>
                 <button class="btn-close" (click)="close()">X</button>
             </div>
@@ -377,7 +378,7 @@
 
                 <div style="display:flex;justify-content:space-between;margin-top:1.5rem;">
                     <button class="btn btn-cancel" (click)="close()">ביטול</button>
-                    <button class="btn btn-approve" (click)="submitApartment()">שמור דירה</button>
+                    <button class="btn btn-approve" (click)="submitApartment()">{{ editApartment ? 'עדכן דירה' : 'שמור דירה' }}</button>
                 </div>
             </div>
             <div *ngIf="!apartmentQuestions || apartmentQuestions.length === 0" style="padding:1rem;">אין שאלות לדירה.

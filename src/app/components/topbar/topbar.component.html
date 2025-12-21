@@ -19,7 +19,6 @@
       <span class="bar bot"></span>
     </button>
   </div>
-
   <!-- Expanding Menu Content -->
   <div class="menu-content" [class.open]="isMenuOpen">
     <!-- Search Bar -->
@@ -42,9 +41,11 @@
       <a routerLink="/search-groups" (click)="closeMenu()" routerLinkActive="active">
         <span class="icon">🔎</span> חפש שותפים
       </a>
-      <a routerLink="/apartments" (click)="closeMenu()" routerLinkActive="active">
-        <span class="icon">🏢</span> דירות
-      </a>
+      <ng-container *ngIf="auth.profile$ | async as profile">
+        <a *ngIf="auth.hasPermission(profile,'maskir')" routerLink="/apartments" (click)="closeMenu()" routerLinkActive="active">
+          <span class="icon">🏢</span> דירות
+        </a>
+      </ng-container>
 
       <div class="divider"></div>
 

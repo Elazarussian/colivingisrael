@@ -1,15 +1,43 @@
 <section class="apartments-page">
-    <h2>מאגר דירות</h2>
-    <p>גלישה במודעות ששותפו על ידי הקהילה.</p>
+    <ng-container *ngIf="auth.profile$ | async as p">
+        <h2 *ngIf="auth.getUserRole(p) === 'maskir'; else allTitle">הדירות שלי</h2>
+        <ng-template #allTitle>
+            <h2>מאגר דירות</h2>
+        </ng-template>
+    </ng-container>
 
     <div *ngIf="showRegistrationRequired">
-        <show-message [message]="'אין כניסה למאגר דירות ללא הרשמה לאתר. יש להירשם לפני הצפייה במודעות.'" (closed)="showRegistrationRequired = false"></show-message>
+        <show-message [message]="'אין כניסה למאגר דירות ללא הרשמה לאתר. יש להירשם לפני הצפייה במודעות.'"
+            (closed)="showRegistrationRequired = false"></show-message>
     </div>
 
     <div *ngIf="!showRegistrationRequired">
         <ng-container *ngIf="auth.profile$ | async as p">
             <div class="actions-row">
-                <button *ngIf="auth.hasPermission(p, 'maskir') || auth.hasPermission(p, 'admin')" class="btn btn-approve" (click)="openAddApartment()">הוסף דירה למאגר</button>
+                <button *ngIf="auth.hasPermission(p, 'maskir') || auth.hasPermission(p, 'admin')"
+                    class="btn btn-approve" (click)="openAddApartment()">הוסף דירה למאגר</button>
+                <!-- Admin publisher filter: enter a publisher UID to filter listings by that publisher -->
+                <div *ngIf="auth.hasPermission(p,'admin')" class="filter-section">
+                    <label class="filter-label">סינון מפרסם:</label>
+                    <div class="filter-input-wrapper" #filterContainer>
+                        <input class="input-small publisher-input" [(ngModel)]="publisherQuery"
+                            (input)="onPublisherInputChange()" placeholder="הזן שם או אימייל..." />
+                        <div class="input-icons">
+                            <span *ngIf="publisherQuery" class="input-icon clear-icon" (click)="clearPublisher()"
+                                title="נקה">✕</span>
+                            <span class="input-icon dropdown-icon" (click)="togglePublisherSuggestions(true)"
+                                title="תציג מפרסמים">▾</span>
+                        </div>
+
+                        <div *ngIf="showPublisherSuggestions" class="publisher-suggestions">
+                            <div *ngFor="let s of getPublisherSuggestions()" (click)="selectPublisher(s.uid)"
+                                class="suggestion-item">
+                                <div class="suggestion-name">{{ s.displayName }}</div>
+                            </div>
+                            <div *ngIf="getPublisherSuggestions().length === 0" class="no-results">אין תוצאות</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </ng-container>
 
@@ -30,7 +58,16 @@
                             <span class="value">{{ formatAnswer(a[k]) }}</span>
                         </div>
                     </div>
-                    <div class="card-meta"><small>נוצר: {{ a.createdAt || '-' }}</small></div>
+                    <div class="card-meta"><small>נוצר: {{ a.createdAt || '-' }} <span *ngIf="a.createdBy"> • מפרסם: {{
+                                getCreatorLabel(a) }}</span></small></div>
+                    <div style="margin-top:0.5rem;display:flex;gap:0.5rem;">
+                        <ng-container *ngIf="auth.profile$ | async as p">
+                            <!-- maskir can edit their own listings; admin can edit any -->
+                            <button
+                                *ngIf="(auth.getUserRole(p) === 'maskir' && a.createdBy === p.uid) || auth.getUserRole(p) === 'admin'"
+                                class="btn btn-small" (click)="openEditApartment(a)">ערוך</button>
+                        </ng-container>
+                    </div>
                 </div>
             </div>
         </div>
@@ -38,6 +75,13 @@
 
     <!-- Questions manager modal for adding apartment -->
     <div *ngIf="showAddApartment">
-        <app-questions-manager [mode]="'fill-apartment'" [profile]="auth.profile$ | async" (completed)="onApartmentSaved()" (closed)="closeAddApartment()"></app-questions-manager>
+        <app-questions-manager [mode]="'fill-apartment'" [profile]="auth.profile$ | async"
+            (completed)="onApartmentSaved()" (closed)="closeAddApartment()"></app-questions-manager>
+    </div>
+    <!-- Questions manager modal for editing apartment -->
+    <div *ngIf="showEditApartment && editingApartment">
+        <app-questions-manager [mode]="'fill-apartment'" [profile]="auth.profile$ | async"
+            [editApartment]="editingApartment" (completed)="onApartmentSaved()"
+            (closed)="closeEditApartment()"></app-questions-manager>
     </div>
 </section>
