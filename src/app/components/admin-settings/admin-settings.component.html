@@ -1,0 +1,75 @@
+<section class="admin-settings-page">
+  <div class="container">
+    <h1>הגדרות מנהל</h1>
+
+    <div *ngIf="isAdmin()">
+      <div class="admin-panel">
+        <h2>ניהול משתמשים</h2>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap; margin-top:0.5rem;">
+          <button class="btn btn-special" (click)="toggleUsersTable()">
+            {{ showUsersTable ? 'הסתר משתמשים' : 'הצג משתמשים' }}
+          </button>
+        </div>
+
+        <div *ngIf="showUsersTable && !allUsersError" class="users-table" style="margin-top:1rem;overflow:auto;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>אימייל</th>
+                <th>נרשם בתאריך</th>
+                <th>תפקיד</th>
+                <th>הצג תשובות</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let u of allUsers">
+                <td>{{u.email}}</td>
+                <td>
+                  {{ (u.createdAt && u.createdAt.toDate ? u.createdAt.toDate() : u.createdAt) | date:'dd/MM/yyyy hh:mm
+                  a' }}
+                </td>
+                <td>{{u.role}}</td>
+                <td><button class="btn btn-special" (click)="openUserAnswers(u)">תשובות</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="admin-questions" style="margin-top:1rem;">
+          <h2>ניהול שאלונים</h2>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap; margin-top:0.5rem;">
+            <button class="btn btn-special" (click)="openRegistrationQuestions()">נהל שאלון הרשמה</button>
+            <button class="btn btn-special" (click)="openPersonalDataQuestions()">נהל שאלון פרטי משתמש</button>
+            <button class="btn btn-special" (click)="openMaskirQuestions()">נהל שאלון משכיר</button>
+            <button class="btn btn-special" (click)="openApartmentQuestions()">נהל שאלון הוספת דירה</button>
+          </div>
+        </div>
+
+        <div class="admin-geo" style="margin-top:1rem;">
+          <h2>ניהול ערים ושכונות</h2>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap; margin-top:0.5rem;">
+            <button class="btn btn-special" (click)="openGeoManager()">נהל ערים ושכונות (Israel)</button>
+          </div>
+        </div>
+
+        <div *ngIf="showUsersTable && allUsersError" class="error-message" style="margin-top:1rem">
+          {{ allUsersError }}
+          <div style="margin-top:.5rem;display:flex;gap:.5rem;justify-content:flex-end">
+            <button class="btn btn-regular" (click)="loadAllUsers()">נסה שנית</button>
+            <button class="btn btn-regular" (click)="openRegistrationQuestions()">בדוק שאלות</button>
+          </div>
+        </div>
+      </div>
+
+      <app-questions-manager *ngIf="showQuestionsManager" [mode]="questionsMode" [profile]="profile"
+        [userId]="selectedUserId" (completed)="onQuestionsCompleted()" (closed)="onQuestionsClosed()">
+      </app-questions-manager>
+
+      <app-geo-manager *ngIf="showGeoManager" (closed)="closeGeoManager()"></app-geo-manager>
+    </div>
+
+    <div *ngIf="!isAdmin()">
+      <p>אין לך גישה לעמוד זה.</p>
+    </div>
+  </div>
+</section>

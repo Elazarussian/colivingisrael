@@ -16,6 +16,7 @@ export class TopbarComponent {
     user$ = this.auth.user$;
     isMenuOpen = false;
     searchTerm = '';
+    showLogoutConfirm = false;
 
     constructor(public auth: AuthService, private router: Router) {
         this.router.events.pipe(
@@ -42,11 +43,18 @@ export class TopbarComponent {
         }
     }
 
-    async logout() {
-        const confirmed = confirm('האם אתה בטוח שברצונך להתנתק?');
-        if (!confirmed) return;
+    logout() {
+        this.showLogoutConfirm = true;
+        this.closeMenu();
+    }
+
+    cancelLogout() {
+        this.showLogoutConfirm = false;
+    }
+
+    async confirmLogout() {
         try {
-            this.closeMenu();
+            this.showLogoutConfirm = false;
             await this.auth.logout();
             this.router.navigate(['/']);
         } catch (err) {

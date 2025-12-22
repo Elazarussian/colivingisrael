@@ -378,7 +378,8 @@
 
                 <div style="display:flex;justify-content:space-between;margin-top:1.5rem;">
                     <button class="btn btn-cancel" (click)="close()">ביטול</button>
-                    <button class="btn btn-approve" (click)="submitApartment()">{{ editApartment ? 'עדכן דירה' : 'שמור דירה' }}</button>
+                    <button class="btn btn-approve" (click)="submitApartment()">{{ editApartment ? 'עדכן דירה' : 'שמור
+                        דירה' }}</button>
                 </div>
             </div>
             <div *ngIf="!apartmentQuestions || apartmentQuestions.length === 0" style="padding:1rem;">אין שאלות לדירה.
@@ -442,33 +443,147 @@
         </div>
     </div>
 
-    <!-- edit personality answers modal -->
+    <!-- edit personality answers modal (single-form) -->
     <div *ngIf="mode === 'edit-answers'" class="modal-overlay">
         <div class="modal-content onboarding-modal">
             <div class="modal-header">
                 <div style="flex:1;">
                     <h2>ערוך תשובות אישיות</h2>
-                    <div style="font-size:0.9rem;color:#666;margin-top:0.25rem;"><span>{{ editQuestionProgress }}</span>
-                    </div>
+                    <div style="font-size:0.9rem;color:#666;margin-top:0.25rem;">כל השאלות מוצגות כאן</div>
                 </div>
+                <button class="btn-close" (click)="cancelEdit()">X</button>
             </div>
 
-            <div class="modal-body" *ngIf="currentEditQuestion as q">
-                <h3 class="question-text">{{ q.text }}</h3>
+            <div class="modal-body">
+                <div *ngIf="!editPersonalityQuestions || editPersonalityQuestions.length === 0" style="padding:1rem;">
+                    אין שאלות לעריכה.</div>
 
-                <div class="answer-area" style="margin: 1.5rem 0;">
-                    <ng-container
-                        *ngTemplateOutlet="answerInput; context: { $implicit: q, model: editPersonalityAnswers }"></ng-container>
-                </div>
+                <div *ngIf="editPersonalityQuestions && editPersonalityQuestions.length > 0">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                        <div>
+                            <h3 style="margin:0">ערוך תשובות אישיות</h3>
+                            <div style="color:#ccc;font-size:0.95rem;margin-top:0.25rem;">הכנס/י תשובות לשאלות הבאות. סך
+                                הכל: {{ editPersonalityQuestions.length }}</div>
+                        </div>
+                        <div style="text-align:left;color:#999;font-size:0.9rem;">טיפ: שימור ישמור את כל התשובות יחד
+                        </div>
+                    </div>
 
-                <div class="onboarding-actions" style="display:flex;justify-content:space-between;margin-top:2rem;">
-                    <button class="btn btn-special" (click)="prevEditQuestion()"
-                        [disabled]="currentEditQuestionIndex === 0">הקודם</button>
-                    <button class="btn btn-cancel" (click)="cancelEdit()">ביטול</button>
-                    <button *ngIf="!isLastEditQuestion" class="btn btn-approve" (click)="nextEditQuestion()"
-                        [disabled]="!canProceedWithEditQuestion()">הבא</button>
-                    <button *ngIf="isLastEditQuestion" class="btn btn-approve" (click)="submitEditPersonalityAnswers()"
-                        [disabled]="!canSubmitEditAnswers()">שמור שינויים</button>
+                    <form>
+                        <div *ngFor="let q of editPersonalityQuestions; let i = index" class="card"
+                            style="margin-bottom:0.8rem;padding:0.9rem;">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+                                <div style="flex:1;">
+                                    <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.45rem;">
+                                        <div
+                                            style="width:34px;height:34px;border-radius:999px;background:rgba(255,255,255,0.06);display:inline-grid;place-items:center;font-weight:700">
+                                            {{ i + 1 }}</div>
+                                        <strong style="font-size:1rem">{{ q.text }}</strong>
+                                    </div>
+
+                                    <div>
+                                        <ng-container [ngSwitch]="q.type">
+                                            <div *ngSwitchCase="'text'">
+                                                <input type="text" [(ngModel)]="editPersonalityAnswers[q.id || '']"
+                                                    [ngModelOptions]="{standalone:true}" class="input-long" />
+                                            </div>
+
+                                            <div *ngSwitchCase="'yesno'">
+                                                <label><input type="radio" [name]="q.id || ''" [value]="true"
+                                                        [(ngModel)]="editPersonalityAnswers[q.id || '']"
+                                                        [ngModelOptions]="{standalone:true}"> כן</label>
+                                                <label><input type="radio" [name]="q.id || ''" [value]="false"
+                                                        [(ngModel)]="editPersonalityAnswers[q.id || '']"
+                                                        [ngModelOptions]="{standalone:true}"> לא</label>
+                                            </div>
+
+                                            <div *ngSwitchCase="'checklist'">
+                                                <div *ngFor="let opt of q.options">
+                                                    <label>
+                                                        <input type="checkbox"
+                                                            [checked]="editPersonalityAnswers[q.id || '']?.includes(opt)"
+                                                            (change)="editPersonalityAnswers[q.id || ''] = toggleChecklist(editPersonalityAnswers[q.id || ''], opt, q.maxSelections)"
+                                                            class="input-short" />
+                                                        {{ opt }}
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div *ngSwitchCase="'radio'">
+                                                <div *ngFor="let opt of q.options">
+                                                    <label>
+                                                        <input type="radio" [name]="q.id || ''" [value]="opt"
+                                                            [(ngModel)]="editPersonalityAnswers[q.id || '']"
+                                                            [ngModelOptions]="{standalone:true}" class="input-short" />
+                                                        {{ opt }}
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            <div *ngSwitchCase="'date'">
+                                                <input type="date" [(ngModel)]="editPersonalityAnswers[q.id || '']"
+                                                    [ngModelOptions]="{standalone:true}" class="input-short" />
+                                            </div>
+
+                                            <div *ngSwitchCase="'phone'">
+                                                <select [ngModel]="getPhonePrefix(editPersonalityAnswers[q.id || ''])"
+                                                    (ngModelChange)="updatePhoneAnswer(q.id || '', 'prefix', $event, editPersonalityAnswers)"
+                                                    class="input-short">
+                                                    <option *ngFor="let p of phonePrefixes" [value]="p">{{p}}</option>
+                                                </select>
+                                                <input type="text"
+                                                    [ngModel]="getPhoneNumber(editPersonalityAnswers[q.id || ''])"
+                                                    (ngModelChange)="updatePhoneAnswer(q.id || '', 'number', $event, editPersonalityAnswers)"
+                                                    class="input-short" />
+                                            </div>
+
+                                            <div *ngSwitchCase="'city_neighborhood'">
+                                                <input type="text"
+                                                    [ngModel]="getOrInitAnswer(editPersonalityAnswers,q).cityName"
+                                                    class="input-short"
+                                                    (ngModelChange)="onCityInput(q, editPersonalityAnswers, $event)"
+                                                    (blur)="onCityBlur(q, editPersonalityAnswers)" />
+                                                <input type="text"
+                                                    [ngModel]="getOrInitAnswer(editPersonalityAnswers,q).neighborhoodName"
+                                                    class="input-short"
+                                                    (ngModelChange)="onNeighborhoodInput(q, editPersonalityAnswers, $event)"
+                                                    (blur)="onNeighborhoodBlur(q, editPersonalityAnswers)" />
+                                            </div>
+
+                                            <div *ngSwitchCase="'scale'">
+                                                <input type="range" [min]="q.min || 1" [max]="q.max || 5"
+                                                    [(ngModel)]="editPersonalityAnswers[q.id || '']"
+                                                    [ngModelOptions]="{standalone:true}" class="input-long" />
+                                            </div>
+
+                                            <div *ngSwitchCase="'range'">
+                                                <input type="number"
+                                                    [(ngModel)]="getOrInitAnswer(editPersonalityAnswers,q).min"
+                                                    [ngModelOptions]="{standalone:true}" class="input-short" />
+                                                <input type="number"
+                                                    [(ngModel)]="getOrInitAnswer(editPersonalityAnswers,q).max"
+                                                    [ngModelOptions]="{standalone:true}" class="input-short" />
+                                            </div>
+
+                                            <div *ngSwitchDefault>
+                                                <input type="text" [(ngModel)]="editPersonalityAnswers[q.id || '']"
+                                                    [ngModelOptions]="{standalone:true}" class="input-long" />
+                                            </div>
+                                        </ng-container>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- footer actions -->
+                    <div style="display:flex;justify-content:space-between;gap:1rem;margin-top:1rem;">
+                        <button class="btn btn-cancel" type="button" (click)="cancelEdit()">ביטול</button>
+                        <div style="display:flex;gap:0.75rem;">
+                            <button class="btn btn-approve" type="button" (click)="submitEditPersonalityAnswers()"
+                                [disabled]="!canSubmitEditAnswers()">שמור שינויים</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -11,6 +11,7 @@ import {
     onAuthStateChanged,
     User,
     updatePassword,
+    updateProfile,
     EmailAuthProvider,
     reauthenticateWithCredential
 } from 'firebase/auth';
@@ -153,6 +154,23 @@ export class AuthService {
             if (payload[k] === '') delete payload[k];
         });
 
+        // If questions contain first/last name fields, derive displayName automatically.
+        // Assumptions: question keys may be 'first_name'/'last_name' or 'firstName'/'lastName' (common variants).
+        try {
+            const qs = payload.questions || (data && data.questions) || null;
+            if (qs && typeof qs === 'object') {
+                const first = (qs['first_name'] || qs['firstName'] || qs['fname'] || '') as string;
+                const last = (qs['last_name'] || qs['lastName'] || qs['lname'] || '') as string;
+                if (first && last) {
+                    const composed = `${String(first).trim()} ${String(last).trim()}`.trim();
+                    if (composed) payload.displayName = composed;
+                }
+            }
+        } catch (e) {
+            // non-fatal; proceed without updating displayName
+            console.error('AuthService: error deriving displayName from questions', e);
+        }
+
         // OPTIMISTIC UPDATE: Update the observable immediately
         this._profile$.next(payload);
 
@@ -167,6 +185,17 @@ export class AuthService {
                 setDoc(docRef, payload, { merge: true }),
                 timeout
             ]);
+            // After profile doc saved, ensure firebase auth user's displayName is in sync when possible
+            try {
+                if (auth && auth.currentUser && auth.currentUser.uid === uid && payload.displayName) {
+                    // updateProfile may fail for providers that don't allow displayName changes; catch errors
+                    await updateProfile(auth.currentUser, { displayName: payload.displayName });
+                    console.log('AuthService: updated Firebase Auth displayName for', uid);
+                }
+            } catch (e) {
+                console.error('AuthService: failed to update Firebase Auth displayName', e);
+            }
+
             console.log('AuthService: setDoc completed');
         } catch (error) {
             console.error('AuthService: saveProfile error', error);

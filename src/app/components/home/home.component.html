@@ -8,7 +8,13 @@
                 (click)="showAuthModal()">הרשמה</button>
             <button id="search-btn" class="btn btn-special" [routerLink]="['/search-groups']">חפש שותפים</button>
             <ng-container *ngIf="auth.profile$ | async as profile">
-                <button *ngIf="auth.hasPermission(profile,'maskir')" id="apartments-btn" class="btn btn-special" [routerLink]="['/apartments']">מאגר דירות</button>
+                <button *ngIf="auth.hasPermission(profile,'maskir')" id="apartments-btn" class="btn btn-special" [routerLink]="['/apartments']">
+                    <!-- show different label for maskir vs admin -->
+                    <ng-container *ngIf="auth.getUserRole(profile) === 'maskir' && auth.getUserRole(profile) !== 'admin'">נהל את הדירות שלי</ng-container>
+                    <ng-container *ngIf="auth.getUserRole(profile) === 'admin'">מאגר דירות</ng-container>
+                    <!-- Fallback: if role hierarchy allowed but role not exactly maskir or admin, show default -->
+                    <ng-container *ngIf="auth.getUserRole(profile) !== 'maskir' && auth.getUserRole(profile) !== 'admin'">מאגר דירות</ng-container>
+                </button>
             </ng-container>
             <button id="about-btn" class="btn btn-special" [routerLink]="'/about'">אודות</button>
         </div>

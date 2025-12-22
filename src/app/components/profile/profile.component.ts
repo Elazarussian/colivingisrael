@@ -4,12 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionsManagerComponent } from '../questions-manager/questions-manager.component';
-import { GeoManagerComponent } from '../geo-manager/geo-manager.component';
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule, FormsModule, QuestionsManagerComponent, GeoManagerComponent],
+  imports: [CommonModule, FormsModule, QuestionsManagerComponent],
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.css']
 })
@@ -18,18 +17,16 @@ export class ProfileComponent implements OnInit {
   profile: any = null;
   showLogoutConfirm = false;
 
-  allUsers: any[] = [];
-  allUsersError: string | null = null;
-  showUsersTable = false;
+  // Question text maps for rendering answers
+  registrationQuestionMap: { [id: string]: any } = {};
+  personalDataQuestionMap: { [id: string]: any } = {};
 
+  // Questions / onboarding (user-facing)
   showQuestionsManager = false;
-  questionsMode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'admin-apartment' | 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
+  questionsMode: 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
   selectedUserId?: string;
 
   onboardingPrompted = false;
-
-  // Geo manager state
-  showGeoManager = false;
 
   constructor(
     public auth: AuthService,
@@ -39,22 +36,17 @@ export class ProfileComponent implements OnInit {
   ) {
     this.auth.profile$.subscribe(async (p) => {
       this.profile = p;
-      if (!p || this.onboardingPrompted) return;
+      if (!p) return;
 
       try {
-        const showOnboardingRequested = this.route.snapshot.queryParams['showOnboarding'] === '1';
+        // If onboarding has not been completed, always force the onboarding modal for non-admin users.
+        // This ensures that even if the user navigates manually to /profile they will be required
+        // to finish the personal-data onboarding before accessing profile functionality.
         const onboardingCompleted = p['onboardingCompleted'] === true;
-        const isNewProfile = !onboardingCompleted && this.isRecentlyCreated(p, 15);
+        const isAdmin = this.auth && typeof this.auth.isAdmin === 'function' ? this.auth.isAdmin(p) : (p?.role === 'admin');
 
-        if (!onboardingCompleted && (showOnboardingRequested || isNewProfile)) {
-          // IMPORTANT: do not show onboarding to admins. Use AuthService helper to check role.
-          const isAdmin = this.auth && typeof this.auth.isAdmin === 'function' ? this.auth.isAdmin(p) : (p?.role === 'admin');
-          if (!isAdmin) {
-            this.openOnboarding();
-          } else {
-            // Skip onboarding for admin users (they may have been recently created or the query param was present)
-            console.debug('ProfileComponent: skipping onboarding for admin user', p?.uid || p);
-          }
+        if (!onboardingCompleted && !isAdmin && !this.showQuestionsManager) {
+          this.openOnboarding();
         }
       } catch (err) {
         console.error('Error during onboarding trigger:', err);
@@ -65,11 +57,87 @@ export class ProfileComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.auth.profile$.subscribe(p => {
-      if (p && this.isAdmin()) {
-        this.loadAllUsers();
+  // Profile keeps only user-facing features (onboarding / edit answers)
+    // Preload question definitions for display purposes
+    this.loadQuestionMaps();
+  }
+
+  // Load question definitions and build maps from id/key -> question metadata
+  async loadQuestionMaps() {
+    try {
+      // The QuestionsManager component uses collections: newUsersQuestions and userPersonalDataQuestions
+      const regCol = `${this.auth.dbPath}newUsersQuestions`;
+      const pdCol = `${this.auth.dbPath}userPersonalDataQuestions`;
+      // Use the AuthService's Firestore instance
+      const db = this.auth.db;
+      if (!db) return;
+      // Dynamic imports to avoid adding firestore imports at top-level of this file
+      const { collection, getDocs } = await import('firebase/firestore');
+
+      const regSnap = await getDocs(collection(db, regCol));
+      regSnap.docs.forEach(d => {
+        const obj: any = { id: d.id, ...((d.data && (d.data() as any)) || {}) };
+        this.registrationQuestionMap[d.id] = obj;
+        // also map by key if provided
+        if (obj && obj.key) this.registrationQuestionMap[obj.key] = obj;
+      });
+
+      const pdSnap = await getDocs(collection(db, pdCol));
+      pdSnap.docs.forEach(d => {
+        const obj: any = { id: d.id, ...((d.data && (d.data() as any)) || {}) };
+        this.personalDataQuestionMap[d.id] = obj;
+        if (obj && obj.key) this.personalDataQuestionMap[obj.key] = obj;
+      });
+    } catch (err) {
+      console.warn('ProfileComponent: could not load question maps', err);
+    }
+  }
+
+  // Given a question id or key, return a human label if available
+  questionLabel(idOrKey: string) {
+    if (!idOrKey) return '';
+    const r = this.registrationQuestionMap[idOrKey] || this.personalDataQuestionMap[idOrKey];
+    // Newer question docs store a `text` field for the user-facing question label.
+    // Prefer `text`, then `title`, then fall back to `key`, `id`, or the raw idOrKey.
+    if (r) {
+      if (r.text) return r.text;
+      if (r.title) return r.title;
+      if (r.key) return r.key;
+      if (r.id) return r.id;
+    }
+    return idOrKey;
+  }
+
+  // Template-safe wrapper for unknown key types
+  safeQuestionLabel(k: any) { return this.questionLabel(String(k)); }
+
+  // Helpers to safely check question map membership from templates
+  hasRegistrationQuestion(k: any): boolean {
+    try { return !!this.registrationQuestionMap && !!this.registrationQuestionMap[String(k)]; } catch { return false; }
+  }
+
+  hasPersonalQuestion(k: any): boolean {
+    try { return !!this.personalDataQuestionMap && !!this.personalDataQuestionMap[String(k)]; } catch { return false; }
+  }
+
+  // Format an answer for display (arrays, objects, booleans)
+  formatAnswer(val: any) {
+    if (val === null || val === undefined || val === '') return '—';
+    if (Array.isArray(val)) return val.join(', ');
+    if (typeof val === 'object') {
+      // Common object shapes: { cityId, neighborhood } or { min, max }
+      if ('cityId' in val || 'neighborhood' in val) {
+        const city = val.cityId || '';
+        const n = val.neighborhood || '';
+        return `${city}${n ? ' — ' + n : ''}`.trim();
       }
-    });
+      if ('min' in val || 'max' in val) {
+        return `${val.min || ''} — ${val.max || ''}`;
+      }
+      try { return JSON.stringify(val); } catch { return String(val); }
+    }
+    if (typeof val === 'boolean') return val ? 'כן' : 'לא';
+    return String(val);
   }
 
   isRecentlyCreated(profile: any, withinMinutes: number): boolean {
@@ -86,37 +154,9 @@ export class ProfileComponent implements OnInit {
   fieldOrDefault(key: string, userVal: any, defaultVal: string): string { if (this.profile && this.profile[key]) return this.profile[key]; if (userVal) return userVal; return defaultVal; }
 
   openOnboarding() { this.questionsMode = 'onboarding'; this.showQuestionsManager = true; }
-  openRegistrationQuestions() { this.questionsMode = 'admin-registration'; this.showQuestionsManager = true; }
-  openPersonalDataQuestions() { this.questionsMode = 'admin-personal-data'; this.showQuestionsManager = true; }
-  openMaskirQuestions() { this.questionsMode = 'admin-maskir'; this.showQuestionsManager = true; }
-  openApartmentQuestions() { this.questionsMode = 'admin-apartment'; this.showQuestionsManager = true; }
   openEditAnswers() { this.questionsMode = 'edit-answers'; this.showQuestionsManager = true; }
-  openUserAnswers(user: any) { this.selectedUserId = user.uid || user.id; this.questionsMode = 'view-answers'; this.showQuestionsManager = true; }
   onQuestionsCompleted() { this.showQuestionsManager = false; this.cdr.detectChanges(); }
   onQuestionsClosed() { this.showQuestionsManager = false; }
-
-  toggleUsersTable() { this.showUsersTable = !this.showUsersTable; if (this.showUsersTable && this.allUsers.length === 0) { this.loadAllUsers(); } }
-
-  // Geo manager methods (UI toggle only)
-  openGeoManager() { this.showGeoManager = true; }
-  closeGeoManager() { this.showGeoManager = false; }
-
-
-
-  async loadAllUsers() {
-    if (!this.auth.db) { this.allUsersError = 'Database not initialized'; return; }
-    try {
-      this.allUsersError = null;
-      const { collection, getDocs } = await import('firebase/firestore');
-      const profilesCol = collection(this.auth.db, `${this.auth.dbPath}profiles`);
-      const snapshot = await getDocs(profilesCol);
-      this.allUsers = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      this.cdr.detectChanges();
-    } catch (err: any) {
-      console.error('Error loading users:', err);
-      this.allUsersError = `שגיאה בטעינת משתמשים: ${err.message || 'Unknown error'}`;
-    }
-  }
 
   promptLogout() { this.showLogoutConfirm = true; }
   cancelLogout() { this.showLogoutConfirm = false; }

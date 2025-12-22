@@ -1,63 +1,80 @@
 import { Injectable } from '@angular/core';
-import { CanActivate, Router, UrlTree, RouterStateSnapshot, ActivatedRouteSnapshot } from '@angular/router';
+import { CanActivate, Router, UrlTree, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { combineLatest, map, filter, take, switchMap, from, of } from 'rxjs';
 import { AuthService } from './services/auth.service';
-import { Observable, map, take, skip } from 'rxjs';
+import { collection, getDocs } from 'firebase/firestore';
+import { Question } from './components/questions-manager/questions-manager.component';
 
-@Injectable({
-    providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class OnboardingGuard implements CanActivate {
 
     constructor(private auth: AuthService, private router: Router) { }
 
-    canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean | UrlTree> {
-        return this.auth.profile$.pipe(
-            // Skip initial null value if profile is still loading (optional, but safer to wait for first real emission if possible)
-            // However, BehaviorSubject emits immediately. If it's null, it might mean not loaded or not logged in.
-            // We'll handle null by checking auth state.
+    canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+        return this.auth.initialized$.pipe(
+            filter(Boolean),
             take(1),
-            map(profile => {
-                // If no profile (not logged in or loading), we might want to let them pass or check auth user
-                // But if they are logged in, they MUST have a profile (AuthService creates one).
+            switchMap(() =>
+                combineLatest([this.auth.user$, this.auth.profile$]).pipe(take(1))
+            ),
+            switchMap(([user, profile]) => {
+                if (!user || !profile) return of(true);
+                if (this.auth.isAdmin(profile)) return of(true);
+                if (profile.onboardingCompleted) return of(true);
+                if (state.url.startsWith('/profile')) return of(true);
+                if (!this.auth.db) return of(this.redirect());
 
-                // If not logged in, this guard doesn't block (AuthGuard handles login requirement).
-                // We only care if they ARE logged in but haven't answered questions.
+                const isMaskir = profile.role === 'maskir';
+                const path = isMaskir
+                    ? `${this.auth.dbPath}maskirQuestions`
+                    : `${this.auth.dbPath}userPersonalDataQuestions`;
 
-                // Actually, we need to know if the user is authenticated first.
-                const user = this.auth.auth?.currentUser;
-                if (!user) {
-                    return true; // Not logged in, let them go (e.g. to home or about)
-                }
-
-                if (!profile) {
-                    // Profile loading or error. Let's assume safe to proceed or maybe wait?
-                    // For now, allow, to avoid blocking if firestore is slow.
-                    return true;
-                }
-
-                // Check if user has answered questions
-                const hasAnswers = profile.questions && Object.keys(profile.questions).length > 0;
-
-                // If they have answers, they can go anywhere.
-                if (hasAnswers) {
-                    return true;
-                }
-
-                // If they DON'T have answers:
-                // Allow navigation to /profile (so they can answer) and allow navigation to the site root '/'.
-                // This ensures the topbar 'בית' button actually reaches home instead of being redirected.
-                if (state.url.startsWith('/profile')) {
-                    return true;
-                }
-
-                // Allow root navigation (/) even if onboarding incomplete
-                if (state.url === '/' || state.url === '' || state.url.startsWith('/?')) {
-                    return true;
-                }
-
-                // Otherwise, redirect to profile to force onboarding
-                return this.router.createUrlTree(['/profile'], { queryParams: { showOnboarding: '1' } });
+                return from(getDocs(collection(this.auth.db, path))).pipe(
+                    map(snap => snap.docs.map(d => ({ id: d.id, ...d.data() }) as Question)),
+                    map(questions =>
+                        this.isValid(profile.questions || {}, questions)
+                            ? true
+                            : this.redirect()
+                    )
+                );
             })
         );
+    }
+
+    private redirect(): UrlTree {
+        return this.router.createUrlTree(
+            ['/profile'],
+            { queryParams: { showOnboarding: '1' } }
+        );
+    }
+
+    private isValid(answers: any, questions: Question[]): boolean {
+        if (!questions.length) return false;
+
+        return questions.every(q => {
+            const key = String(q.key ?? q.id);
+            const a = answers[key];
+
+            switch (q.type) {
+                case 'checklist':
+                    return Array.isArray(a) && a.length > 0 &&
+                        (!q.maxSelections || a.length <= q.maxSelections);
+                case 'yesno':
+                    return a === true || a === false;
+                case 'scale':
+                    return typeof a === 'number';
+                case 'date':
+                case 'radio':
+                    return !!a;
+                case 'range':
+                    return a && typeof a.min === 'number' && typeof a.max === 'number' && a.min <= a.max;
+                case 'phone':
+                    return typeof a === 'string' && a.length >= 9;
+                case 'city_neighborhood':
+                    return a && a.cityId;
+                default:
+                    return !!a;
+            }
+        });
     }
 }

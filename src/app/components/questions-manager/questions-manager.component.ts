@@ -195,7 +195,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
             case 'edit-answers':
                 await this.loadEditPersonalityQuestions();
                 await this.loadCities();
-                this.prepareEditPersonalityAnswers();
+                this.editPersonalityAnswers = this.prepareAnswersMap(this.editPersonalityQuestions, this.profile?.questions);
                 break;
             case 'view-answers':
                 if (this.userId) {
@@ -264,11 +264,11 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         const inputLower = value.trim().toLowerCase();
         this.citySuggestions[qid] = this.cities.filter(c => (c.name || '').toLowerCase().includes(inputLower)).slice(0, 8);
         // don't set cityId until user selects
-    ans.cityId = '';
+        ans.cityId = '';
         ans.neighborhood = '';
         ans.neighborhoodName = '';
-    // mark validation error while user types a non-exact value
-    this.cityValidationErrors[qid] = 'אנא הכנס שם עיר מתוך הרשימה בלבד';
+        // mark validation error while user types a non-exact value
+        this.cityValidationErrors[qid] = 'אנא הכנס שם עיר מתוך הרשימה בלבד';
     }
 
     onNeighborhoodInput(q: Question, model: any, value: string) {
@@ -299,8 +299,8 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         ans.neighborhood = '';
         ans.neighborhoodName = '';
         this.citySuggestions[q.id || ''] = [];
-    // clear validation error when a valid city is selected
-    this.cityValidationErrors[q.id || ''] = null;
+        // clear validation error when a valid city is selected
+        this.cityValidationErrors[q.id || ''] = null;
         // prefill neighborhood suggestions list for this city if needed
         this.neighborhoodSuggestions[q.id || ''] = (city.neighborhoods || []).slice(0, 8);
     }
@@ -840,7 +840,9 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
     }
 
     async loadEditPersonalityQuestions() {
-        this.editPersonalityQuestions = await this.getRegistrationQuestions();
+        // For user-editable answers we should load the personal-data questions
+        // (registration questions are controlled by admins and are not user-editable)
+        this.editPersonalityQuestions = await this.getPersonalDataQuestions();
         this.cdr.detectChanges();
     }
 
@@ -986,7 +988,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         list[index - 1] = temp;
 
         // Update order values
-    await this.updateQuestionOrders(list, isPersonalData, isMaskir, isApartment);
+        await this.updateQuestionOrders(list, isPersonalData, isMaskir, isApartment);
     }
 
     async moveQuestionDown(index: number, isPersonalData: boolean, isMaskir: boolean = false, isApartment: boolean = false) {
@@ -999,7 +1001,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         list[index + 1] = temp;
 
         // Update order values
-    await this.updateQuestionOrders(list, isPersonalData, isMaskir, isApartment);
+        await this.updateQuestionOrders(list, isPersonalData, isMaskir, isApartment);
     }
 
     private async updateQuestionOrders(list: Question[], isPersonalData: boolean, isMaskir: boolean = false, isApartment: boolean = false) {
@@ -1046,7 +1048,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
     async updateQuestion() {
         if (!this.editingQuestion || !this.editingQuestion.id) return;
         // Do not allow updating permanent flag via UI
-    const origList = this.isEditApartment ? this.apartmentQuestions : (this.isEditMaskir ? this.maskirQuestions : (this.isEditPersonalData ? this.personalDataQuestions : this.questions));
+        const origList = this.isEditApartment ? this.apartmentQuestions : (this.isEditMaskir ? this.maskirQuestions : (this.isEditPersonalData ? this.personalDataQuestions : this.questions));
         const orig = origList.find(x => x.id === this.editingQuestion!.id);
         if (orig && orig.permanent) {
             this.msg.show('שאלה זו קבועה ולא ניתנת לעריכה ישירות.');
@@ -1220,6 +1222,19 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         }
 
         try {
+            // Ensure all onboarding questions are answered/valid before marking onboardingCompleted
+            const allComplete = allQuestions.every(q => {
+                const id = q.id || '';
+                const ansForValidation = this.onboardingAnswers[id];
+                return this.validateAnswer(q, ansForValidation);
+            });
+
+            if (!allComplete) {
+                // Do not mark onboarding completed if any required answer is missing.
+                this.msg.show('נא להשיב על כל שאלות הפרטי משתמש לפני השליחה.');
+                return;
+            }
+
             await this.auth.saveProfile(uid, {
                 questions: answers,
                 onboardingCompleted: true
@@ -1315,11 +1330,6 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         return this.onboardingPersonalDataQuestions.length > 0 && this.canProceedWithQuestion();
     }
 
-    // === EDIT PERSONALITY METHODS ===
-    prepareEditPersonalityAnswers() {
-        const existingAnswers = this.profile?.questions;
-        this.editPersonalityAnswers = this.prepareAnswersMap(this.editPersonalityQuestions, existingAnswers);
-    }
 
     async submitEditPersonalityAnswers() {
         const currentUser = await firstValueFrom(this.auth.user$);
@@ -1395,7 +1405,13 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
     }
 
     canSubmitEditAnswers(): boolean {
-        return this.editPersonalityQuestions.length > 0 && this.canProceedWithEditQuestion();
+        // For single-form edit flow: require at least one question and validate all answers
+        if (!this.editPersonalityQuestions || this.editPersonalityQuestions.length === 0) return false;
+        return this.editPersonalityQuestions.every(q => {
+            const id = q.id || '';
+            const ans = this.editPersonalityAnswers[id];
+            return this.validateAnswer(q, ans);
+        });
     }
 
     cancelEdit() {

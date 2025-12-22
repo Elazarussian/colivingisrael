@@ -1,92 +1,141 @@
 <section class="profile-page">
-  <div class="container">
-    <h1>פרופיל משתמש</h1>
+  <div class="container profile-container">
+
+    <header class="profile-header">
+      <div class="header-content">
+        <h1>פרופיל משתמש</h1>
+        <p class="subtitle">נהל את ההגדרות והמידע האישי שלך</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-cancel" (click)="promptLogout()">
+          <span class="material-symbols-outlined">logout</span> התנתק
+        </button>
+      </div>
+    </header>
 
     <div *ngIf="user$ | async as user; else loggedOut">
 
-      <!-- BADGES -->
-      <div *ngIf="isAdmin()" class="admin-badge">ADMIN</div>
+      <!-- Admin Badge (Premium Look) -->
+      <div *ngIf="isAdmin()" class="admin-badge-container">
+        <div class="admin-badge-premium">A D M I N</div>
+      </div>
 
-      <!-- ADMIN UI -->
-      <div *ngIf="isAdmin()" class="admin-panel">
-        <h2>ניהול משתמשים</h2>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap; margin-top:0.5rem;">
-          <button class="btn btn-special" (click)="toggleUsersTable()">
-            {{ showUsersTable ? 'הסתר משתמשים' : 'הצג משתמשים' }}
-          </button>
-        </div>
-
-        <!-- USERS TABLE -->
-        <div *ngIf="showUsersTable && !allUsersError" class="users-table" style="margin-top:1rem;overflow:auto;">
-          <table class="table">
-            <thead>
-              <tr>
-          <th>אימייל</th>
-          <th>נרשם בתאריך</th>
-          <th>תפקיד</th>
-          <th>הצג תשובות</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let u of allUsers">
-          <td>{{u.email}}</td>
-          <td>
-              {{ (u.createdAt && u.createdAt.toDate ? u.createdAt.toDate() : u.createdAt) | date:'dd/MM/yyyy hh:mm a' }}
-          </td>
-          <td>{{u.role}}</td>
-          <td><button class="btn btn-special" (click)="openUserAnswers(u)">תשובות</button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Questionnaire management section -->
-        <div class="admin-questions" style="margin-top:1rem;">
-          <h2>ניהול שאלונים</h2>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap; margin-top:0.5rem;">
-            <button class="btn btn-special" (click)="openRegistrationQuestions()">שאלות הרשמה חדשות</button>
-            <button class="btn btn-special" (click)="openPersonalDataQuestions()">נהל שאלון פרטי משתמש</button>
-            <button class="btn btn-special" (click)="openMaskirQuestions()">נהל שאלון משכיר</button>
-            <button class="btn btn-special" (click)="openApartmentQuestions()">נהל שאלון דירות</button>
-            <!-- Removed duplicate "ערוך תשובות אישיות" button so admins won't see it; non-admin button remains below -->
+      <div class="profile-grid">
+        <!-- Main User Card -->
+        <div class="profile-card user-main-card">
+          <div class="card-glass-effect"></div>
+          <div class="user-avatar-section">
+            <div class="avatar-placeholder">
+              {{ (profile?.displayName || user.displayName || 'U')[0].toUpperCase() }}
+            </div>
+          </div>
+          <div class="user-info-section">
+            <h2 class="display-name">{{ profile?.displayName || (user.displayName || 'משתמש') }}</h2>
+            <div class="user-meta">
+              <span class="role-tag">{{ profile?.role || 'user' }}</span>
+              <span class="dot-separator">•</span>
+              <span class="email-text">{{ profile?.email || user.email }}</span>
+            </div>
+            <div class="uid-section">
+              <span class="label">UID:</span>
+              <span class="mono">{{ profile?.uid || user.uid }}</span>
+            </div>
+            <div class="created-at">
+              <span class="material-symbols-outlined" style="font-size: 1.1rem; color: #4caf50;">calendar_today</span>
+              נוצר ב-{{ profile?.createdAt | date:'longDate' }}
+            </div>
           </div>
         </div>
 
-        <!-- Geo management for Israel cities & neighborhoods -->
-        <div class="admin-geo" style="margin-top:1rem;">
-          <h2>ניהול ערים ושכונות</h2>
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap; margin-top:0.5rem;">
-            <button class="btn btn-special" (click)="openGeoManager()">נהל ערים ושכונות (Israel)</button>
+        <!-- Info Grid (Registration & Personal Answers) -->
+        <div class="info-grid">
+          <!-- Registration Info Card -->
+          <div class="profile-card answers-card">
+            <div class="card-header">
+              <div class="header-title">
+                <span class="material-symbols-outlined">description</span>
+                <h3>מידע רישום</h3>
+                <span style="color: #ff5252; font-size: 0.85rem; font-weight: 600; margin-right: 0.5rem;">(לא ניתן
+                  לערוך)</span>
+              </div>
+            </div>
+            <div class="answers-list">
+              <div class="answer-row">
+                <div class="label">דוא"ל</div>
+                <div class="value">{{ profile?.email || user.email }}</div>
+              </div>
+              <!-- registration answers -->
+              <ng-container *ngIf="profile?.questions as qs">
+                <div *ngFor="let item of (qs | keyvalue)">
+                  <ng-container *ngIf="hasRegistrationQuestion(item.key)">
+                    <div class="answer-row">
+                      <div class="label">{{ safeQuestionLabel(item.key) }}</div>
+                      <div class="value">{{ formatAnswer(item.value) }}</div>
+                    </div>
+                  </ng-container>
+                </div>
+              </ng-container>
+            </div>
           </div>
-        </div>
 
-        <div *ngIf="showUsersTable && allUsersError" class="error-message" style="margin-top:1rem">
-          {{ allUsersError }}
-          <div style="margin-top:.5rem;display:flex;gap:.5rem;justify-content:flex-end">
-            <button class="btn btn-regular" (click)="loadAllUsers()">נסה שנית</button>
-            <button class="btn btn-regular" (click)="openRegistrationQuestions()">בדוק שאלות</button>
+          <!-- Personal Answers Card -->
+          <div class="profile-card answers-card">
+            <div class="card-header">
+              <div class="header-title">
+                <span class="material-symbols-outlined">psychology_alt</span>
+                <h3>תשובות אישיות</h3>
+              </div>
+              <button class="btn btn-approve btn-sm" type="button" (click)="openEditAnswers()"
+                *ngIf="!showQuestionsManager">
+                <span class="material-symbols-outlined">edit</span> ערוך
+              </button>
+            </div>
+            <div class="answers-list">
+              <ng-container *ngIf="profile?.questions as qs">
+                <div *ngFor="let item of (qs | keyvalue)">
+                  <ng-container *ngIf="hasPersonalQuestion(item.key)">
+                    <div class="answer-row">
+                      <div class="label">{{ safeQuestionLabel(item.key) }}</div>
+                      <div class="value">{{ formatAnswer(item.value) }}</div>
+                    </div>
+                  </ng-container>
+                </div>
+              </ng-container>
+              <div *ngIf="!(profile?.questions | keyvalue)?.length" class="empty-state">
+                <p>טרם מילאת תשובות אישיות.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- USER VIEW (NON-ADMIN) -->
-      <div *ngIf="!isAdmin()"
-        style="margin-top:1.25rem; display:flex; gap:0.75rem; justify-content:flex-end; flex-wrap:wrap;">
-        <button class="btn btn-approve" type="button" (click)="openEditAnswers()">ערוך תשובות אישיות</button>
+      <!-- Logout Confirmation Overlay -->
+      <div *ngIf="showLogoutConfirm" class="confirm-modal-overlay">
+        <div class="confirm-modal">
+          <h3>התנתקות</h3>
+          <p>האם אתה בטוח שברצונך להתנתק מהמערכת?</p>
+          <div class="confirm-actions">
+            <button class="btn btn-cancel" (click)="confirmLogout()">כן, התנתק</button>
+            <button class="btn btn-secondary" (click)="cancelLogout()">ביטול</button>
+          </div>
+        </div>
       </div>
 
     </div>
 
     <ng-template #loggedOut>
-      <p>אנא התחבר כדי לראות את הפרופיל.</p>
+      <div class="logged-out-state">
+        <span class="material-symbols-outlined"
+          style="font-size: 5rem; opacity: 0.2; margin-bottom: 2rem;">no_accounts</span>
+        <p>אנא התחבר כדי לצפות בפרופיל האישי שלך.</p>
+        <button class="btn btn-approve" (click)="goHome()">חזרה לדף הבית</button>
+      </div>
     </ng-template>
 
     <!-- QUESTIONS MANAGER COMPONENT -->
     <app-questions-manager *ngIf="showQuestionsManager" [mode]="questionsMode" [profile]="profile"
       [userId]="selectedUserId" (completed)="onQuestionsCompleted()" (closed)="onQuestionsClosed()">
     </app-questions-manager>
-
-  <app-geo-manager *ngIf="showGeoManager" (closed)="closeGeoManager()"></app-geo-manager>
 
   </div>
 </section>

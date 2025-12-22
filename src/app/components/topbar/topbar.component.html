@@ -42,8 +42,17 @@
         <span class="icon">🔎</span> חפש שותפים
       </a>
       <ng-container *ngIf="auth.profile$ | async as profile">
-        <a *ngIf="auth.hasPermission(profile,'maskir')" routerLink="/apartments" (click)="closeMenu()" routerLinkActive="active">
-          <span class="icon">🏢</span> דירות
+        <a *ngIf="auth.isAdmin(profile)" routerLink="/admin-settings" (click)="closeMenu()" routerLinkActive="active">
+          <span class="icon">⚙️</span> הגדרות
+        </a>
+        <a *ngIf="auth.hasPermission(profile,'maskir')" routerLink="/apartments" (click)="closeMenu()"
+          routerLinkActive="active">
+          <span class="icon">🏢</span>
+          <ng-container *ngIf="auth.getUserRole(profile) === 'maskir' && auth.getUserRole(profile) !== 'admin'">נהל את
+            הדירות שלי</ng-container>
+          <ng-container *ngIf="auth.getUserRole(profile) === 'admin'">מאגר דירות</ng-container>
+          <ng-container
+            *ngIf="auth.getUserRole(profile) !== 'maskir' && auth.getUserRole(profile) !== 'admin'">דירות</ng-container>
         </a>
       </ng-container>
 
@@ -67,3 +76,15 @@
     </div>
   </div>
 </nav>
+
+<!-- Logout Confirmation Overlay -->
+<div *ngIf="showLogoutConfirm" class="confirm-modal-overlay">
+  <div class="confirm-modal">
+    <h3>התנתקות</h3>
+    <p>האם אתה בטוח שברצונך להתנתק מהמערכת?</p>
+    <div class="confirm-actions">
+      <button class="btn btn-cancel" (click)="confirmLogout()">כן, התנתק</button>
+      <button class="btn btn-secondary" (click)="cancelLogout()">ביטול</button>
+    </div>
+  </div>
+</div>
