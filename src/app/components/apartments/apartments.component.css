@@ -17,25 +17,28 @@
 }
 
 .apt-card {
-    background: #fff;
-    border: 1px solid #e6e6e6;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     padding: 0;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition: transform 160ms ease, box-shadow 160ms ease;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s, box-shadow 0.2s;
     display: flex;
     flex-direction: column;
+    color: #fff;
 }
 
 .apt-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .card-media {
     height: 160px;
-    background: linear-gradient(180deg, #fafafa, #f4f4f4);
+    background: rgba(0, 0, 0, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -57,10 +60,10 @@
 }
 
 .empty-frame {
-    border: 2px dashed #dcdcdc;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
     padding: 0.5rem 0.75rem;
     border-radius: 6px;
-    color: #888;
+    color: rgba(255, 255, 255, 0.5);
     font-weight: 500;
 }
 
@@ -72,9 +75,9 @@
 }
 
 .card-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #222;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
 }
 
 .card-details {
@@ -90,20 +93,20 @@
 }
 
 .label {
-    color: #666;
+    color: rgba(255, 255, 255, 0.6);
     font-size: 0.86rem;
     min-width: 90px;
 }
 
 .value {
-    color: #111;
+    color: #fff;
     font-size: 0.95rem;
     word-break: break-word;
 }
 
 .card-meta {
     margin-top: 0.25rem;
-    color: #777;
+    color: rgba(255, 255, 255, 0.4);
     font-size: 0.8rem;
 }
 

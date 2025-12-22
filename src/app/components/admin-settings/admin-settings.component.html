@@ -11,7 +11,7 @@
           </button>
         </div>
 
-        <div *ngIf="showUsersTable && !allUsersError" class="users-table" style="margin-top:1rem;overflow:auto;">
+        <div *ngIf="showUsersTable && !allUsersError" class="table-container" style="margin-top:1rem;">
           <table class="table">
             <thead>
               <tr>
@@ -28,8 +28,11 @@
                   {{ (u.createdAt && u.createdAt.toDate ? u.createdAt.toDate() : u.createdAt) | date:'dd/MM/yyyy hh:mm
                   a' }}
                 </td>
-                <td>{{u.role}}</td>
-                <td><button class="btn btn-special" (click)="openUserAnswers(u)">תשובות</button></td>
+                <td><span class="badge"
+                    [ngClass]="{'badge-admin': u.role === 'admin', 'badge-success': u.role === 'maskir', 'badge-default': !u.role || u.role === 'user'}">{{u.role
+                    || 'user'}}</span></td>
+                <td><button class="btn btn-special" style="padding:0.3rem 0.6rem; font-size:0.85rem"
+                    (click)="openUserAnswers(u)">תשובות</button></td>
               </tr>
             </tbody>
           </table>
