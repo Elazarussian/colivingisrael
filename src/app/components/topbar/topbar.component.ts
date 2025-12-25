@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { GroupService } from '../../services/group.service';
+import { MessageService } from '../../services/message.service';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -17,13 +19,45 @@ export class TopbarComponent {
     isMenuOpen = false;
     searchTerm = '';
     showLogoutConfirm = false;
+    pendingInvitationsCount = 0;
 
-    constructor(public auth: AuthService, private router: Router) {
+    constructor(
+        public auth: AuthService,
+        private groupService: GroupService,
+        private messageService: MessageService,
+        private router: Router
+    ) {
         this.router.events.pipe(
             filter(e => e instanceof NavigationEnd)
         ).subscribe(() => {
             this.isMenuOpen = false;
         });
+
+        // Listen for profile changes to load invitations
+        this.auth.profile$.subscribe(p => {
+            if (p) {
+                this.loadInvitations(p.uid);
+            } else {
+                this.pendingInvitationsCount = 0;
+            }
+        });
+
+        // Listen to invitations observable for live updates
+        this.groupService.invitations$.subscribe(invs => {
+            if (invs.length > this.pendingInvitationsCount) {
+                this.messageService.show(`יש לך ${invs.length} הזמנות חדשות לקבוצות!`);
+            }
+            this.pendingInvitationsCount = invs.length;
+        });
+    }
+
+    async loadInvitations(uid: string) {
+        try {
+            const invs = await this.groupService.getInvitationsForUser(uid);
+            this.pendingInvitationsCount = invs.length;
+        } catch (err) {
+            console.error('Error loading invitations in topbar', err);
+        }
     }
 
     toggleMenu() {
@@ -32,6 +66,11 @@ export class TopbarComponent {
 
     closeMenu() {
         this.isMenuOpen = false;
+    }
+
+    goToInvitations() {
+        this.closeMenu();
+        this.router.navigate(['/profile'], { fragment: 'groups-management-section' });
     }
 
     performSearch() {

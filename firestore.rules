@@ -16,46 +16,60 @@ service cloud.firestore {
       return request.auth != null && exists(p) && get(p).data.role == role;
     }
 
+    // Check if user has a specific role in EITHER root or test profiles
+    function hasRole(role) {
+      return hasRoleRoot(role) || hasRoleTest(role);
+    }
+
     // --- ROOT DATA RULES (Real Data) ---
 
     match /profiles/{userId} {
-      allow read: if (request.auth != null && request.auth.uid == userId) || hasRoleRoot('admin');
+      allow read: if (request.auth != null && request.auth.uid == userId) || hasRole('admin');
       allow create, update: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == userId;
-      allow delete: if hasRoleRoot('admin');
+      allow delete: if hasRole('admin');
     }
 
     match /newUsersQuestions/{questionId} {
       allow read: if true;
-      allow write: if hasRoleRoot('admin');
+      allow write: if hasRole('admin');
     }
 
     match /userPersonalDataQuestions/{questionId} {
       allow read: if true;
-      allow write: if hasRoleRoot('admin');
+      allow write: if hasRole('admin');
     }
     
     match /maskirQuestions/{questionId} {
       allow read: if true;
-      allow write: if hasRoleRoot('admin');
+      allow write: if hasRole('admin');
     }
 
     match /apartmentQuestions/{questionId} {
       allow read: if true;
-      allow write: if hasRoleRoot('admin');
+      allow write: if hasRole('admin');
     }
 
     match /apartments/{apartmentId} {
       allow read: if true;
-      allow create, update: if hasRoleRoot('admin') || hasRoleRoot('maskir');
-      allow delete: if hasRoleRoot('admin') || hasRoleRoot('maskir');
+      allow create, update: if hasRole('admin') || hasRole('maskir');
+      allow delete: if hasRole('admin') || hasRole('maskir');
     }
 
-    // Israel locations collection: cities and neighborhoods
     match /israel_locations/{locationId} {
-      // allow all users (and unauthenticated) to read the list of cities/neighborhoods
       allow read: if true;
-      // only admins may create/update/delete
-      allow create, update, delete: if hasRoleRoot('admin');
+      allow create, update, delete: if hasRole('admin');
+    }
+
+    match /groups/{groupId} {
+      allow read: if request.auth != null && (request.auth.uid in resource.data.members || hasRole('admin'));
+      allow create, update, delete: if hasRole('admin');
+    }
+
+    match /invitations/{invitationId} {
+      allow read: if request.auth != null && (request.auth.uid == resource.data.inviteeId || hasRole('admin'));
+      allow create: if hasRole('admin');
+      allow update: if request.auth != null && (request.auth.uid == resource.data.inviteeId || hasRole('admin'));
+      allow delete: if hasRole('admin');
     }
 
     // --- TEST DATA RULES (testdata/db) ---
@@ -63,41 +77,52 @@ service cloud.firestore {
     match /testdata/db {
       
       match /profiles/{userId} {
-        allow read: if (request.auth != null && request.auth.uid == userId) || hasRoleTest('admin');
-        allow create, update: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == userId;
-        allow delete: if hasRoleTest('admin');
+        allow read: if (request.auth != null && request.auth.uid == userId) || hasRole('admin');
+        allow create, update: if (request.auth != null && request.auth.uid == userId && request.resource.data.uid == userId) || hasRole('admin');
+        allow delete: if hasRole('admin');
       }
 
       match /newUsersQuestions/{questionId} {
         allow read: if true;
-        allow write: if hasRoleTest('admin');
+        allow write: if hasRole('admin');
       }
 
       match /userPersonalDataQuestions/{questionId} {
         allow read: if true;
-        allow write: if hasRoleTest('admin');
+        allow write: if hasRole('admin');
       }
       
       match /maskirQuestions/{questionId} {
         allow read: if true;
-        allow write: if hasRoleTest('admin');
+        allow write: if hasRole('admin');
       }
 
       match /apartmentQuestions/{questionId} {
         allow read: if true;
-        allow write: if hasRoleTest('admin');
+        allow write: if hasRole('admin');
       }
 
       match /apartments/{apartmentId} {
         allow read: if true;
-        allow create, update: if hasRoleTest('admin') || hasRoleTest('maskir');
-        allow delete: if hasRoleTest('admin') || hasRoleTest('maskir');
+        allow create, update: if hasRole('admin') || hasRole('maskir');
+        allow delete: if hasRole('admin') || hasRole('maskir');
       }
 
-      // Israel locations collection in test data
       match /israel_locations/{locationId} {
         allow read: if true;
-        allow create, update, delete: if hasRoleTest('admin');
+        allow create, update, delete: if hasRole('admin');
+      }
+
+      match /groups/{groupId} {
+        allow read: if request.auth != null && (request.auth.uid in resource.data.members || hasRole('admin'));
+        allow create, update, delete: if hasRole('admin');
+      }
+
+      match /invitations/{invitationId} {
+        allow read: if request.auth != null && (request.auth.uid == resource.data.inviteeId || hasRole('admin'));
+        allow create: if hasRole('admin');
+        allow update: if request.auth != null && (request.auth.uid == resource.data.inviteeId || hasRole('admin'));
+        allow delete: if hasRole('admin');
       }
     }
     

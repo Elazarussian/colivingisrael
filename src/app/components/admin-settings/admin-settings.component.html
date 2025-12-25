@@ -9,6 +9,9 @@
           <button class="btn btn-special" (click)="toggleUsersTable()">
             {{ showUsersTable ? 'הסתר משתמשים' : 'הצג משתמשים' }}
           </button>
+          <button class="btn btn-special" (click)="openGenerateModal()">
+            הוסף משתמשי בדיקה
+          </button>
         </div>
 
         <div *ngIf="showUsersTable && !allUsersError" class="table-container" style="margin-top:1rem;">
@@ -69,6 +72,37 @@
       </app-questions-manager>
 
       <app-geo-manager *ngIf="showGeoManager" (closed)="closeGeoManager()"></app-geo-manager>
+
+      <!-- TEST USER GENERATION MODAL -->
+      <div *ngIf="showGenerateModal" class="modal-overlay" (click)="closeGenerateModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <h3>יצירת משתמשי בדיקה</h3>
+          <p>בחר את מספר המשתמשים שיש ליצור (המשתמשים ייווצרו ב-Test Database בלבד):</p>
+
+          <div class="form-group" style="margin: 1.5rem 0;">
+            <input type="number" [(ngModel)]="testUserAmount" min="1" max="50" [disabled]="isGenerating"
+              class="input-short">
+            <span style="margin-right: 0.5rem;">משתמשים</span>
+          </div>
+
+          <div *ngIf="isGenerating" class="progress-container">
+            <div class="progress-bar" [style.width.%]="generationProgress"></div>
+            <p>{{ generationProgress }}% הושלם...</p>
+          </div>
+
+          <div *ngIf="generationError" class="error-message">
+            {{ generationError }}
+          </div>
+
+          <div class="modal-actions" style="display:flex; gap:0.5rem; justify-content:flex-end; margin-top:1.5rem;">
+            <button class="btn btn-regular" (click)="closeGenerateModal()" [disabled]="isGenerating">ביטול</button>
+            <button class="btn btn-special" (click)="generateTestUsers()"
+              [disabled]="isGenerating || testUserAmount < 1">
+              {{ isGenerating ? 'יוצר...' : 'צור משתמשים' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div *ngIf="!isAdmin()">

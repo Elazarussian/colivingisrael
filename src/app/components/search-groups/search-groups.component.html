@@ -1,10 +1,148 @@
-<section class="content-section search-groups-page">
-  <h2>חפש שותפים</h2>
-  <p>עמוד חיפוש שותפים — כאן נוכל למקם טופס וסינונים כדי למצוא שותפים מתאימים.</p>
+<section class="search-groups-dashboard" (click)="deselectGroup()">
+  <!-- Groups Sidebar -->
+  <aside class="groups-sidebar">
+    <div class="sidebar-header" (click)="$event.stopPropagation()">
+      <h3>הקבוצות שלי</h3>
+      <div class="group-create-mini">
+        <input type="text" [(ngModel)]="newGroupName" placeholder="שם קבוצה..." class="input-short">
+        <button class="btn btn-special btn-icon" (click)="createGroup()" [disabled]="!newGroupName.trim()">
+          <span class="material-symbols-outlined">add</span>
+        </button>
+      </div>
+    </div>
+    <div class="groups-list-scroll">
+      <div *ngFor="let g of groups" class="group-list-item" [class.active]="selectedGroup?.id === g.id"
+        (click)="selectGroup(g, $event)">
+        <span class="material-symbols-outlined">group</span>
+        <div class="group-item-info">
+          <span class="name">{{ g.name }}</span>
+          <span class="count">{{ g.members.length }} משתתפים</span>
+        </div>
+      </div>
+      <div *ngIf="groups.length === 0" class="empty-list">
+        <p>אין קבוצות קיימות</p>
+      </div>
+    </div>
+  </aside>
 
-  <!-- Placeholder search UI -->
-  <div class="search-panel">
-    <input type="text" placeholder="מיקום / שם / תיאור" class="input-long">
-    <button class="btn btn-special">חפש</button>
-  </div>
+  <!-- Main Management Area -->
+  <main class="management-main" (click)="$event.stopPropagation()">
+    <header class="main-header" (click)="$event.stopPropagation()">
+      <div class="header-info">
+        <div class="header-title-row" *ngIf="selectedGroup">
+          <h2>ניהול קבוצה: {{ selectedGroup.name }}</h2>
+          <div class="group-meta-stats">
+            <span class="meta-item">
+              <span class="material-symbols-outlined">person</span>
+              נוצרה ע"י: {{ selectedGroup.creatorName || 'אנונימי' }}
+            </span>
+            <span class="meta-item">
+              <span class="material-symbols-outlined">calendar_today</span>
+              בתאריך: {{ selectedGroup.createdAt?.toDate() | date:'dd/MM/yyyy HH:mm' }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="search-bar-ui">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" [(ngModel)]="searchTerm" (input)="filterUsers()"
+          placeholder="חפש משתמשים לפי שם או אימייל..." class="input-long">
+      </div>
+    </header>
+
+    <div class="management-grid" *ngIf="!loading; else loader">
+      <!-- Section: Group Members -->
+      <section class="management-section" *ngIf="selectedGroup" (click)="$event.stopPropagation()">
+        <div class="section-header">
+          <span class="material-symbols-outlined">diversity_3</span>
+          <h3>חברי הקבוצה ({{ selectedGroupMembers.length }})</h3>
+        </div>
+        <div class="members-grid">
+          <div class="member-mini-card" *ngFor="let member of selectedGroupMembers" (click)="$event.stopPropagation()">
+            <div class="avatar-sm">
+              {{ (member.displayName || 'U')[0].toUpperCase() }}
+            </div>
+            <div class="member-details">
+              <span class="name">{{ member.displayName || 'משתמש' }}</span>
+              <span class="email">{{ member.email }}</span>
+              <span class="joined-at" *ngIf="selectedGroup.membersJoinedAt?.[member.id || member.uid]">
+                {{ selectedGroup.membersJoinedAt?.[member.id || member.uid]?.toDate() | date:'dd/MM/yyyy HH:mm' }}
+              </span>
+            </div>
+            <button class="btn-icon btn-remove" (click)="removeMember(member)" title="הסר מהקבוצה">
+              <span class="material-symbols-outlined">person_remove</span>
+            </button>
+          </div>
+          <div *ngIf="selectedGroupMembers.length === 0" class="empty-section">
+            <p>הקבוצה ריקה. הוסף חברים מהרשימה למטה.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Discover Users (Add/Invite) -->
+      <section class="management-section" (click)="$event.stopPropagation()">
+        <div class="section-header">
+          <span class="material-symbols-outlined">person_add</span>
+          <h3>{{ selectedGroup ? 'מצא משתמשים להוספה' : 'כל המשתתפים' }}</h3>
+        </div>
+        <div class="users-grid">
+          <div class="user-card dashboard-card" *ngFor="let user of availableUsers" (click)="$event.stopPropagation()"
+            [class.expanded]="expandedUserId === (user.id || user.uid) || closingUserId === (user.id || user.uid)">
+            <div class="card-content">
+              <div class="user-avatar-main">
+                {{ (user.displayName || 'U')[0].toUpperCase() }}
+              </div>
+              <div class="user-main-info">
+                <h3>{{ user.displayName || 'משתמש ללא שם' }}</h3>
+                <p class="text-muted">{{ user.email }}</p>
+                <!-- Group Membership Badge -->
+                <div class="user-group-badge" *ngIf="getUserGroup(user) as g">
+                  <span class="material-symbols-outlined">group</span>
+                  {{ g.name }}
+                </div>
+              </div>
+              <div class="user-actions-ui" *ngIf="selectedGroup">
+                <button class="btn btn-outline btn-sm" (click)="inviteToGroup(user)">הזמן</button>
+                <button class="btn btn-special btn-sm" (click)="addToGroup(user)">הוסף</button>
+              </div>
+            </div>
+            <div class="card-footer">
+              <button class="btn-text" (click)="toggleQuickView(user.id || user.uid)">
+                <span class="material-symbols-outlined">{{ expandedUserId === (user.id || user.uid) ? 'expand_less' :
+                  'visibility' }}</span>
+                {{ expandedUserId === (user.id || user.uid) ? 'סגור תצוגה' : 'תצוגה מהירה' }}
+              </button>
+            </div>
+
+            <!-- Inline Unfolding Content -->
+            <div class="user-card-unfurl" [class.expanded]="expandedUserId === (user.id || user.uid)">
+              <div class="unfurl-inner">
+                <div class="unfurl-content-wrapper"
+                  *ngIf="expandedUserId === (user.id || user.uid) || closingUserId === (user.id || user.uid)">
+                  <app-questions-manager mode="view-answers" [userId]="user.id || user.uid"
+                    (closed)="toggleQuickView(user.id || user.uid)">
+                  </app-questions-manager>
+                  <div class="unfurl-footer">
+                    <button class="btn btn-outline btn-sm" (click)="toggleQuickView(user.id || user.uid)">
+                      <span class="material-symbols-outlined">expand_less</span> סגור תצוגה
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="availableUsers.length === 0" class="empty-state">
+          <p>לא נמצאו משתמשים נוספים.</p>
+        </div>
+      </section>
+    </div>
+
+    <ng-template #loader>
+      <div class="loader-container">
+        <div class="spinner"></div>
+        <p>מעדכן נתונים...</p>
+      </div>
+    </ng-template>
+  </main>
 </section>

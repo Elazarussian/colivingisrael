@@ -33,6 +33,7 @@ export class AuthService {
 
     private _profile$ = new BehaviorSubject<any | null>(null);
     public profile$ = this._profile$.asObservable();
+    get profile() { return this._profile$.getValue(); }
 
     // Emits true once the initial Firebase auth state has been processed.
     private _initialized$ = new BehaviorSubject<boolean>(false);
@@ -78,19 +79,19 @@ export class AuthService {
                                 // ensure users collection has a corresponding entry
                                 // await this.ensureUserExists(user); // REMOVED: using profiles only
                             }
-                // signal that initialization has completed after profile load
-                this._initialized$.next(true);
+                            // signal that initialization has completed after profile load
+                            this._initialized$.next(true);
                         } else {
                             this._profile$.next(null);
-                // signal that initialization has completed when there is no user
-                this._initialized$.next(true);
+                            // signal that initialization has completed when there is no user
+                            this._initialized$.next(true);
                         }
                     });
                 } catch (e) {
                     console.error('Error in auth state change:', e);
                     // fallback
                     this._user$.next(user || null);
-            this._initialized$.next(true);
+                    this._initialized$.next(true);
                 }
             });
         }
@@ -115,6 +116,12 @@ export class AuthService {
     get db() { return db; }
 
     get dbPath(): string {
+        // Force test mode for test users (UID starts with test_)
+        const user = this._user$.getValue();
+        if (user && user.uid && user.uid.startsWith('test_')) {
+            return 'testdata/db/';
+        }
+
         // If explicitly in test mode (via toggle or dev env), return test path
         if (this._isTestMode) {
             return 'testdata/db/';

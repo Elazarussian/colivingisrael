@@ -1,3 +1,75 @@
 .admin-panel {
     padding: 1rem 0;
 }
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: #1e1e1e;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 450px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    border: 1px solid #333;
+    color: white;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: var(--accent-color, #4CAF50);
+}
+
+.progress-container {
+    height: 25px;
+    background: #333;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1rem 0;
+    position: relative;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    transition: width 0.3s ease;
+}
+
+.progress-container p {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    margin: 0;
+    line-height: 25px;
+    font-size: 0.85rem;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.input-short {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: white;
+    padding: 0.5rem;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.input-short:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}

@@ -107,6 +107,47 @@
             </div>
           </div>
         </div>
+
+        <!-- Groups & Invitations Section -->
+        <div class="profile-card groups-card" id="groups-management-section">
+          <div class="card-header">
+            <div class="header-title">
+              <span class="material-symbols-outlined">group</span>
+              <h3>הקבוצות שלי</h3>
+            </div>
+          </div>
+          <div class="groups-content">
+            <div *ngIf="userGroups.length > 0; else noGroups" class="groups-list">
+              <div *ngFor="let group of userGroups" class="group-item">
+                <span class="material-symbols-outlined">diversity_3</span>
+                <span class="group-name">{{ group.name }}</span>
+              </div>
+            </div>
+            <ng-template #noGroups>
+              <div class="empty-state">
+                <p>אינך חבר באף קבוצה כרגע.</p>
+              </div>
+            </ng-template>
+
+            <hr *ngIf="invitations.length > 0">
+
+            <div *ngIf="invitations.length > 0" class="invitations-section">
+              <h4>הזמנות ממתינות</h4>
+              <div class="invitations-list">
+                <div *ngFor="let inv of invitations" class="invitation-item">
+                  <div class="inv-info">
+                    <span class="group-inv-name">{{ inv.groupName }}</span>
+                    <span class="inv-text">הזמין אותך להצטרף</span>
+                  </div>
+                  <div class="inv-actions">
+                    <button class="btn btn-approve btn-sm" (click)="acceptInvitation(inv)">קבל</button>
+                    <button class="btn btn-cancel btn-sm" (click)="rejectInvitation(inv)">דחה</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Logout Confirmation Overlay -->

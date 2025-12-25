@@ -12,6 +12,13 @@
     <!-- Logo / Brand -->
     <a routerLink="/" class="brand-logo" (click)="closeMenu()">CoLiving</a>
 
+    <!-- Invitations Tab (Stationary) -->
+    <div *ngIf="pendingInvitationsCount > 0" class="header-invites-badge" (click)="goToInvitations()">
+      <span class="icon">🔔</span>
+      <span class="label">הזמנות</span>
+      <span class="count">{{ pendingInvitationsCount }}</span>
+    </div>
+
     <!-- Mobile/Expand Toggle -->
     <button class="menu-toggle" (click)="toggleMenu()" [class.active]="isMenuOpen" aria-label="Toggle Menu">
       <span class="bar top"></span>
@@ -41,6 +48,13 @@
       <a routerLink="/search-groups" (click)="closeMenu()" routerLinkActive="active">
         <span class="icon">🔎</span> חפש שותפים
       </a>
+
+      <!-- Invitations Tab (Menu) -->
+      <a *ngIf="pendingInvitationsCount > 0" (click)="goToInvitations()" class="invitations-menu-item">
+        <span class="icon">🔔</span>
+        <span class="text">הזמנות</span>
+        <span class="badge">{{ pendingInvitationsCount }}</span>
+      </a>
       <ng-container *ngIf="auth.profile$ | async as profile">
         <a *ngIf="auth.isAdmin(profile)" routerLink="/admin-settings" (click)="closeMenu()" routerLinkActive="active">
           <span class="icon">⚙️</span> הגדרות
@@ -60,7 +74,10 @@
 
       <ng-container *ngIf="user$ | async as user; else guestLinks">
         <a routerLink="/profile" (click)="closeMenu()" routerLinkActive="active" class="profile-link">
-          <div class="avatar-circle">{{ (user.displayName || 'U')[0] | uppercase }}</div>
+          <div class="avatar-wrapper">
+            <div class="avatar-circle">{{ (user.displayName || 'U')[0] | uppercase }}</div>
+            <div class="notification-badge" *ngIf="pendingInvitationsCount > 0">{{ pendingInvitationsCount }}</div>
+          </div>
           <span class="user-name">{{ user.displayName || 'פרופיל' }}</span>
         </a>
         <a (click)="logout()" class="action-link logout">

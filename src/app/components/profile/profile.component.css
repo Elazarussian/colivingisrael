@@ -327,3 +327,91 @@
     gap: 1.5rem;
   }
 }
+
+.groups-card {
+  grid-column: 1 / -1;
+  margin-top: 1.5rem;
+  padding-bottom: 1rem;
+}
+
+.groups-content {
+  padding: 1.5rem;
+}
+
+.groups-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.group-item {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.group-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.group-name {
+  font-weight: 500;
+}
+
+.invitations-section {
+  margin-top: 1.5rem;
+}
+
+.invitations-section h4 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  opacity: 0.8;
+}
+
+.invitations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.invitation-item {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1rem;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  transition: border-color 0.2s ease;
+}
+
+.invitation-item:hover {
+  border-color: rgba(0, 210, 255, 0.5);
+}
+
+.inv-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.group-inv-name {
+  font-weight: 600;
+  color: #4caf50;
+}
+
+.inv-text {
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.inv-actions {
+  display: flex;
+  gap: 0.5rem;
+}

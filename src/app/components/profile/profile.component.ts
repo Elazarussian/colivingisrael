@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { QuestionsManagerComponent } from '../questions-manager/questions-manager.component';
+import { GroupService, Group, Invitation } from '../../services/group.service';
 
 @Component({
   selector: 'app-profile',
@@ -21,6 +22,11 @@ export class ProfileComponent implements OnInit {
   registrationQuestionMap: { [id: string]: any } = {};
   personalDataQuestionMap: { [id: string]: any } = {};
 
+  // Groups and Invitations
+  userGroups: Group[] = [];
+  invitations: Invitation[] = [];
+  loadingGroups = false;
+
   // Questions / onboarding (user-facing)
   showQuestionsManager = false;
   questionsMode: 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
@@ -30,6 +36,7 @@ export class ProfileComponent implements OnInit {
 
   constructor(
     public auth: AuthService,
+    private groupService: GroupService,
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
@@ -53,11 +60,15 @@ export class ProfileComponent implements OnInit {
       } finally {
         this.onboardingPrompted = true;
       }
+
+      if (p) {
+        this.loadGroupsAndInvitations(p.uid);
+      }
     });
   }
 
   ngOnInit() {
-  // Profile keeps only user-facing features (onboarding / edit answers)
+    // Profile keeps only user-facing features (onboarding / edit answers)
     // Preload question definitions for display purposes
     this.loadQuestionMaps();
   }
@@ -162,4 +173,43 @@ export class ProfileComponent implements OnInit {
   cancelLogout() { this.showLogoutConfirm = false; }
   async confirmLogout() { await this.auth.logout(); this.showLogoutConfirm = false; this.router.navigate(['/']); }
   goHome() { this.router.navigate(['/']); }
+
+  async loadGroupsAndInvitations(uid: string) {
+    this.loadingGroups = true;
+    try {
+      const [groups, invs] = await Promise.all([
+        this.groupService.getGroupsForUser(uid),
+        this.groupService.getInvitationsForUser(uid)
+      ]);
+      this.userGroups = groups;
+      this.invitations = invs;
+    } catch (err) {
+      console.error('Error loading groups/invitations', err);
+    } finally {
+      this.loadingGroups = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  async acceptInvitation(inv: Invitation) {
+    if (!inv.id) return;
+    try {
+      await this.groupService.respondToInvitation(inv.id, inv.groupId, 'accepted');
+      alert('הזמנה התקבלה בהצלחה');
+      if (this.profile) await this.loadGroupsAndInvitations(this.profile.uid);
+    } catch (err) {
+      console.error('Error accepting invitation', err);
+    }
+  }
+
+  async rejectInvitation(inv: Invitation) {
+    if (!inv.id) return;
+    try {
+      await this.groupService.respondToInvitation(inv.id, inv.groupId, 'rejected');
+      alert('הזמנה נדחתה');
+      if (this.profile) await this.loadGroupsAndInvitations(this.profile.uid);
+    } catch (err) {
+      console.error('Error rejecting invitation', err);
+    }
+  }
 }
