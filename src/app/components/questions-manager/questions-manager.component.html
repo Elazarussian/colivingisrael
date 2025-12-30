@@ -388,20 +388,20 @@
     </div>
 
     <!-- view answers -->
-    <div *ngIf="mode === 'view-answers'" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>תשובות משתמש</h2>
-                <button class="btn-close" (click)="close()">X</button>
+    <div *ngIf="mode === 'view-answers'" class="answers-viewer-container">
+        <!-- Close button only needed if NOT embedded (but usually we hide modal header via CSS in embedded/unfurl mode anyway) -->
+        <div class="viewer-header" *ngIf="!onlyPersonalQuestions">
+            <h2>תשובות משתמש</h2>
+            <button class="btn-close" (click)="close()">X</button>
+        </div>
+
+        <div class="answers-grid">
+            <div *ngIf="!viewedQuestionIds || viewedQuestionIds.length === 0" class="empty-answers">
+                לא הוזנו נתונים.
             </div>
-            <div class="modal-body">
-                <h3>תשובות</h3>
-                <div *ngIf="!viewedQuestionIds || viewedQuestionIds.length === 0">אין תשובות</div>
-                <div *ngFor="let qid of viewedQuestionIds" class="answer-item">
-                    <strong>{{ questionTextMap[qid] || qid }}</strong>
-                    <div class="answer-value">{{ formatAnswer(viewedUserAnswers ? viewedUserAnswers[qid] : null) }}
-                    </div>
-                </div>
+            <div *ngFor="let qid of viewedQuestionIds" class="answer-card-item">
+                <div class="answer-label">{{ questionTextMap[qid] || qid }}</div>
+                <div class="answer-value">{{ formatAnswer(viewedUserAnswers ? viewedUserAnswers[qid] : null) }}</div>
             </div>
         </div>
     </div>

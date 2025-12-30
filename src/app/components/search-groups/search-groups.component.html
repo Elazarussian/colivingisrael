@@ -102,8 +102,16 @@
                 </div>
               </div>
               <div class="user-actions-ui" *ngIf="selectedGroup">
-                <button class="btn btn-outline btn-sm" (click)="inviteToGroup(user)">הזמן</button>
-                <button class="btn btn-special btn-sm" (click)="addToGroup(user)">הוסף</button>
+                <ng-container *ngIf="!hasPendingInvite(user); else inviteSentBadge">
+                  <button class="btn btn-outline btn-sm" (click)="inviteToGroup(user)">הזמן</button>
+                  <button class="btn btn-special btn-sm" (click)="addToGroup(user)">הוסף</button>
+                </ng-container>
+                <ng-template #inviteSentBadge>
+                  <div class="invite-badge">
+                    <span class="material-symbols-outlined">mark_email_read</span>
+                    הזמנה נשלחה
+                  </div>
+                </ng-template>
               </div>
             </div>
             <div class="card-footer">
@@ -120,7 +128,7 @@
                 <div class="unfurl-content-wrapper"
                   *ngIf="expandedUserId === (user.id || user.uid) || closingUserId === (user.id || user.uid)">
                   <app-questions-manager mode="view-answers" [userId]="user.id || user.uid"
-                    (closed)="toggleQuickView(user.id || user.uid)">
+                    [onlyPersonalQuestions]="true" (closed)="toggleQuickView(user.id || user.uid)">
                   </app-questions-manager>
                   <div class="unfurl-footer">
                     <button class="btn btn-outline btn-sm" (click)="toggleQuickView(user.id || user.uid)">

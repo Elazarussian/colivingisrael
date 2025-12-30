@@ -113,14 +113,77 @@
           <div class="card-header">
             <div class="header-title">
               <span class="material-symbols-outlined">group</span>
-              <h3>הקבוצות שלי</h3>
+              <h3>הקבוצה שלי</h3>
             </div>
           </div>
           <div class="groups-content">
-            <div *ngIf="userGroups.length > 0; else noGroups" class="groups-list">
-              <div *ngFor="let group of userGroups" class="group-item">
-                <span class="material-symbols-outlined">diversity_3</span>
-                <span class="group-name">{{ group.name }}</span>
+            <div *ngIf="activeGroup; else noGroups" class="active-group-card invitation-item-premium">
+              <!-- Group Header -->
+              <div class="group-header"
+                style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:1rem;">
+                <div>
+                  <h3 style="margin:0; font-size:1.3rem; color:#fff;">{{ activeGroup.name }}</h3>
+                  <p style="margin:0.25rem 0 0 0; color:rgba(255,255,255,0.6); font-size:0.9rem;"
+                    *ngIf="activeGroup.description">{{ activeGroup.description }}</p>
+                  <div class="meta" style="margin-top:0.5rem; display:flex; gap:1rem; opacity:0.75; font-size:0.85rem;">
+                    <span *ngIf="activeGroup.creatorName"><span class="material-symbols-outlined"
+                        style="font-size:1rem;vertical-align:middle;">person</span> מנהל: {{ activeGroup.creatorName
+                      }}</span>
+                    <span><span class="material-symbols-outlined"
+                        style="font-size:1rem;vertical-align:middle;">calendar_today</span> נוצרה: {{
+                      activeGroup.createdAt?.toDate() | date:'dd/MM/yyyy' }}</span>
+                  </div>
+                </div>
+                <button class="btn btn-cancel btn-sm" (click)="leaveGroup(activeGroup)" title="צא מהקבוצה">
+                  <span class="material-symbols-outlined">logout</span> יציאה
+                </button>
+              </div>
+
+              <!-- Group Members -->
+              <div class="group-members-section">
+                <strong style="display:block; margin-bottom:0.75rem; color:rgba(255,255,255,0.9);">חברי הקבוצה ({{
+                  activeGroup.fullMembers?.length || activeGroup.members.length }}):</strong>
+                <div class="inv-members-grid">
+                  <div *ngFor="let member of activeGroup.fullMembers" class="member-mini-card">
+                    <div class="member-card-main">
+                      <div class="avatar-sm">
+                        {{ (member.displayName || 'U')[0].toUpperCase() }}
+                      </div>
+                      <div class="member-details">
+                        <span class="name">{{ member.displayName || 'משתמש' }}</span>
+                        <!-- Email hidden -->
+                        <span class="badge-admin"
+                          *ngIf="(member.uid || member.id) && (member.uid || member.id) === activeGroup.adminId">
+                          <span class="material-symbols-outlined" style="font-size: 0.85rem;">verified_user</span> מנהל
+                          הקבוצה
+                        </span>
+                      </div>
+                      <button class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;"
+                        (click)="toggleQuickView(member.uid || member.id)">
+                        <span class="material-symbols-outlined" style="font-size: 1rem;">
+                          {{ expandedMemberId === (member.uid || member.id) ? 'expand_less' : 'visibility' }}
+                        </span>
+                      </button>
+                    </div>
+
+                    <!-- Unfolding content -->
+                    <div class="user-card-unfurl" [class.expanded]="expandedMemberId === (member.uid || member.id)">
+                      <div class="unfurl-inner">
+                        <div class="unfurl-content-wrapper"
+                          *ngIf="expandedMemberId === (member.uid || member.id) || closingMemberId === (member.uid || member.id)">
+                          <app-questions-manager mode="view-answers" [userId]="member.uid || member.id"
+                            [onlyPersonalQuestions]="true"
+                            (closed)="toggleQuickView(member.uid || member.id)"></app-questions-manager>
+                          <div class="unfurl-footer">
+                            <button class="btn btn-outline btn-sm" (click)="toggleQuickView(member.uid || member.id)">
+                              <span class="material-symbols-outlined">expand_less</span> סגור תצוגה
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <ng-template #noGroups>
@@ -132,16 +195,81 @@
             <hr *ngIf="invitations.length > 0">
 
             <div *ngIf="invitations.length > 0" class="invitations-section">
-              <h4>הזמנות ממתינות</h4>
+              <h4>הזמנות ממתינות ({{ invitations.length }})</h4>
               <div class="invitations-list">
-                <div *ngFor="let inv of invitations" class="invitation-item">
-                  <div class="inv-info">
+                <div *ngFor="let inv of invitations" class="invitation-item-premium">
+                  <div class="inv-header">
+                    <span class="material-symbols-outlined">mail</span>
                     <span class="group-inv-name">{{ inv.groupName }}</span>
-                    <span class="inv-text">הזמין אותך להצטרף</span>
+                  </div>
+                  <div class="inv-body">
+                    <p class="inv-description" *ngIf="inv.groupDescription">
+                      <strong>תיאור:</strong> {{ inv.groupDescription }}
+                    </p>
+                    <div class="inv-created-by" *ngIf="inv.creatorName"
+                      style="margin-bottom: 1rem; font-size: 0.9rem; color: rgba(255,255,255,0.8);">
+                      <strong>מנהל הקבוצה:</strong> {{ inv.creatorName }}
+                    </div>
+
+                    <div class="inv-members" *ngIf="inv.fullMembers && inv.fullMembers.length > 0">
+                      <strong>חברי הקבוצה ({{ inv.fullMembers.length }}):</strong>
+                      <div class="inv-members-grid">
+                        <div *ngFor="let member of inv.fullMembers" class="member-mini-card">
+                          <div class="member-card-main">
+                            <div class="avatar-sm">
+                              {{ (member.displayName || 'U')[0].toUpperCase() }}
+                            </div>
+                            <div class="member-details">
+                              <span class="name">{{ member.displayName || 'משתמש' }}</span>
+
+                              <span class="badge-admin"
+                                *ngIf="(member.uid || member.id) && (member.uid || member.id) === inv.adminId">
+                                <span class="material-symbols-outlined" style="font-size: 0.85rem;">verified_user</span>
+                                מנהל הקבוצה
+                              </span>
+                            </div>
+                            <button class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;"
+                              (click)="toggleQuickView(member.uid || member.id)">
+                              <span class="material-symbols-outlined" style="font-size: 1rem;">
+                                {{ expandedMemberId === (member.uid || member.id) ? 'expand_less' : 'visibility' }}
+                              </span>
+                            </button>
+                          </div>
+
+                          <!-- Unfolding Content -->
+                          <div class="user-card-unfurl"
+                            [class.expanded]="expandedMemberId === (member.uid || member.id)">
+                            <div class="unfurl-inner">
+                              <div class="unfurl-content-wrapper"
+                                *ngIf="expandedMemberId === (member.uid || member.id) || closingMemberId === (member.uid || member.id)">
+                                <app-questions-manager mode="view-answers" [userId]="member.uid || member.id"
+                                  [onlyPersonalQuestions]="true" (closed)="toggleQuickView(member.uid || member.id)">
+                                </app-questions-manager>
+                                <div class="unfurl-footer">
+                                  <button class="btn btn-outline btn-sm"
+                                    (click)="toggleQuickView(member.uid || member.id)">
+                                    <span class="material-symbols-outlined" style="font-size: 1rem;">expand_less</span>
+                                    סגור תצוגה
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="inv-members" *ngIf="!inv.fullMembers || inv.fullMembers.length === 0">
+                      <p class="no-members">טרם הצטרפו חברים לקבוצה זו.</p>
+                    </div>
                   </div>
                   <div class="inv-actions">
-                    <button class="btn btn-approve btn-sm" (click)="acceptInvitation(inv)">קבל</button>
-                    <button class="btn btn-cancel btn-sm" (click)="rejectInvitation(inv)">דחה</button>
+                    <button class="btn btn-approve btn-sm" (click)="acceptInvitation(inv)">
+                      <span class="material-symbols-outlined">check</span> קבל
+                    </button>
+                    <button class="btn btn-cancel btn-sm" (click)="rejectInvitation(inv)">
+                      <span class="material-symbols-outlined">close</span> דחה
+                    </button>
                   </div>
                 </div>
               </div>

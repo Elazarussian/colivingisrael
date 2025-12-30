@@ -210,6 +210,19 @@ export class AuthService {
         }
     }
 
+    // Fetch multiple profiles
+    async getProfiles(uids: string[]): Promise<any[]> {
+        if (!uids.length) return [];
+        // Firestore 'in' query is limited to 10-30 items depending on version, 
+        // but for groups we expect few members.
+        const profiles: any[] = [];
+        for (const uid of uids) {
+            const p = await this.getProfile(uid);
+            if (p) profiles.push(p);
+        }
+        return profiles;
+    }
+
     // Allow manual reload of profile (useful after app start)
     async reloadProfile() {
         const user = this._user$.getValue();

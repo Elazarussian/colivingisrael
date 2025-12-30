@@ -351,9 +351,19 @@
   border-radius: 12px;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: space-between;
+  /* Added to separate info and button */
+  gap: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: background 0.2s ease, transform 0.2s ease;
+  min-width: 200px;
+  /* Ensure card has some width */
+}
+
+.group-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .group-item:hover {
@@ -381,37 +391,240 @@
   gap: 0.75rem;
 }
 
-.invitation-item {
-  background: rgba(255, 255, 255, 0.03);
-  padding: 1rem;
-  border-radius: 12px;
+/* Premium Invitation Styling */
+.invitation-item-premium {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1rem;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.invitation-item-premium:hover {
+  transform: scale(1.02);
+  border-color: #4caf50;
+  box-shadow: 0 8px 25px rgba(76, 175, 80, 0.2);
+}
+
+.inv-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  border: 1px dashed rgba(255, 255, 255, 0.2);
-  transition: border-color 0.2s ease;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.75rem;
 }
 
-.invitation-item:hover {
-  border-color: rgba(0, 210, 255, 0.5);
-}
-
-.inv-info {
-  display: flex;
-  flex-direction: column;
+.inv-header .material-symbols-outlined {
+  color: #4caf50;
+  font-size: 1.8rem;
 }
 
 .group-inv-name {
-  font-weight: 600;
-  color: #4caf50;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
 }
 
-.inv-text {
+.inv-body {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.inv-description {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.inv-members {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.member-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.member-pill {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.2) 100%);
+  color: #81c784;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid rgba(129, 199, 132, 0.3);
+}
+
+.no-members {
+  font-style: italic;
+  opacity: 0.5;
   font-size: 0.85rem;
-  opacity: 0.6;
 }
 
 .inv-actions {
   display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.inv-actions .btn {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+}
+
+.inv-actions .btn .material-symbols-outlined {
+  font-size: 1.1rem;
+  color: inherit;
+}
+
+/* Invitation Member Cards */
+.inv-members-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.member-mini-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  /* Changed to column for unfold support */
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.member-card-main {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.member-mini-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.avatar-sm {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.member-details {
+  flex-grow: 1;
+}
+
+.member-details .name {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.member-details .email {
+  display: block;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Unfolding Logic for Profile */
+.user-card-unfurl {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  /* Important for grid transition */
+}
+
+.user-card-unfurl.expanded {
+  grid-template-rows: 1fr;
+  margin-top: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.unfurl-inner {
+  overflow: hidden;
+}
+
+.unfurl-content-wrapper {
+  padding: 1rem;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.unfurl-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Deep overrides for Questions Manager in Profile context */
+.user-card-unfurl ::ng-deep .questions-manager-container {
+  padding: 0 !important;
+}
+
+.user-card-unfurl ::ng-deep .modal-overlay,
+.user-card-unfurl ::ng-deep .modal-content {
+  position: static !important;
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+}
+
+.user-card-unfurl ::ng-deep .modal-header,
+.user-card-unfurl ::ng-deep .btn-close {
+  display: none !important;
+}
+
+.user-card-unfurl ::ng-deep .answer-item {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.badge-admin {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #ffd700;
+  /* Gold color */
+  background: rgba(255, 215, 0, 0.1);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  margin-top: 0.25rem;
+  font-weight: 600;
+  align-self: flex-start;
+  border: 1px solid rgba(255, 215, 0, 0.2);
 }

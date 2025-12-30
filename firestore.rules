@@ -2,131 +2,169 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- HELPER FUNCTIONS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-    // Check if user has a specific role in the ROOT profiles collection
-    function hasRoleRoot(role) {
+    function isAdminRoot() {
       let p = /databases/$(database)/documents/profiles/$(request.auth.uid);
-      return request.auth != null && exists(p) && get(p).data.role == role;
+      return isSignedIn() && exists(p) && get(p).data.role == 'admin';
     }
 
-    // Check if user has a specific role in the TESTDATA profiles collection
-    function hasRoleTest(role) {
+    function isAdminTest() {
       let p = /databases/$(database)/documents/testdata/db/profiles/$(request.auth.uid);
-      return request.auth != null && exists(p) && get(p).data.role == role;
+      return isSignedIn() && exists(p) && get(p).data.role == 'admin';
     }
 
-    // Check if user has a specific role in EITHER root or test profiles
-    function hasRole(role) {
-      return hasRoleRoot(role) || hasRoleTest(role);
+    // Helper to check for a valid invite in the ROOT collection
+    function hasInviteRoot(groupId) {
+       return exists(/databases/$(database)/documents/groupInvites/$(request.auth.uid + '_' + groupId));
     }
 
-    // --- ROOT DATA RULES (Real Data) ---
+    // Helper to check for a valid invite in the TESTDATA collection
+    function hasInviteTest(groupId) {
+       return exists(/databases/$(database)/documents/testdata/db/groupInvites/$(request.auth.uid + '_' + groupId));
+    }
+
+    // --- ROOT DATA ---
 
     match /profiles/{userId} {
-      allow read: if (request.auth != null && request.auth.uid == userId) || hasRole('admin');
-      allow create, update: if request.auth != null && request.auth.uid == userId && request.resource.data.uid == userId;
-      allow delete: if hasRole('admin');
-    }
-
-    match /newUsersQuestions/{questionId} {
-      allow read: if true;
-      allow write: if hasRole('admin');
-    }
-
-    match /userPersonalDataQuestions/{questionId} {
-      allow read: if true;
-      allow write: if hasRole('admin');
-    }
-    
-    match /maskirQuestions/{questionId} {
-      allow read: if true;
-      allow write: if hasRole('admin');
-    }
-
-    match /apartmentQuestions/{questionId} {
-      allow read: if true;
-      allow write: if hasRole('admin');
-    }
-
-    match /apartments/{apartmentId} {
-      allow read: if true;
-      allow create, update: if hasRole('admin') || hasRole('maskir');
-      allow delete: if hasRole('admin') || hasRole('maskir');
-    }
-
-    match /israel_locations/{locationId} {
-      allow read: if true;
-      allow create, update, delete: if hasRole('admin');
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
+      allow delete: if isAdminRoot();
     }
 
     match /groups/{groupId} {
-      allow read: if request.auth != null && (request.auth.uid in resource.data.members || hasRole('admin'));
-      allow create, update, delete: if hasRole('admin');
+      allow read: if isSignedIn();
+      allow create, delete: if isAdminRoot();
+
+      // Allow user to join if they have an invite
+      // We check that they are adding themselves (their UID is in the new members list)
+      // and they have a valid invite.
+      allow update: if isAdminRoot() || (
+        isSignedIn()
+        && hasInviteRoot(groupId)
+        && request.resource.data.members.hasAny([request.auth.uid])
+      );
+
+      match /members/{memberUid} {
+        allow read: if isSignedIn();
+
+        allow create: if isSignedIn()
+          && request.auth.uid == memberUid
+          && request.resource.data.uid == memberUid
+          && request.resource.data.inviteId is string;
+
+        allow update: if false;
+        allow delete: if isAdminRoot();
+      }
     }
 
-    match /invitations/{invitationId} {
-      allow read: if request.auth != null && (request.auth.uid == resource.data.inviteeId || hasRole('admin'));
-      allow create: if hasRole('admin');
-      allow update: if request.auth != null && (request.auth.uid == resource.data.inviteeId || hasRole('admin'));
-      allow delete: if hasRole('admin');
+    match /groupInvites/{inviteId} {
+      allow create: if isAdminRoot();
+
+      allow read: if isSignedIn()
+        && (
+          resource.data.toUid == request.auth.uid
+          || resource.data.inviterUid == request.auth.uid
+          || isAdminRoot()
+        );
+
+      allow delete: if isSignedIn()
+        && (
+          resource.data.toUid == request.auth.uid
+          || resource.data.inviterUid == request.auth.uid
+          || isAdminRoot()
+        );
+
+      allow update: if false;
     }
 
-    // --- TEST DATA RULES (testdata/db) ---
-    
+    // --- PUBLIC DATA ---
+
+    match /newUsersQuestions/{id} {
+      allow read: if true;
+      allow write: if isAdminRoot();
+    }
+
+    match /userPersonalDataQuestions/{id} {
+      allow read: if true;
+      allow write: if isAdminRoot();
+    }
+
+    match /maskirQuestions/{id} {
+      allow read: if true;
+      allow write: if isAdminRoot();
+    }
+
+    match /apartmentQuestions/{id} {
+      allow read: if true;
+      allow write: if isAdminRoot();
+    }
+
+    match /apartments/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdminRoot();
+    }
+
+    match /israel_locations/{id} {
+      allow read: if true;
+      allow create, update, delete: if isAdminRoot();
+    }
+
+    // --- TEST DATA ---
+
     match /testdata/db {
-      
+
       match /profiles/{userId} {
-        allow read: if (request.auth != null && request.auth.uid == userId) || hasRole('admin');
-        allow create, update: if (request.auth != null && request.auth.uid == userId && request.resource.data.uid == userId) || hasRole('admin');
-        allow delete: if hasRole('admin');
-      }
-
-      match /newUsersQuestions/{questionId} {
-        allow read: if true;
-        allow write: if hasRole('admin');
-      }
-
-      match /userPersonalDataQuestions/{questionId} {
-        allow read: if true;
-        allow write: if hasRole('admin');
-      }
-      
-      match /maskirQuestions/{questionId} {
-        allow read: if true;
-        allow write: if hasRole('admin');
-      }
-
-      match /apartmentQuestions/{questionId} {
-        allow read: if true;
-        allow write: if hasRole('admin');
-      }
-
-      match /apartments/{apartmentId} {
-        allow read: if true;
-        allow create, update: if hasRole('admin') || hasRole('maskir');
-        allow delete: if hasRole('admin') || hasRole('maskir');
-      }
-
-      match /israel_locations/{locationId} {
-        allow read: if true;
-        allow create, update, delete: if hasRole('admin');
+        allow read: if isSignedIn();
+        allow create, update, delete: if isAdminTest();
       }
 
       match /groups/{groupId} {
-        allow read: if request.auth != null && (request.auth.uid in resource.data.members || hasRole('admin'));
-        allow create, update, delete: if hasRole('admin');
+        allow read: if isSignedIn();
+        allow create, delete: if isAdminTest();
+
+        allow update: if isAdminTest() || (
+            isSignedIn()
+            && hasInviteTest(groupId)
+            && request.resource.data.members.hasAny([request.auth.uid])
+        );
+
+        match /members/{memberUid} {
+          allow read: if isSignedIn();
+
+          allow create: if isSignedIn()
+            && request.auth.uid == memberUid
+            && request.resource.data.uid == memberUid
+            && request.resource.data.inviteId is string;
+
+          allow update: if false;
+          allow delete: if isAdminTest();
+        }
       }
 
-      match /invitations/{invitationId} {
-        allow read: if request.auth != null && (request.auth.uid == resource.data.inviteeId || hasRole('admin'));
-        allow create: if hasRole('admin');
-        allow update: if request.auth != null && (request.auth.uid == resource.data.inviteeId || hasRole('admin'));
-        allow delete: if hasRole('admin');
+      match /groupInvites/{inviteId} {
+        allow create: if isAdminTest();
+
+        allow read: if isSignedIn()
+          && (
+            resource.data.toUid == request.auth.uid
+            || resource.data.inviterUid == request.auth.uid
+            || isAdminTest()
+          );
+
+        allow delete: if isSignedIn()
+          && (
+            resource.data.toUid == request.auth.uid
+            || resource.data.inviterUid == request.auth.uid
+            || isAdminTest()
+          );
+
+        allow update: if false;
       }
     }
-    
-    // Default deny
+
     match /{document=**} {
       allow read, write: if false;
     }

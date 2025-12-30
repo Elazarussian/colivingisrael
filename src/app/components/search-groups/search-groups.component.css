@@ -682,3 +682,23 @@
     font-size: 1.5rem;
   }
 }
+
+/* Invite Badge */
+.invite-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  width: 100%;
+  justify-content: center;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.invite-badge .material-symbols-outlined {
+  font-size: 1.1rem;
+}

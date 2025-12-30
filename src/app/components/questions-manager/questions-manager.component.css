@@ -333,8 +333,10 @@ select.form-control-auto {
     display: inline-block;
     /* start roughly wide enough for two short words while remaining compact */
     width: 140px;
-    min-width: 120px; /* ensure two words fit comfortably */
-    max-width: 420px; /* cap to avoid overflowing typical modal widths */
+    min-width: 120px;
+    /* ensure two words fit comfortably */
+    max-width: 420px;
+    /* cap to avoid overflowing typical modal widths */
     box-sizing: border-box;
     transition: width 0.12s ease;
 }
@@ -373,7 +375,8 @@ select.form-control-auto {
 /* Make sure inputs inside narrow onboarding/edit modals don't overflow */
 .onboarding-modal .auto-size-input,
 .modal-content .auto-size-input {
-    max-width: calc(100% - 48px); /* respect modal padding and close button */
+    max-width: calc(100% - 48px);
+    /* respect modal padding and close button */
 }
 
 /* On smaller screens, allow inputs to grow but remain within the modal */
@@ -382,5 +385,91 @@ select.form-control-auto {
         width: 160px;
         min-width: 120px;
         max-width: calc(100% - 32px);
+    }
+}
+
+/* --- Answer Viewer (View Mode & Embedded) --- */
+.answers-viewer-container {
+    /* If embedded, this acts as the container. If filtered, we assume embedded style. */
+    width: 100%;
+}
+
+/* If it is a modal (has header), we might need overlay styles, but we are moving away from full modal for this view.
+   For now, we rely on parent to handle modal overlay if it's not embedded. 
+   But since I removed .modal-overlay from the template for this mode, I should add basic container styles.
+*/
+
+.viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1rem;
+}
+
+.viewer-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #fff;
+}
+
+.answers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.answer-card-item {
+    background: rgba(255, 255, 255, 0.05);
+    /* slightly lighter than background */
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* subtle border */
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.answer-card-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.answer-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.answer-value {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 500;
+    line-height: 1.4;
+    word-break: break-word;
+    /* ensure long text wraps */
+}
+
+.empty-answers {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 600px) {
+    .answers-grid {
+        grid-template-columns: 1fr;
+        /* Single column on mobile */
     }
 }

@@ -70,7 +70,12 @@ export class TopbarComponent {
 
     goToInvitations() {
         this.closeMenu();
-        this.router.navigate(['/profile'], { fragment: 'groups-management-section' });
+        const element = document.getElementById('groups-management-section');
+        if (this.router.url.includes('/profile') && element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            this.router.navigate(['/profile'], { fragment: 'groups-management-section' });
+        }
     }
 
     performSearch() {

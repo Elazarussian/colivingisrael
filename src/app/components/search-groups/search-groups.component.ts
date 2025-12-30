@@ -26,9 +26,12 @@ export class SearchGroupsComponent implements OnInit {
   closingUserId: string | null = null;
   loading: boolean = false;
   error: string | null = null;
+  private pendingInvitesUnsubscribe: (() => void) | null = null;
+  private groupUnsubscribe: (() => void) | null = null;
 
   selectedGroupMembers: any[] = [];
   availableUsers: any[] = [];
+  pendingInvites: Set<string> = new Set();
 
   constructor(
     public auth: AuthService,
@@ -85,12 +88,23 @@ export class SearchGroupsComponent implements OnInit {
     if (event) event.stopPropagation();
     this.selectedGroup = group;
     this.updateMemberLists();
+    this.subscribeToPendingInvites();
+    this.subscribeToGroupUpdates();
     this.cdr.detectChanges();
   }
 
   deselectGroup() {
     this.selectedGroup = null;
     this.selectedGroupMembers = [];
+    this.pendingInvites.clear();
+    if (this.pendingInvitesUnsubscribe) {
+      this.pendingInvitesUnsubscribe();
+      this.pendingInvitesUnsubscribe = null;
+    }
+    if (this.groupUnsubscribe) {
+      this.groupUnsubscribe();
+      this.groupUnsubscribe = null;
+    }
     this.updateMemberLists();
     this.cdr.detectChanges();
   }
@@ -223,6 +237,7 @@ export class SearchGroupsComponent implements OnInit {
         this.selectedGroup.name,
         user.id || user.uid
       );
+      // No manual add needed, listener will update
       alert('הזמנה נשלחה בהצלחה');
     } catch (err: any) {
       console.error('❌ INVITE FAILED', err);
@@ -233,5 +248,56 @@ export class SearchGroupsComponent implements OnInit {
   isUserInSelectedGroup(user: any): boolean {
     if (!this.selectedGroup) return false;
     return this.selectedGroup.members.includes(user.id || user.uid);
+  }
+
+  subscribeToPendingInvites() {
+    // Clear old subscription
+    if (this.pendingInvitesUnsubscribe) {
+      this.pendingInvitesUnsubscribe();
+      this.pendingInvitesUnsubscribe = null;
+    }
+
+    if (!this.selectedGroup || !this.selectedGroup.id) return;
+
+    this.pendingInvitesUnsubscribe = this.groupService.listenToGroupPendingInvitations(
+      this.selectedGroup.id,
+      (invites) => {
+        this.pendingInvites = new Set(invites.map(i => i.toUid));
+        this.cdr.detectChanges();
+      }
+    );
+  }
+
+  hasPendingInvite(user: any): boolean {
+    return this.pendingInvites.has(user.id || user.uid);
+  }
+
+  subscribeToGroupUpdates() {
+    if (this.groupUnsubscribe) {
+      this.groupUnsubscribe();
+      this.groupUnsubscribe = null;
+    }
+
+    if (!this.selectedGroup || !this.selectedGroup.id) return;
+
+    this.groupUnsubscribe = this.groupService.listenToGroup(
+      this.selectedGroup.id,
+      (updatedGroup) => {
+        if (updatedGroup) {
+          this.selectedGroup = updatedGroup;
+          this.updateMemberLists(); // Refresh lists with new members
+          this.cdr.detectChanges();
+        }
+      }
+    );
+  }
+
+  ngOnDestroy() {
+    if (this.pendingInvitesUnsubscribe) {
+      this.pendingInvitesUnsubscribe();
+    }
+    if (this.groupUnsubscribe) {
+      this.groupUnsubscribe();
+    }
   }
 }

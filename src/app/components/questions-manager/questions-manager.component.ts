@@ -35,6 +35,8 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
     @Input() profile: any = null;
     @Input() editApartment: { id: string, data: any } | null = null; // if set, save will update this apartment
     @Input() userId?: string;
+    @Input() onlyPersonalQuestions = false; // Filter to show only personal data questions
+
 
     @Output() completed = new EventEmitter<void>();
     @Output() closed = new EventEmitter<void>();
@@ -850,7 +852,23 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         try {
             this.viewedUserAnswers = await this.getUserAnswers(uid);
             this.questionTextMap = await this.mapQuestionsToText();
-            this.viewedQuestionIds = Object.keys(this.viewedUserAnswers || {});
+
+            let allKeys = Object.keys(this.viewedUserAnswers || {});
+
+            if (this.onlyPersonalQuestions) {
+                // Ensure we have the list of personal questions loaded to check against
+                if (this.personalDataQuestions.length === 0) {
+                    await this.loadPersonalDataQuestions();
+                }
+                const personalIds = new Set(this.personalDataQuestions.map(q => q.id));
+                const personalKeys = new Set(this.personalDataQuestions.map(q => q.key).filter(k => !!k));
+
+                // Filter keys that match either ID or Key of a personal question
+                allKeys = allKeys.filter(k => personalIds.has(k) || personalKeys.has(k));
+            }
+
+            // sort by order if possible? For now, just existing order or keys
+            this.viewedQuestionIds = allKeys;
             this.cdr.detectChanges();
         } catch (err) {
             console.error('Error loading user answers:', err);

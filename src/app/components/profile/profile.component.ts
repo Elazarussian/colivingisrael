@@ -24,13 +24,19 @@ export class ProfileComponent implements OnInit {
 
   // Groups and Invitations
   userGroups: Group[] = [];
+  activeGroup: any = null; // Enriched group object for single-group display
   invitations: Invitation[] = [];
   loadingGroups = false;
+  private groupsUnsubscribe: (() => void) | null = null;
 
   // Questions / onboarding (user-facing)
   showQuestionsManager = false;
   questionsMode: 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
   selectedUserId?: string;
+  // Expansion state for member cards in invitations
+  expandedMemberId: string | null = null;
+  closingMemberId: string | null = null;
+
 
   onboardingPrompted = false;
 
@@ -71,6 +77,47 @@ export class ProfileComponent implements OnInit {
     // Profile keeps only user-facing features (onboarding / edit answers)
     // Preload question definitions for display purposes
     this.loadQuestionMaps();
+
+    // Subscribe to live invitations
+    this.groupService.invitations$.subscribe(async (invs) => {
+      // Create a fresh copy to avoid modifying the behavior subject's internal state directly
+      const enhancedInvs = JSON.parse(JSON.stringify(invs));
+
+      for (const inv of enhancedInvs) {
+        try {
+          const group = await this.groupService.getGroupById(inv.groupId);
+          if (group) {
+            inv.groupDescription = group.description;
+            // Fetch creator name if missing in group object (though usually there)
+            inv.creatorName = group.creatorName;
+            inv.adminId = group.adminId;
+
+            if (group.members && group.members.length > 0) {
+              const memberProfiles = await this.auth.getProfiles(group.members);
+              inv.memberNames = memberProfiles.map(p => p.displayName || 'משתמש');
+              inv.fullMembers = memberProfiles; // Store full profiles
+            } else {
+              inv.memberNames = [];
+              inv.fullMembers = [];
+            }
+          }
+        } catch (e) {
+          console.error('Error enhancing live invitation:', e);
+        }
+      }
+
+      // Use setTimeout to ensure we are outside the change detection cycle
+      setTimeout(() => {
+        this.invitations = enhancedInvs;
+        this.cdr.detectChanges();
+      });
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.groupsUnsubscribe) {
+      this.groupsUnsubscribe();
+    }
   }
 
   // Load question definitions and build maps from id/key -> question metadata
@@ -177,12 +224,32 @@ export class ProfileComponent implements OnInit {
   async loadGroupsAndInvitations(uid: string) {
     this.loadingGroups = true;
     try {
-      const [groups, invs] = await Promise.all([
-        this.groupService.getGroupsForUser(uid),
-        this.groupService.getInvitationsForUser(uid)
-      ]);
-      this.userGroups = groups;
-      this.invitations = invs;
+      // Listen to groups
+      if (this.groupsUnsubscribe) {
+        this.groupsUnsubscribe();
+      }
+      this.groupsUnsubscribe = this.groupService.listenToUserGroups(uid, async (groups) => {
+        this.userGroups = groups;
+        if (groups.length > 0) {
+          // Assume single group per rule
+          // Assume single group per rule
+          const g = { ...groups[0] };
+
+          if (g.members && g.members.length > 0) {
+            const profiles = await this.auth.getProfiles(g.members);
+            g.fullMembers = profiles;
+          } else {
+            g.fullMembers = [];
+          }
+          this.activeGroup = g;
+        } else {
+          this.activeGroup = null;
+        }
+        this.cdr.detectChanges();
+      });
+
+      // Init invitations (they have their own subscription in ngOnInit via invitations$)
+      await this.groupService.getInvitationsForUser(uid);
     } catch (err) {
       console.error('Error loading groups/invitations', err);
     } finally {
@@ -193,10 +260,17 @@ export class ProfileComponent implements OnInit {
 
   async acceptInvitation(inv: Invitation) {
     if (!inv.id) return;
+    if (this.userGroups.length > 0) {
+      alert('ניתן להיות חבר בקבוצה אחת בלבד. אנא צא מהקבוצה הנוכחית לפני קבלת הזמנה חדשה.');
+      return;
+    }
     try {
       await this.groupService.respondToInvitation(inv.id, inv.groupId, 'accepted');
       alert('הזמנה התקבלה בהצלחה');
-      if (this.profile) await this.loadGroupsAndInvitations(this.profile.uid);
+      if (this.profile) {
+        // Just refresh invitations, groups update automatically via listener
+        await this.groupService.getInvitationsForUser(this.profile.uid);
+      }
     } catch (err) {
       console.error('Error accepting invitation', err);
     }
@@ -207,9 +281,40 @@ export class ProfileComponent implements OnInit {
     try {
       await this.groupService.respondToInvitation(inv.id, inv.groupId, 'rejected');
       alert('הזמנה נדחתה');
-      if (this.profile) await this.loadGroupsAndInvitations(this.profile.uid);
+      if (this.profile) {
+        await this.groupService.getInvitationsForUser(this.profile.uid);
+      }
     } catch (err) {
       console.error('Error rejecting invitation', err);
+    }
+  }
+
+  async leaveGroup(group: any) {
+    if (!confirm(`האם אתה בטוח שברצונך לצאת מהקבוצה "${group.name}"?`)) return;
+    try {
+      await this.groupService.removeUserFromGroup(group.id, this.profile.uid);
+      // No need to manually refresh groups list as we have a real-time listener active
+    } catch (err) {
+      console.error('Error leaving group:', err);
+      alert('שגיאה ביציאה מהקבוצה');
+    }
+  }
+
+  toggleQuickView(userId: string) {
+    if (this.expandedMemberId === userId) {
+      // Start closing animation
+      this.closingMemberId = userId;
+      this.expandedMemberId = null;
+      // Wait for animation to finish before clearing closingUserId
+      setTimeout(() => {
+        if (this.closingMemberId === userId) {
+          this.closingMemberId = null;
+          this.cdr.detectChanges();
+        }
+      }, 400); // Matches transition duration
+    } else {
+      this.expandedMemberId = userId;
+      this.closingMemberId = null;
     }
   }
 }
