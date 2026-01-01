@@ -32,7 +32,9 @@
           <div class="user-info-section">
             <h2 class="display-name">{{ profile?.displayName || (user.displayName || 'משתמש') }}</h2>
             <div class="user-meta">
-              <span class="role-tag">{{ profile?.role || 'user' }}</span>
+              <span class="badge" [ngClass]="profile?.role === 'admin' ? 'badge-red' : 'badge-blue'">{{ profile?.role ||
+                'user' }}</span>
+
               <span class="dot-separator">•</span>
               <span class="email-text">{{ profile?.email || user.email }}</span>
             </div>
@@ -134,9 +136,17 @@
                       activeGroup.createdAt?.toDate() | date:'dd/MM/yyyy' }}</span>
                   </div>
                 </div>
-                <button class="btn btn-cancel btn-sm" (click)="leaveGroup(activeGroup)" title="צא מהקבוצה">
-                  <span class="material-symbols-outlined">logout</span> יציאה
-                </button>
+                <div *ngIf="activeGroup.adminId !== profile?.uid; else creatorGroupMsg">
+                  <button class="btn btn-cancel btn-sm" (click)="leaveGroup(activeGroup)" title="צא מהקבוצה">
+                    <span class="material-symbols-outlined">logout</span> יציאה
+                  </button>
+                </div>
+                <ng-template #creatorGroupMsg>
+                  <span style="font-size: 0.85rem; color: rgba(255,255,255,0.7); font-style: italic;">
+                    הקבוצה הזאת נוצרה על ידך - ניהול הקבוצה בדף <a routerLink="/search-groups"
+                      style="color: #fff; text-decoration: underline;">חיפוש שותפים</a>
+                  </span>
+                </ng-template>
               </div>
 
               <!-- Group Members -->
@@ -152,11 +162,12 @@
                       <div class="member-details">
                         <span class="name">{{ member.displayName || 'משתמש' }}</span>
                         <!-- Email hidden -->
-                        <span class="badge-admin"
+                        <span class="badge badge-red"
                           *ngIf="(member.uid || member.id) && (member.uid || member.id) === activeGroup.adminId">
                           <span class="material-symbols-outlined" style="font-size: 0.85rem;">verified_user</span> מנהל
                           הקבוצה
                         </span>
+
                       </div>
                       <button class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;"
                         (click)="toggleQuickView(member.uid || member.id)">
@@ -222,11 +233,12 @@
                             <div class="member-details">
                               <span class="name">{{ member.displayName || 'משתמש' }}</span>
 
-                              <span class="badge-admin"
+                              <span class="badge badge-red"
                                 *ngIf="(member.uid || member.id) && (member.uid || member.id) === inv.adminId">
                                 <span class="material-symbols-outlined" style="font-size: 0.85rem;">verified_user</span>
                                 מנהל הקבוצה
                               </span>
+
                             </div>
                             <button class="btn btn-outline btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;"
                               (click)="toggleQuickView(member.uid || member.id)">

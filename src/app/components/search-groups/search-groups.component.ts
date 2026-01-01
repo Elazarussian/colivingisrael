@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { GroupService, Group } from '../../services/group.service';
+import { MessageService } from '../../services/message.service';
 import { QuestionsManagerComponent } from '../questions-manager/questions-manager.component';
 
 @Component({
@@ -18,7 +19,8 @@ export class SearchGroupsComponent implements OnInit {
   filteredUsers: any[] = [];
   searchTerm: string = '';
 
-  groups: Group[] = [];
+  groups: Group[] = []; // Displayed groups (filtered for user)
+  allKnownGroups: Group[] = []; // All groups for lookup (badges)
   selectedGroup: Group | null = null;
   newGroupName: string = '';
 
@@ -28,6 +30,7 @@ export class SearchGroupsComponent implements OnInit {
   error: string | null = null;
   private pendingInvitesUnsubscribe: (() => void) | null = null;
   private groupUnsubscribe: (() => void) | null = null;
+  private allGroupsUnsubscribe: (() => void) | null = null;
 
   selectedGroupMembers: any[] = [];
   availableUsers: any[] = [];
@@ -36,13 +39,14 @@ export class SearchGroupsComponent implements OnInit {
   constructor(
     public auth: AuthService,
     private groupService: GroupService,
+    private messageService: MessageService,
     private cdr: ChangeDetectorRef
   ) { }
 
   async ngOnInit() {
     this.auth.profile$.subscribe(p => {
       this.profile = p;
-      if (p && this.auth.isAdmin(p)) {
+      if (p) {
         this.loadData();
       }
     });
@@ -76,12 +80,47 @@ export class SearchGroupsComponent implements OnInit {
   }
 
   async loadGroups() {
-    this.groups = await this.groupService.getGroups();
-    if (this.selectedGroup) {
-      // Refresh selected group data
-      this.selectedGroup = this.groups.find(g => g.id === this.selectedGroup?.id) || null;
-      this.updateMemberLists();
+    if (!this.profile) return;
+
+    // Clear old subscription if exists
+    if (this.allGroupsUnsubscribe) {
+      this.allGroupsUnsubscribe();
     }
+
+    // Subscribe to ALL groups real-time for everyone (needed for badges)
+    this.allGroupsUnsubscribe = this.groupService.listenToAllGroups((allGroups) => {
+      this.allKnownGroups = allGroups;
+
+      if (this.auth.isAdmin(this.profile)) {
+        this.groups = [...this.allKnownGroups];
+      } else {
+        // Regular users only see groups they are in (for sidebar)
+        this.groups = this.allKnownGroups.filter(g => (g.members || []).includes(this.profile.uid));
+      }
+
+      // Handle selection preserverance / update
+      if (this.selectedGroup) {
+        const found = this.allKnownGroups.find(g => g.id === this.selectedGroup?.id);
+        if (found) {
+          // Check access rights if user was kicked or group deleted
+          if (this.auth.isAdmin(this.profile) || (found.members || []).includes(this.profile.uid)) {
+            this.selectedGroup = found;
+            this.updateMemberLists();
+          } else {
+            this.deselectGroup(); // Access lost
+          }
+        } else {
+          this.deselectGroup(); // Group deleted
+        }
+      }
+
+      // Auto-select if regular user has a group and nothing selected
+      if (!this.auth.isAdmin(this.profile) && this.groups.length > 0 && !this.selectedGroup) {
+        this.selectGroup(this.groups[0]);
+      }
+
+      this.cdr.detectChanges();
+    });
   }
 
   selectGroup(group: Group, event?: MouseEvent) {
@@ -153,7 +192,8 @@ export class SearchGroupsComponent implements OnInit {
 
   getUserGroup(user: any): Group | null {
     const userId = user.id || user.uid;
-    return this.groups.find(g => (g.members || []).includes(userId)) || null;
+    // Look in ALL known groups, not just the filtered list
+    return this.allKnownGroups.find(g => (g.members || []).includes(userId)) || null;
   }
 
   toggleQuickView(userId: string) {
@@ -180,11 +220,35 @@ export class SearchGroupsComponent implements OnInit {
 
   async createGroup() {
     if (!this.newGroupName.trim()) return;
+
+    // Restriction: User cannot create if already in a group (unless admin)
+    if (!this.auth.isAdmin(this.profile) && this.groups.length > 0) {
+      alert('לא ניתן ליצור קבוצה חדשה כאשר אתה כבר חבר בקבוצה.');
+      return;
+    }
+
     try {
       const id = await this.groupService.createGroup(this.newGroupName);
       this.newGroupName = '';
+
+      // Ensure groups are loaded
       await this.loadGroups();
-      this.selectedGroup = this.groups.find(g => g.id === id) || null;
+
+      // Poll for the new group in the real-time list
+      let found = null;
+      for (let i = 0; i < 5; i++) {
+        found = this.allKnownGroups.find(g => g.id === id);
+        if (found) break;
+        await new Promise(r => setTimeout(r, 300));
+      }
+
+      if (found) {
+        this.selectGroup(found);
+      } else {
+        // Fallback: manual fetch if listener is slow
+        const manual = await this.groupService.getGroupById(id);
+        if (manual) this.selectGroup(manual);
+      }
     } catch (err) {
       console.error('Error creating group', err);
     }
@@ -212,6 +276,23 @@ export class SearchGroupsComponent implements OnInit {
     }
   }
 
+  async deleteGroup(group: Group) {
+    if (!confirm(`האם אתה בטוח שברצונך למחוק את הקבוצה "${group.name}"? פעולה זו אינה הפיכה.`)) return;
+
+    try {
+      if (group.id) {
+        await this.groupService.deleteGroup(group.id);
+        await this.loadGroups();
+        if (this.selectedGroup?.id === group.id) {
+          this.deselectGroup();
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting group', err);
+      alert('שגיאה במחיקת הקבוצה');
+    }
+  }
+
   async inviteToGroup(user: any) {
     if (!this.selectedGroup || !this.selectedGroup.id) return;
 
@@ -232,16 +313,64 @@ export class SearchGroupsComponent implements OnInit {
     console.groupEnd();
 
     try {
+      const targetUid = user.id || user.uid;
+
+      // Optimistic UI update
+      this.pendingInvites = new Set(this.pendingInvites);
+      this.pendingInvites.add(targetUid);
+      this.cdr.detectChanges();
+
       await this.groupService.inviteUserToGroup(
         this.selectedGroup.id,
         this.selectedGroup.name,
-        user.id || user.uid
+        targetUid
       );
-      // No manual add needed, listener will update
-      alert('הזמנה נשלחה בהצלחה');
+      this.messageService.show(`הזמנה נשלחה בהצלחה ל-${user.displayName || user.email}`);
     } catch (err: any) {
+      // Revert optimistic update on error
+      const targetUid = user.id || user.uid;
+      this.pendingInvites = new Set(this.pendingInvites);
+      this.pendingInvites.delete(targetUid);
+      this.cdr.detectChanges();
+
       console.error('❌ INVITE FAILED', err);
       alert('שגיאה בשליחת ההזמנה: ' + (err.message || 'שגיאה לא ידועה'));
+    }
+
+  }
+
+  async cancelInvite(user: any) {
+    if (!this.selectedGroup || !this.selectedGroup.id) return;
+    const targetUid = user.id || user.uid;
+
+    try {
+      // Optimistic UI update
+      this.pendingInvites = new Set(this.pendingInvites);
+      this.pendingInvites.delete(targetUid);
+      this.cdr.detectChanges();
+
+      await this.groupService.cancelInvitation(this.selectedGroup.id, targetUid);
+      this.messageService.show(`ההזמנה ל-${user.displayName || user.email} בוטלה`);
+    } catch (err: any) {
+      // Revert if failed (add back to pending)
+      this.pendingInvites = new Set(this.pendingInvites);
+      this.pendingInvites.add(targetUid);
+      this.cdr.detectChanges();
+      console.error('Error cancelling invite:', err);
+      alert('שגיאה בביטול ההזמנה');
+    }
+  }
+
+  async leaveGroup(group: Group) {
+    if (!confirm(`האם אתה בטוח שברצונך לצאת מהקבוצה "${group.name}"?`)) return;
+    try {
+      if (group.id) {
+        await this.groupService.removeUserFromGroup(group.id, this.profile.uid);
+        this.deselectGroup();
+      }
+    } catch (err) {
+      console.error('Error leaving group:', err);
+      alert('שגיאה ביציאה מהקבוצה');
     }
   }
 
@@ -298,6 +427,9 @@ export class SearchGroupsComponent implements OnInit {
     }
     if (this.groupUnsubscribe) {
       this.groupUnsubscribe();
+    }
+    if (this.allGroupsUnsubscribe) {
+      this.allGroupsUnsubscribe();
     }
   }
 }

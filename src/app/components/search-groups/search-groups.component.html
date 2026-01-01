@@ -1,92 +1,132 @@
-<section class="search-groups-dashboard" (click)="deselectGroup()">
-  <!-- Groups Sidebar -->
-  <aside class="groups-sidebar">
-    <div class="sidebar-header" (click)="$event.stopPropagation()">
-      <h3>הקבוצות שלי</h3>
-      <div class="group-create-mini">
-        <input type="text" [(ngModel)]="newGroupName" placeholder="שם קבוצה..." class="input-short">
-        <button class="btn btn-special btn-icon" (click)="createGroup()" [disabled]="!newGroupName.trim()">
-          <span class="material-symbols-outlined">add</span>
-        </button>
-      </div>
-    </div>
-    <div class="groups-list-scroll">
-      <div *ngFor="let g of groups" class="group-list-item" [class.active]="selectedGroup?.id === g.id"
-        (click)="selectGroup(g, $event)">
-        <span class="material-symbols-outlined">group</span>
-        <div class="group-item-info">
-          <span class="name">{{ g.name }}</span>
-          <span class="count">{{ g.members.length }} משתתפים</span>
+<section class="search-groups-dashboard single-column">
+
+  <!-- Content Wrapper -->
+  <div class="container main-container">
+
+    <!-- Restricted Access Message for ALL Group Members -->
+    <section class="info-section" *ngIf="selectedGroup">
+      <div class="glass-alert">
+        <span class="material-symbols-outlined icon-lg">group_off</span>
+        <div class="alert-content">
+          <h3>הינך כבר חבר\ה בקבוצה קיימת</h3>
+          <p>על מנת לחפש שותפים או ליצור קבוצה עליך לצאת מהקבוצה שהינך נמצא בה.</p>
+          <p class="hint">ניתן לצאת מהקבוצה דרך דף הפרופיל האישי.</p>
         </div>
       </div>
-      <div *ngIf="groups.length === 0" class="empty-list">
-        <p>אין קבוצות קיימות</p>
-      </div>
-    </div>
-  </aside>
+    </section>
 
-  <!-- Main Management Area -->
-  <main class="management-main" (click)="$event.stopPropagation()">
-    <header class="main-header" (click)="$event.stopPropagation()">
-      <div class="header-info">
-        <div class="header-title-row" *ngIf="selectedGroup">
-          <h2>ניהול קבוצה: {{ selectedGroup.name }}</h2>
-          <div class="group-meta-stats">
-            <span class="meta-item">
-              <span class="material-symbols-outlined">person</span>
-              נוצרה ע"י: {{ selectedGroup.creatorName || 'אנונימי' }}
-            </span>
-            <span class="meta-item">
-              <span class="material-symbols-outlined">calendar_today</span>
-              בתאריך: {{ selectedGroup.createdAt?.toDate() | date:'dd/MM/yyyy HH:mm' }}
-            </span>
+    <!-- Top Controls: Selection for Admin & Create Group for non-members -->
+    <header class="dashboard-controls" (click)="$event.stopPropagation()">
+      <div class="controls-wrapper" *ngIf="auth.isAdmin(profile) || groups.length === 0">
+
+        <!-- Group Selector (ONLY for Admins) -->
+        <div class="groups-nav" *ngIf="auth.isAdmin(profile) && groups.length > 0">
+          <label class="nav-label">ניהול מערכת - בחר קבוצה:</label>
+          <div class="groups-chips">
+            <button *ngFor="let g of groups" class="group-chip" [class.active]="selectedGroup?.id === g.id"
+              (click)="selectGroup(g, $event)">
+              <span class="material-symbols-outlined">group</span>
+              {{ g.name }}
+            </button>
           </div>
         </div>
-      </div>
-      <div class="search-bar-ui">
-        <span class="material-symbols-outlined">search</span>
-        <input type="text" [(ngModel)]="searchTerm" (input)="filterUsers()"
-          placeholder="חפש משתמשים לפי שם או אימייל..." class="input-long">
+
+        <!-- Create Group (Only for non-members or admins) -->
+        <div class="group-create-action" *ngIf="auth.isAdmin(profile) || groups.length === 0">
+          <div class="input-group-premium">
+            <input type="text" [(ngModel)]="newGroupName" placeholder="שם קבוצה חדשה..." class="input-main">
+            <button class="btn btn-special" (click)="createGroup()" [disabled]="!newGroupName.trim()">
+              <span class="material-symbols-outlined">add_circle</span>
+              צור קבוצה
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
     <div class="management-grid" *ngIf="!loading; else loader">
-      <!-- Section: Group Members -->
-      <section class="management-section" *ngIf="selectedGroup" (click)="$event.stopPropagation()">
-        <div class="section-header">
-          <span class="material-symbols-outlined">diversity_3</span>
-          <h3>חברי הקבוצה ({{ selectedGroupMembers.length }})</h3>
-        </div>
-        <div class="members-grid">
-          <div class="member-mini-card" *ngFor="let member of selectedGroupMembers" (click)="$event.stopPropagation()">
-            <div class="avatar-sm">
-              {{ (member.displayName || 'U')[0].toUpperCase() }}
+
+      <!-- Section: Active Group Content (Name, Members) -->
+      <main class="management-main" *ngIf="selectedGroup" (click)="$event.stopPropagation()">
+        <header class="group-detail-header">
+          <div class="header-main-info">
+            <div class="title-with-actions">
+              <h2>
+                {{ (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) ? 'ניהול קבוצה:' : 'פרטי קבוצה:' }}
+                <span class="highlight">{{ selectedGroup.name }}</span>
+              </h2>
+              <button class="btn btn-danger btn-sm"
+                *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid"
+                (click)="deleteGroup(selectedGroup)" title="מחק קבוצה">
+                <span class="material-symbols-outlined">delete</span> מחק קבוצה
+              </button>
+              <!-- Leave Group for invited users -->
+              <button class="btn btn-outline btn-sm"
+                *ngIf="!auth.isAdmin(profile) && selectedGroup.adminId !== profile?.uid"
+                (click)="leaveGroup(selectedGroup)" title="צא מהקבוצה">
+                <span class="material-symbols-outlined">exit_to_app</span> צא מהקבוצה
+              </button>
             </div>
-            <div class="member-details">
-              <span class="name">{{ member.displayName || 'משתמש' }}</span>
-              <span class="email">{{ member.email }}</span>
-              <span class="joined-at" *ngIf="selectedGroup.membersJoinedAt?.[member.id || member.uid]">
-                {{ selectedGroup.membersJoinedAt?.[member.id || member.uid]?.toDate() | date:'dd/MM/yyyy HH:mm' }}
+
+            <div class="group-meta-bar">
+              <span class="meta-item">
+                <span class="material-symbols-outlined">person</span>
+                נוצרה ע"י: <strong>{{ selectedGroup.creatorName || 'אנונימי' }}</strong>
+              </span>
+              <span class="meta-item">
+                <span class="material-symbols-outlined">calendar_today</span>
+                בתאריך: <strong>{{ selectedGroup.createdAt?.toDate() | date:'dd/MM/yyyy' }}</strong>
               </span>
             </div>
-            <button class="btn-icon btn-remove" (click)="removeMember(member)" title="הסר מהקבוצה">
-              <span class="material-symbols-outlined">person_remove</span>
-            </button>
           </div>
-          <div *ngIf="selectedGroupMembers.length === 0" class="empty-section">
-            <p>הקבוצה ריקה. הוסף חברים מהרשימה למטה.</p>
-          </div>
-        </div>
-      </section>
+        </header>
 
-      <!-- Section: Discover Users (Add/Invite) -->
-      <section class="management-section" (click)="$event.stopPropagation()">
-        <div class="section-header">
-          <span class="material-symbols-outlined">person_add</span>
-          <h3>{{ selectedGroup ? 'מצא משתמשים להוספה' : 'כל המשתתפים' }}</h3>
+        <!-- Group Members List -->
+        <section class="management-section">
+          <div class="section-header">
+            <span class="material-symbols-outlined">diversity_3</span>
+            <h3>חברי הקבוצה ({{ selectedGroupMembers.length }})</h3>
+          </div>
+          <div class="members-grid">
+            <div class="member-mini-card" *ngFor="let member of selectedGroupMembers">
+              <div class="avatar-sm">
+                {{ (member.displayName || 'U')[0].toUpperCase() }}
+              </div>
+              <div class="member-details">
+                <span class="name">{{ member.displayName || 'משתמש' }}</span>
+                <span class="email">{{ member.email }}</span>
+                <span class="joined-at" *ngIf="selectedGroup.membersJoinedAt?.[member.id || member.uid]">
+                  {{ selectedGroup.membersJoinedAt?.[member.id || member.uid]?.toDate() | date:'dd/MM/yyyy HH:mm' }}
+                </span>
+              </div>
+              <!-- Remove Member restricted to creator/admin -->
+              <button class="btn-icon btn-remove" *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile.uid"
+                (click)="removeMember(member)" title="הסר מהקבוצה">
+                <span class="material-symbols-outlined">person_remove</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Section: Discover Users (ONLY if NOT in a group OR Admin OR Creator) -->
+      <section class="management-section"
+        *ngIf="groups.length === 0 || auth.isAdmin(profile) || (selectedGroup && selectedGroup.adminId === profile?.uid)"
+        (click)="$event.stopPropagation()">
+        <div class="glass-search-header">
+          <div class="section-header">
+            <span class="material-symbols-outlined">person_add</span>
+            <h3>כל המשתתפים</h3>
+          </div>
+          <div class="global-search-bar">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text" [(ngModel)]="searchTerm" (input)="filterUsers()"
+              placeholder="חפש משתמשים לפי שם או אימייל..." class="search-input">
+          </div>
         </div>
+
         <div class="users-grid">
-          <div class="user-card dashboard-card" *ngFor="let user of availableUsers" (click)="$event.stopPropagation()"
+          <div class="user-card dashboard-card" *ngFor="let user of availableUsers"
             [class.expanded]="expandedUserId === (user.id || user.uid) || closingUserId === (user.id || user.uid)">
             <div class="card-content">
               <div class="user-avatar-main">
@@ -96,22 +136,31 @@
                 <h3>{{ user.displayName || 'משתמש ללא שם' }}</h3>
                 <p class="text-muted">{{ user.email }}</p>
                 <!-- Group Membership Badge -->
-                <div class="user-group-badge" *ngIf="getUserGroup(user) as g">
+                <div class="badge badge-blue" *ngIf="getUserGroup(user) as g">
                   <span class="material-symbols-outlined">group</span>
                   {{ g.name }}
                 </div>
+
               </div>
-              <div class="user-actions-ui" *ngIf="selectedGroup">
+              <!-- Actions hidden if in a group (already handled by outer *ngIf, but safe to keep) -->
+              <div class="user-actions-ui"
+                *ngIf="selectedGroup && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid)">
                 <ng-container *ngIf="!hasPendingInvite(user); else inviteSentBadge">
                   <button class="btn btn-outline btn-sm" (click)="inviteToGroup(user)">הזמן</button>
-                  <button class="btn btn-special btn-sm" (click)="addToGroup(user)">הוסף</button>
+                  <button class="btn btn-special btn-sm" *ngIf="auth.isAdmin(profile)"
+                    (click)="addToGroup(user)">הוסף</button>
                 </ng-container>
                 <ng-template #inviteSentBadge>
-                  <div class="invite-badge">
-                    <span class="material-symbols-outlined">mark_email_read</span>
-                    הזמנה נשלחה
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                    <div class="badge badge-yellow">
+                      <span class="material-symbols-outlined">mark_email_read</span>
+                      הזמנה נשלחה
+                    </div>
+                    <button class="btn btn-outline btn-sm" (click)="cancelInvite(user)">בטל הזמנה</button>
                   </div>
                 </ng-template>
+
+
               </div>
             </div>
             <div class="card-footer">
@@ -146,11 +195,16 @@
       </section>
     </div>
 
+    <!-- Empty State for Users without any content -->
+    <div *ngIf="!loading && groups.length === 0 && availableUsers.length === 0" class="empty-list container">
+      <p>אין משתמשים או קבוצות להצגה כרגע.</p>
+    </div>
+
     <ng-template #loader>
       <div class="loader-container">
         <div class="spinner"></div>
         <p>מעדכן נתונים...</p>
       </div>
     </ng-template>
-  </main>
+  </div>
 </section>

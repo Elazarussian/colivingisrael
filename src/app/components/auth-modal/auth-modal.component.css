@@ -17,28 +17,8 @@
     margin-bottom: 1rem;
 }
 
-.tab-btn {
-    flex: 1;
-    padding: 0.6rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.9);
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 0.95rem;
-    font-weight: 600;
-    transition: all 0.18s;
-}
+/* .tab-btn styles moved to global styles.css */
 
-.tab-btn.active {
-    background: #4CAF50;
-    color: white;
-    border-color: rgba(76, 175, 80, 0.25);
-}
-
-.tab-btn:hover:not(.active) {
-    background: rgba(255, 255, 255, 0.06);
-}
 
 #auth-form {
     display: flex;
@@ -51,15 +31,12 @@
     justify-content: center;
 }
 
-.modal-content .btn-approve {
+.modal-content .btn-approve,
+.modal-content .btn-special {
+    /* specific overrides if needed, but mostly global now */
     padding: 0.95rem;
-    font-weight: 700;
 }
 
-.modal-content .btn-special {
-    padding: 0.9rem;
-    color: #fff;
-}
 
 .modal-content .btn-special svg {
     background: transparent;

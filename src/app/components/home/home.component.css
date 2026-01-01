@@ -1,14 +1,70 @@
 /* Keep hero-specific decorative overlay and scroll indicator; base hero layout and typography moved to global styles.css */
-.hero-content::before { content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 80%; max-width: 900px; height: 300px; background: rgba(0,0,0,0.7); border-radius: 50% / 30%; z-index: -1; filter: blur(25px); }
-.scroll-down { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; cursor: pointer; z-index: 3; }
-.scroll-down span { display:block; width:10px; height:10px; border-bottom:4px solid white; border-right:4px solid white; transform: rotate(45deg); margin:0 auto; animation: scrollDown 1s infinite; }
-@keyframes scrollDown { 0% { transform: rotate(45deg) translate(0,0); opacity: 0; } 50% { transform: rotate(45deg) translate(0,15px); opacity: 1; } 100% { transform: rotate(45deg) translate(0,30px); opacity: 0; } }
-main { position: relative; z-index: 1; padding: 4rem 2rem; min-height: 50vh; }
+.hero-content::before {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 80%;
+	max-width: 900px;
+	height: 300px;
+	background: rgba(0, 0, 0, 0.7);
+	border-radius: 50% / 30%;
+	z-index: -1;
+	filter: blur(25px);
+}
+
+.scroll-down {
+	position: absolute;
+	bottom: 30px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 50px;
+	height: 50px;
+	cursor: pointer;
+	z-index: 3;
+}
+
+.scroll-down span {
+	display: block;
+	width: 10px;
+	height: 10px;
+	border-bottom: 4px solid white;
+	border-right: 4px solid white;
+	transform: rotate(45deg);
+	margin: 0 auto;
+	animation: scrollDown 1s infinite;
+}
+
+@keyframes scrollDown {
+	0% {
+		transform: rotate(45deg) translate(0, 0);
+		opacity: 0;
+	}
+
+	50% {
+		transform: rotate(45deg) translate(0, 15px);
+		opacity: 1;
+	}
+
+	100% {
+		transform: rotate(45deg) translate(0, 30px);
+		opacity: 0;
+	}
+}
+
+main {
+	position: relative;
+	z-index: 1;
+	padding: 4rem 2rem;
+	min-height: 50vh;
+}
 
 /* Mobile adjustments: center CTAs and make buttons fit content */
 @media (max-width: 640px) {
 	.hero {
-		align-items: center; /* center vertically */
+		align-items: center;
+		/* center vertically */
 		justify-content: center;
 	}
 
@@ -28,12 +84,12 @@ main { position: relative; z-index: 1; padding: 4rem 2rem; min-height: 50vh; }
 		width: 100%;
 	}
 
-	.cta-buttons .btn {
-		width: auto !important; /* fit content */
-		padding: 0.5rem 1rem;
-		min-width: 0;
-	}
+	/* .cta-buttons .btn width, padding, min-width handled globally */
+
+
 
 	/* ensure the hero takes reasonable height on mobile so buttons appear centered */
-	header.hero { height: calc(100vh - var(--topbar-height)); }
+	header.hero {
+		height: calc(100vh - var(--topbar-height));
+	}
 }

@@ -119,17 +119,8 @@
   margin-bottom: 1rem;
 }
 
-.role-tag {
-  background: rgba(76, 175, 80, 0.15);
-  color: #81c784;
-  padding: 0.2rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border: 1px solid rgba(129, 199, 132, 0.2);
-}
+/* .role-tag styles moved to global styles.css (.badge) */
+
 
 .dot-separator {
   color: rgba(255, 255, 255, 0.2);
@@ -483,8 +474,9 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1.25rem;
+  /* padding handled globally */
 }
+
 
 .inv-actions .btn .material-symbols-outlined {
   font-size: 1.1rem;
@@ -613,18 +605,4 @@
   background: rgba(255, 255, 255, 0.05) !important;
 }
 
-.badge-admin {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  color: #ffd700;
-  /* Gold color */
-  background: rgba(255, 215, 0, 0.1);
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-  margin-top: 0.25rem;
-  font-weight: 600;
-  align-self: flex-start;
-  border: 1px solid rgba(255, 215, 0, 0.2);
-}
+/* .badge-admin styles moved to global styles.css (.badge-red) */

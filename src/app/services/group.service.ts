@@ -80,8 +80,10 @@ export class GroupService {
             adminId: user.uid,
             creatorName: profile ? profile['displayName'] : 'Admin',
             creatorEmail: profile ? profile['email'] : (user.email || ''),
-            members: [],
-            membersJoinedAt: {},
+            members: [user.uid],
+            membersJoinedAt: {
+                [user.uid]: serverTimestamp()
+            },
             createdAt: serverTimestamp()
         };
 
@@ -108,6 +110,13 @@ export class GroupService {
             } else {
                 callback(null);
             }
+        });
+    }
+
+    listenToAllGroups(callback: (groups: Group[]) => void): Unsubscribe {
+        return onSnapshot(this.groupsCollection, (snapshot) => {
+            const groups = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Group));
+            callback(groups);
         });
     }
 
@@ -154,6 +163,11 @@ export class GroupService {
         await updateDoc(groupRef, {
             members: arrayRemove(userId)
         });
+    }
+
+    async deleteGroup(groupId: string): Promise<void> {
+        const groupRef = doc(db!, `${this.auth.dbPath}groups`, groupId);
+        await deleteDoc(groupRef);
     }
 
 
@@ -306,4 +320,9 @@ export class GroupService {
         await deleteDoc(invRef);
     }
 
+    async cancelInvitation(groupId: string, toUid: string): Promise<void> {
+        const inviteId = `${toUid}_${groupId}`;
+        const invRef = doc(db!, `${this.auth.dbPath}groupInvites/${inviteId}`);
+        await deleteDoc(invRef);
+    }
 }

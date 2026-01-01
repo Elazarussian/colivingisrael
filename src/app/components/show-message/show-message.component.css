@@ -1,47 +1,66 @@
  .overlay {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.4);
-      z-index: 2147483647; /* max 32-bit signed int to be above anything */
-      pointer-events: auto;
-    }
-    .card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 16px 20px 18px 20px;
-      min-width: 260px;
-      max-width: 90%;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.16);
-      position: relative;
-      z-index: 2147483648; /* ensure card is above the overlay backdrop */
-      text-align: center;
-    }
-    .close-x {
-      position: absolute;
-      top: 6px;
-      right: 8px;
-      border: none;
-      background: transparent;
-      font-size: 20px;
-      cursor: pointer;
-      line-height: 1;
-    }
-    .content {
-      margin: 12px 0 16px 0;
-      color: #222;
-      font-size: 15px;
-    }
-    .actions { display:flex; justify-content:center }
-    .ok {
-      background: #0078d4;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .ok:active { transform: translateY(1px) }
+   position: fixed;
+   inset: 0;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   background: rgba(0, 0, 0, 0.7);
+   backdrop-filter: blur(8px);
+   z-index: 2147483647;
+   pointer-events: auto;
+   animation: fadeIn 0.3s ease-out;
+ }
+
+ .card {
+   background: rgba(30, 30, 30, 0.95);
+   backdrop-filter: blur(16px);
+   border: 1px solid rgba(255, 255, 255, 0.1);
+   border-radius: 20px;
+   padding: 2rem;
+   min-width: 320px;
+   max-width: 90%;
+   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+   position: relative;
+   z-index: 2147483648;
+   text-align: center;
+   animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+ }
+
+ /* .close-x replaced by global btn-close */
+
+ .content {
+   margin: 1rem 0 2rem 0;
+   color: #fff;
+   font-size: 1.1rem;
+   font-weight: 500;
+   line-height: 1.5;
+ }
+
+ .actions {
+   display: flex;
+   justify-content: center;
+ }
+
+ /* .ok replaced by global btn btn-approve */
+
+ @keyframes fadeIn {
+   from {
+     opacity: 0;
+   }
+
+   to {
+     opacity: 1;
+   }
+ }
+
+ @keyframes scaleIn {
+   from {
+     transform: scale(0.9);
+     opacity: 0;
+   }
+
+   to {
+     transform: scale(1);
+     opacity: 1;
+   }
+ }

@@ -71,40 +71,8 @@
    /* Clear previous margins if any */
  }
 
- .menu-toggle {
-   background: transparent;
-   border: none;
-   width: 40px;
-   height: 40px;
-   position: relative;
-   cursor: pointer;
-   display: flex;
-   flex-direction: column;
-   justify-content: center;
-   align-items: center;
-   gap: 6px;
-   padding: 0;
- }
+ /* .menu-toggle styles moved to global styles.css */
 
- .menu-toggle .bar {
-   width: 24px;
-   height: 2px;
-   background-color: var(--text-main);
-   border-radius: 2px;
-   transition: all var(--transition-speed) ease;
- }
-
- .menu-toggle.active .top {
-   transform: rotate(45deg) translate(5px, 6px);
- }
-
- .menu-toggle.active .mid {
-   opacity: 0;
- }
-
- .menu-toggle.active .bot {
-   transform: rotate(-45deg) translate(5px, -6px);
- }
 
  /* Expanded Content */
  .menu-content {

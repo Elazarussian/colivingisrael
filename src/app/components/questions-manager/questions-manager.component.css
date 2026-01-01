@@ -86,13 +86,9 @@
         flex-wrap: wrap;
     }
 
-    /* Make buttons smaller on mobile but still tappable */
-    .question-actions .btn {
-        padding: 0.45rem 0.6rem;
-        font-size: 0.9rem;
-        margin-bottom: 0.25rem;
-    }
+    /* Make buttons smaller on mobile but still tappable - handled globally */
 }
+
 
 .question-info strong {
     color: rgba(255, 255, 255, 0.95);
@@ -294,10 +290,8 @@ select.form-control-auto {
     min-height: 150px;
 }
 
-.yesno-buttons .btn {
-    min-width: 100px;
-    padding: 1rem 2rem;
-}
+/* .yesno-buttons .btn min-width and padding handled globally */
+
 
 /* Autocomplete suggestions (app-rendered) */
 .autocomplete {
