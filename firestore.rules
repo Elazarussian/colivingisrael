@@ -36,16 +36,17 @@ service cloud.firestore {
 
     match /groups/{groupId} {
       allow read: if isSignedIn();
-      allow create, delete: if isAdminRoot();
+      allow create: if isAdminRoot() || (isSignedIn() && request.resource.data.adminId == request.auth.uid);
+      allow delete: if isAdminRoot() || (isSignedIn() && resource.data.adminId == request.auth.uid);
 
-      // Allow user to join if they have an invite
-      // We check that they are adding themselves (their UID is in the new members list)
-      // and they have a valid invite.
-      allow update: if isAdminRoot() || (
-        isSignedIn()
-        && hasInviteRoot(groupId)
-        && request.resource.data.members.hasAny([request.auth.uid])
-      );
+      // Allow creator to update or user to join if they have an invite
+      allow update: if isAdminRoot()
+        || (isSignedIn() && resource.data.adminId == request.auth.uid)
+        || (
+          isSignedIn()
+          && hasInviteRoot(groupId)
+          && request.resource.data.members.hasAny([request.auth.uid])
+        );
 
       match /members/{memberUid} {
         allow read: if isSignedIn();
@@ -61,7 +62,11 @@ service cloud.firestore {
     }
 
     match /groupInvites/{inviteId} {
-      allow create: if isAdminRoot();
+      allow create: if isAdminRoot() || (
+        isSignedIn()
+        && request.resource.data.inviterUid == request.auth.uid
+        && get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.adminId == request.auth.uid
+      );
 
       allow read: if isSignedIn()
         && (
@@ -123,13 +128,16 @@ service cloud.firestore {
 
       match /groups/{groupId} {
         allow read: if isSignedIn();
-        allow create, delete: if isAdminTest();
+        allow create: if isAdminTest() || (isSignedIn() && request.resource.data.adminId == request.auth.uid);
+        allow delete: if isAdminTest() || (isSignedIn() && resource.data.adminId == request.auth.uid);
 
-        allow update: if isAdminTest() || (
+        allow update: if isAdminTest()
+          || (isSignedIn() && resource.data.adminId == request.auth.uid)
+          || (
             isSignedIn()
             && hasInviteTest(groupId)
             && request.resource.data.members.hasAny([request.auth.uid])
-        );
+          );
 
         match /members/{memberUid} {
           allow read: if isSignedIn();
@@ -145,7 +153,11 @@ service cloud.firestore {
       }
 
       match /groupInvites/{inviteId} {
-        allow create: if isAdminTest();
+        allow create: if isAdminTest() || (
+          isSignedIn()
+          && request.resource.data.inviterUid == request.auth.uid
+          && get(/databases/$(database)/documents/testdata/db/groups/$(request.resource.data.groupId)).data.adminId == request.auth.uid
+        );
 
         allow read: if isSignedIn()
           && (

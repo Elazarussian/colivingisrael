@@ -130,27 +130,28 @@ h1 {
 /* Global button styles */
 button,
 .btn {
-    padding: .6rem 1.25rem;
-    font-size: 1rem;
-    font-weight: 600;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all .16s;
-    border: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: .5rem;
     font-family: inherit;
-    background: rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
     color: #fff;
     text-align: center;
+    border: none;
+    border-radius: 10px;
+    padding: .75rem 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
 }
 
 button:hover,
 .btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
+    background: #43a047;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(76, 175, 80, 0.25);
 }
 
 button:disabled,
@@ -158,6 +159,8 @@ button:disabled,
     opacity: 0.5;
     cursor: not-allowed;
     transform: none !important;
+    background: #555 !important;
+    box-shadow: none !important;
 }
 
 /* Button variants for specific contexts */
@@ -179,71 +182,78 @@ button:disabled,
     margin-left: 0.35rem;
 }
 
-/* Base Variants */
-.btn-approve {
-    /* approve: green */
+/* Base Variants - Standardized */
+.btn-approve,
+.btn-special,
+.btn-regular,
+.btn-secondary,
+.btn-outline,
+.btn-text,
+.btn-icon,
+.btn-remove {
     background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
     color: #fff;
-    box-shadow: 0 6px 18px rgba(76, 175, 80, 0.18)
+    border: none;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
 }
 
-.btn-approve:hover {
+.btn-approve:hover,
+.btn-special:hover,
+.btn-regular:hover,
+.btn-secondary:hover,
+.btn-outline:hover,
+.btn-text:hover,
+.btn-icon:hover,
+.btn-remove:hover {
     background: #43a047;
-    transform: translateY(-2px)
-}
-
-.btn-special {
-    /* special: secondary green/dark */
-    background: linear-gradient(135deg, #81c784 0%, #4caf50 50%, #2e7d32 100%);
-    color: #111;
-}
-
-.btn-special:hover {
-    filter: brightness(.96);
-    transform: translateY(-1px)
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(76, 175, 80, 0.25);
 }
 
 .btn-cancel,
 .btn-danger {
-    /* Primary cancel style used across the app */
-    background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 25%, #d32f2f 60%, #8e0000 100%);
-    color: #fff;
-    border: none;
-    box-shadow: 0 6px 18px rgba(213, 47, 47, 0.18);
-    border-radius: 10px;
-    padding: .75rem 1.5rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all .16s;
+    background: transparent;
+    color: #ff5252;
+    border: 1px solid rgba(255, 82, 82, 0.3);
+    box-shadow: none;
 }
 
 .btn-cancel:hover,
 .btn-danger:hover {
-    background: linear-gradient(135deg, #c62828 0%, #d32f2f 100%);
+    background: rgba(255, 82, 82, 0.1);
+    color: #ff1744;
+    border-color: #ff1744;
     transform: translateY(-2px);
 }
 
-.btn-regular,
-.btn-secondary {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
+/* Professional Invite Button */
+.btn-invite-link {
+    background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3) !important;
+    position: relative;
+    overflow: hidden;
 }
 
-.btn-regular:hover,
-.btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.12);
+.btn-invite-link:hover {
+    background: linear-gradient(135deg, #8e24aa 0%, #ab47bc 100%) !important;
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4) !important;
 }
 
-.btn-outline {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #fff;
+.btn-invite-link.success {
+    background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%) !important;
+    box-shadow: 0 4px 15px rgba(67, 160, 71, 0.4) !important;
 }
 
-.btn-outline:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.4);
+.btn-invite-link .material-symbols-outlined {
+    font-size: 1.25rem;
+    transition: transform 0.3s ease;
+}
+
+.btn-invite-link:active .material-symbols-outlined {
+    transform: scale(0.85);
 }
 
 .btn-sm,
@@ -252,20 +262,6 @@ button:disabled,
     font-size: 0.85rem !important;
     border-radius: 8px !important;
     min-width: 0 !important;
-}
-
-.btn-text {
-    background: transparent;
-    border: none;
-    padding: 0.5rem;
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-.btn-text:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.05);
 }
 
 .btn-icon-base,
@@ -278,16 +274,6 @@ button:disabled,
     justify-content: center;
     border-radius: 50% !important;
     flex-shrink: 0;
-}
-
-.btn-remove {
-    background: rgba(244, 67, 54, 0.1) !important;
-    color: #ff5252 !important;
-}
-
-.btn-remove:hover {
-    background: rgba(244, 67, 54, 0.2) !important;
-    transform: scale(1.1) !important;
 }
 
 /* Specific Component Buttons */
@@ -409,6 +395,25 @@ button:disabled,
     flex: 1 1 250px
 }
 
+/* Glass Card - Modern premium panel */
+.glass-panel,
+.glass-card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.glass-panel:hover,
+.glass-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-4px);
+}
+
 /* Standard form controls */
 input,
 textarea,
@@ -466,66 +471,9 @@ select:focus {
     margin-top: 1rem;
 }
 
-/* Close button: red circular with X icon centered */
-.btn-close {
-    --size: 40px;
-    width: var(--size);
-    height: var(--size);
-    display: inline-grid;
-    place-items: center;
-    background: linear-gradient(180deg, #e53935, #d32f2f);
-    color: #fff;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 6px 18px rgba(213, 47, 47, 0.18);
-    cursor: pointer;
-    transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
-    font-weight: 700;
-    font-size: 1.05rem;
-    line-height: 1;
-    text-align: center;
-}
+/* .btn-close styles moved to consolidated section below line 626 */
 
-.btn-close:hover {
-    transform: scale(1.06) translateY(-2px);
-    filter: brightness(.96);
-    box-shadow: 0 10px 26px rgba(213, 47, 47, 0.26);
-}
-
-.btn-close:active {
-    transform: scale(.98);
-    box-shadow: 0 6px 18px rgba(213, 47, 47, 0.18) inset;
-}
-
-.btn-close:focus {
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(213, 47, 47, 0.12);
-}
-
-/* If you want an 'X' made from pseudo elements (no text needed) */
-.btn-close.icon-only {
-    position: relative;
-}
-
-.btn-close.icon-only::before,
-.btn-close.icon-only::after {
-    content: '';
-    position: absolute;
-    width: 50%;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.95);
-    left: 25%;
-    top: 50%;
-    transform-origin: center;
-}
-
-.btn-close.icon-only::before {
-    transform: translateY(-50%) rotate(45deg);
-}
-
-.btn-close.icon-only::after {
-    transform: translateY(-50%) rotate(-45deg);
-}
+/* Icon-only logic merged with btn-close */
 
 /* Fix dropdown options visibility globally */
 select option {
@@ -605,6 +553,7 @@ select option {
     overflow-y: auto;
 }
 
+/* Close Button (Red X with animation) */
 .btn-close {
     position: absolute;
     top: 1.5rem;
@@ -613,29 +562,32 @@ select option {
     height: 32px;
     border-radius: 50%;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+    background: rgba(244, 67, 54, 0.1);
+    color: #ff5252;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 10;
 }
 
 .btn-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: rotate(90deg);
+    background: #f44336;
+    color: #fff;
+    transform: rotate(180deg) scale(1.1);
+    box-shadow: 0 0 15px rgba(244, 67, 54, 0.4);
 }
 
 .btn-close::before,
 .btn-close::after {
     content: '';
     position: absolute;
-    width: 14px;
+    width: 16px;
     height: 2px;
     background-color: currentColor;
     border-radius: 2px;
+    transition: background-color 0.3s;
 }
 
 .btn-close::before {
@@ -644,6 +596,11 @@ select option {
 
 .btn-close::after {
     transform: rotate(-45deg);
+}
+
+.btn-close.icon-only {
+    /* icon-only centering handled by base .btn-close */
+    box-sizing: border-box;
 }
 
 .icon-only {
@@ -806,6 +763,151 @@ img.emoji {
         margin: 0 .5rem;
         padding: .4rem .8rem
     }
+}
+
+/* Common Layout & Components */
+
+/* Section Headers */
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-header .material-symbols-outlined {
+    font-size: 1.8rem;
+    color: #4caf50;
+}
+
+.section-header h2,
+.section-header h3 {
+    margin: 0;
+    font-weight: 700;
+}
+
+/* Avatars */
+.avatar {
+    background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.avatar-sm {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.avatar-md {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    font-size: 1.25rem;
+}
+
+.avatar-lg {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+    font-size: 2rem;
+}
+
+.avatar-xl {
+    width: 120px;
+    height: 120px;
+    border-radius: 30px;
+    font-size: 3.5rem;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 24px rgba(76, 175, 80, 0.3);
+}
+
+/* Loaders */
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    width: 100%;
+}
+
+.spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #4caf50;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Suggestions & Autocomplete */
+.suggestions-list {
+    background: rgba(30, 30, 30, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    max-height: 280px;
+    overflow-y: auto;
+    z-index: 1000;
+    padding: 0.5rem;
+    list-style: none;
+    margin: 0.5rem 0 0 0;
+}
+
+.suggestion-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.15s;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    display: flex;
+    flex-direction: column;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.suggestion-title {
+    font-weight: 600;
+    color: #fff;
+}
+
+.suggestion-subtitle {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 16px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    margin: 1rem 0;
 }
 
 /* Geo manager specific styles */

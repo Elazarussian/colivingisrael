@@ -12,22 +12,14 @@
     margin-bottom: 1rem;
 }
 
+/* .question-item styles merged with global .glass-card / .card logic */
 .question-item {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
     padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     gap: 1rem;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
     margin-bottom: 0.5rem;
-    transition: all 0.2s;
-}
-
-.question-item:hover {
-    background: rgba(255, 255, 255, 0.06);
-    transform: translateX(-3px);
 }
 
 .question-info {
@@ -108,36 +100,7 @@
     margin-top: 0.5rem;
 }
 
-.add-question-form {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 1.5rem;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.add-question-form h3 {
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    font-size: 1.3rem;
-    color: rgba(255, 255, 255, 0.95);
-    font-weight: 700;
-}
-
-.add-question-form label {
-    display: block;
-    margin-bottom: 0.5rem;
-    margin-top: 1rem;
-    color: rgba(255, 255, 255, 0.85);
-    font-weight: 600;
-}
-
-
-/* dropdown option visuals handled globally in src/styles.css */
-
-.full-width {
-    width: 100%;
-    margin-top: 1rem;
-}
+/* Form control and buttons handled globally */
 
 .options-manager {
     margin-bottom: 1rem;
@@ -249,7 +212,7 @@ select.form-control-auto {
     max-width: 100%;
 }
 
-/* form-control and btn-fit-content moved to global styles.css */
+/* btn-fit-content moved to global styles.css */
 
 .key-section-container {
     margin-bottom: 1rem;
@@ -298,29 +261,7 @@ select.form-control-auto {
     position: relative;
 }
 
-.autocomplete-suggestions {
-    /* Keep suggestions in normal flow so they push content down instead of overlaying headings */
-    position: static;
-    display: block;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    max-height: 220px;
-    overflow: auto;
-    border-radius: 8px;
-    padding: 0.25rem 0;
-    margin-top: 6px;
-}
-
-.autocomplete-suggestions li {
-    list-style: none;
-    padding: 0.5rem 0.75rem;
-    cursor: pointer;
-    color: rgba(255, 255, 255, 0.95);
-}
-
-.autocomplete-suggestions li:hover {
-    background: rgba(255, 255, 255, 0.03);
-}
+/* .autocomplete-suggestions moved to global .suggestions-list */
 
 /* Auto-size text answers: start small (~2 words) and grow as user types */
 .auto-size-input {
@@ -354,17 +295,7 @@ select.form-control-auto {
     place-items: center;
 }
 
-.autocomplete-suggestions {
-    position: static;
-    display: block;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    max-height: 240px;
-    overflow: auto;
-    border-radius: 8px;
-    padding: 0.25rem 0;
-    margin-top: 6px;
-}
+
 
 /* Make sure inputs inside narrow onboarding/edit modals don't overflow */
 .onboarding-modal .auto-size-input,
@@ -450,16 +381,7 @@ select.form-control-auto {
     /* ensure long text wraps */
 }
 
-.empty-answers {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 2rem;
-    color: rgba(255, 255, 255, 0.4);
-    font-style: italic;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 12px;
-    border: 1px dashed rgba(255, 255, 255, 0.1);
-}
+/* .empty-answers handled by global .empty-state */
 
 @media (max-width: 600px) {
     .answers-grid {

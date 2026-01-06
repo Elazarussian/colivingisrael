@@ -15,17 +15,17 @@
 
     <div *ngIf="user$ | async as user; else loggedOut">
 
-      <!-- Admin Badge (Premium Look) -->
-      <div *ngIf="isAdmin()" class="admin-badge-container">
-        <div class="admin-badge-premium">A D M I N</div>
+      <div *ngIf="isAdmin()" class="admin-badge-container"
+        style="display: flex; justify-content: center; margin-bottom: 2rem;">
+        <div class="admin-badge">A D M I N</div>
       </div>
 
       <div class="profile-grid">
         <!-- Main User Card -->
-        <div class="profile-card user-main-card">
+        <div class="glass-card user-main-card">
           <div class="card-glass-effect"></div>
           <div class="user-avatar-section">
-            <div class="avatar-placeholder">
+            <div class="avatar avatar-xl">
               {{ (profile?.displayName || user.displayName || 'U')[0].toUpperCase() }}
             </div>
           </div>
@@ -52,7 +52,7 @@
         <!-- Info Grid (Registration & Personal Answers) -->
         <div class="info-grid">
           <!-- Registration Info Card -->
-          <div class="profile-card answers-card">
+          <div class="glass-card answers-card">
             <div class="card-header">
               <div class="header-title">
                 <span class="material-symbols-outlined">description</span>
@@ -81,7 +81,7 @@
           </div>
 
           <!-- Personal Answers Card -->
-          <div class="profile-card answers-card">
+          <div class="glass-card answers-card">
             <div class="card-header">
               <div class="header-title">
                 <span class="material-symbols-outlined">psychology_alt</span>
@@ -111,7 +111,7 @@
         </div>
 
         <!-- Groups & Invitations Section -->
-        <div class="profile-card groups-card" id="groups-management-section">
+        <div class="glass-card groups-card" id="groups-management-section">
           <div class="card-header">
             <div class="header-title">
               <span class="material-symbols-outlined">group</span>
@@ -156,7 +156,7 @@
                 <div class="inv-members-grid">
                   <div *ngFor="let member of activeGroup.fullMembers" class="member-mini-card">
                     <div class="member-card-main">
-                      <div class="avatar-sm">
+                      <div class="avatar avatar-md">
                         {{ (member.displayName || 'U')[0].toUpperCase() }}
                       </div>
                       <div class="member-details">
@@ -227,7 +227,7 @@
                       <div class="inv-members-grid">
                         <div *ngFor="let member of inv.fullMembers" class="member-mini-card">
                           <div class="member-card-main">
-                            <div class="avatar-sm">
+                            <div class="avatar avatar-md">
                               {{ (member.displayName || 'U')[0].toUpperCase() }}
                             </div>
                             <div class="member-details">

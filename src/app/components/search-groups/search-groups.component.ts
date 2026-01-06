@@ -1,6 +1,8 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { take } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { GroupService, Group } from '../../services/group.service';
 import { MessageService } from '../../services/message.service';
@@ -13,7 +15,7 @@ import { QuestionsManagerComponent } from '../questions-manager/questions-manage
   templateUrl: './search-groups.component.html',
   styleUrls: ['./search-groups.component.css']
 })
-export class SearchGroupsComponent implements OnInit {
+export class SearchGroupsComponent implements OnInit, OnDestroy {
   profile: any = null;
   allUsers: any[] = [];
   filteredUsers: any[] = [];
@@ -22,7 +24,9 @@ export class SearchGroupsComponent implements OnInit {
   groups: Group[] = []; // Displayed groups (filtered for user)
   allKnownGroups: Group[] = []; // All groups for lookup (badges)
   selectedGroup: Group | null = null;
-  newGroupName: string = '';
+  newGroupRequiredMembers: number = 2; // Default to 2 members
+
+  directInviteGroup: Group | null = null; // Group from URL invitation link
 
   expandedUserId: string | null = null;
   closingUserId: string | null = null;
@@ -35,12 +39,14 @@ export class SearchGroupsComponent implements OnInit {
   selectedGroupMembers: any[] = [];
   availableUsers: any[] = [];
   pendingInvites: Set<string> = new Set();
+  inviteCopySuccess: boolean = false;
 
   constructor(
     public auth: AuthService,
     private groupService: GroupService,
     private messageService: MessageService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute
   ) { }
 
   async ngOnInit() {
@@ -48,8 +54,59 @@ export class SearchGroupsComponent implements OnInit {
       this.profile = p;
       if (p) {
         this.loadData();
+        this.handleAutoInvite();
       }
     });
+
+    // Handle case where user hits the page with an invite link but is not logged in
+    this.auth.user$.pipe(take(1)).subscribe(user => {
+      if (!user && this.route.snapshot.queryParamMap.get('inviteGroupId')) {
+        this.auth.showAuthModal();
+      }
+    });
+  }
+
+  async handleAutoInvite() {
+    const inviteGroupId = this.route.snapshot.queryParamMap.get('inviteGroupId');
+    if (inviteGroupId && this.profile && this.profile.uid) {
+      // Check if user is already in this group (members array check is faster/direct)
+      const group = await this.groupService.getGroupById(inviteGroupId);
+      if (group) {
+        if (group.members.includes(this.profile.uid)) {
+          this.messageService.show('הינך כבר חבר בקבוצה זו.');
+          return;
+        }
+
+        // Instead of auto-inviting, show a popup modal
+        this.directInviteGroup = group;
+        this.cdr.detectChanges();
+      }
+    }
+  }
+
+  async acceptDirectInvite() {
+    if (!this.directInviteGroup || !this.profile) return;
+    const group = this.directInviteGroup;
+    this.directInviteGroup = null;
+
+    try {
+      // 1. Send the invitation (to satisfy security rules/records)
+      await this.groupService.inviteUserToGroup(group.id!, group.name, this.profile.uid);
+
+      // 2. Immediately respond and join
+      const inviteId = `${this.profile.uid}_${group.id}`;
+      await this.groupService.respondToInvitation(inviteId, group.id!, 'accepted');
+
+      this.messageService.show(`הצטרפת בהצלחה לקבוצה: ${group.name}`);
+      this.loadGroups(); // Refresh status
+    } catch (err) {
+      console.error('Failed to accept direct invite', err);
+      this.messageService.show('שגיאה בהצטרפות לקבוצה. נסה שוב מאוחר יותר.');
+    }
+  }
+
+  closeDirectInvite() {
+    this.directInviteGroup = null;
   }
 
   async loadData() {
@@ -219,7 +276,15 @@ export class SearchGroupsComponent implements OnInit {
   }
 
   async createGroup() {
-    if (!this.newGroupName.trim()) return;
+    // Determine the next group name based on all existing groups
+    // Find the highest number in names like "קבוצה 1", "קבוצה 2"
+    const groupNumbers = this.allKnownGroups
+      .map(g => {
+        const match = g.name.match(/קבוצה\s+(\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
+      });
+    const nextNumber = Math.max(0, ...groupNumbers) + 1;
+    const autoGroupName = `קבוצה ${nextNumber}`;
 
     // Restriction: User cannot create if already in a group (unless admin)
     if (!this.auth.isAdmin(this.profile) && this.groups.length > 0) {
@@ -228,8 +293,8 @@ export class SearchGroupsComponent implements OnInit {
     }
 
     try {
-      const id = await this.groupService.createGroup(this.newGroupName);
-      this.newGroupName = '';
+      const id = await this.groupService.createGroup(autoGroupName, this.newGroupRequiredMembers);
+      this.newGroupRequiredMembers = 2; // Reset to default
 
       // Ensure groups are loaded
       await this.loadGroups();
@@ -374,6 +439,20 @@ export class SearchGroupsComponent implements OnInit {
     }
   }
 
+  async updateRequiredMembers(count: string | number) {
+    if (!this.selectedGroup || !this.selectedGroup.id) return;
+    const num = typeof count === 'string' ? parseInt(count, 10) : count;
+    if (isNaN(num) || num < 2) return;
+
+    try {
+      await this.groupService.updateGroupRequiredMembers(this.selectedGroup.id, num);
+      this.messageService.show('מספר השותפים הדרוש עודכן');
+    } catch (err) {
+      console.error('Error updating required members:', err);
+      alert('שגיאה בעדכון מספר השותפים');
+    }
+  }
+
   isUserInSelectedGroup(user: any): boolean {
     if (!this.selectedGroup) return false;
     return this.selectedGroup.members.includes(user.id || user.uid);
@@ -419,6 +498,43 @@ export class SearchGroupsComponent implements OnInit {
         }
       }
     );
+  }
+
+  async copyInviteLink() {
+    if (!this.selectedGroup || !this.selectedGroup.id) return;
+
+    // Use window.location.origin to work on both localhost and production
+    const baseUrl = window.location.origin;
+    const inviteLink = `${baseUrl}/search-groups?inviteGroupId=${this.selectedGroup.id}`;
+
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      //this.messageService.show('קישור להזמנה הועתק ללוח!');
+
+      // Visual feedback state
+      this.inviteCopySuccess = true;
+      this.cdr.detectChanges();
+      setTimeout(() => {
+        this.inviteCopySuccess = false;
+        this.cdr.detectChanges();
+      }, 2000);
+
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      // Fallback
+      const textArea = document.createElement("textarea");
+      textArea.value = inviteLink;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        //קישור להזמנה הועתק ללוח!
+//this.messageService.show('קישור להזמנה הועתק ללוח!');
+      } catch (err) {
+        alert('שגיאה בהעתקת הקישור: ' + inviteLink);
+      }
+      document.body.removeChild(textArea);
+    }
   }
 
   ngOnDestroy() {

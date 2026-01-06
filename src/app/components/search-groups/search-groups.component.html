@@ -1,4 +1,5 @@
-<section class="search-groups-dashboard single-column">
+<section class="search-groups-dashboard single-column"
+  style="direction: rtl; min-height: calc(100vh - 80px); display: flex; flex-direction: column; gap: 2rem; padding: 2rem 1rem;">
 
   <!-- Content Wrapper -->
   <div class="container main-container">
@@ -17,7 +18,7 @@
 
     <!-- Top Controls: Selection for Admin & Create Group for non-members -->
     <header class="dashboard-controls" (click)="$event.stopPropagation()">
-      <div class="controls-wrapper" *ngIf="auth.isAdmin(profile) || groups.length === 0">
+      <div class="controls-wrapper glass-panel" *ngIf="auth.isAdmin(profile) || groups.length === 0">
 
         <!-- Group Selector (ONLY for Admins) -->
         <div class="groups-nav" *ngIf="auth.isAdmin(profile) && groups.length > 0">
@@ -34,8 +35,9 @@
         <!-- Create Group (Only for non-members or admins) -->
         <div class="group-create-action" *ngIf="auth.isAdmin(profile) || groups.length === 0">
           <div class="input-group-premium">
-            <input type="text" [(ngModel)]="newGroupName" placeholder="שם קבוצה חדשה..." class="input-main">
-            <button class="btn btn-special" (click)="createGroup()" [disabled]="!newGroupName.trim()">
+            <label class="control-label">מספר שותפים דרוש:</label>
+            <input type="number" [(ngModel)]="newGroupRequiredMembers" min="2" max="10" class="input-main input-short">
+            <button class="btn btn-special" (click)="createGroup()">
               <span class="material-symbols-outlined">add_circle</span>
               צור קבוצה
             </button>
@@ -47,7 +49,7 @@
     <div class="management-grid" *ngIf="!loading; else loader">
 
       <!-- Section: Active Group Content (Name, Members) -->
-      <main class="management-main" *ngIf="selectedGroup" (click)="$event.stopPropagation()">
+      <main class="management-main glass-panel" *ngIf="selectedGroup" (click)="$event.stopPropagation()">
         <header class="group-detail-header">
           <div class="header-main-info">
             <div class="title-with-actions">
@@ -59,6 +61,14 @@
                 *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid"
                 (click)="deleteGroup(selectedGroup)" title="מחק קבוצה">
                 <span class="material-symbols-outlined">delete</span> מחק קבוצה
+              </button>
+              <button class="btn btn-sm btn-invite-link"
+                *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid"
+                [class.success]="inviteCopySuccess" (click)="copyInviteLink()" title="העתק קישור הזמנה מהיר">
+                <span class="material-symbols-outlined">
+                  {{ inviteCopySuccess ? 'check_circle' : 'person_add' }}
+                </span>
+                {{ inviteCopySuccess ? 'הקישור הועתק!' : 'הזמן חברים לקבוצה' }}
               </button>
               <!-- Leave Group for invited users -->
               <button class="btn btn-outline btn-sm"
@@ -77,6 +87,16 @@
                 <span class="material-symbols-outlined">calendar_today</span>
                 בתאריך: <strong>{{ selectedGroup.createdAt?.toDate() | date:'dd/MM/yyyy' }}</strong>
               </span>
+              <span class="meta-item" *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid">
+                <span class="material-symbols-outlined">groups_2</span>
+                שותפים דרושים:
+                <input type="number" [ngModel]="selectedGroup.requiredMembers || 2"
+                  (ngModelChange)="updateRequiredMembers($event)" min="2" max="10" class="input-inline-sm">
+              </span>
+              <span class="meta-item" *ngIf="!auth.isAdmin(profile) && selectedGroup.adminId !== profile?.uid">
+                <span class="material-symbols-outlined">groups_2</span>
+                שותפים דרושים: <strong>{{ selectedGroup.requiredMembers || 2 }}</strong>
+              </span>
             </div>
           </div>
         </header>
@@ -89,7 +109,7 @@
           </div>
           <div class="members-grid">
             <div class="member-mini-card" *ngFor="let member of selectedGroupMembers">
-              <div class="avatar-sm">
+              <div class="avatar avatar-md">
                 {{ (member.displayName || 'U')[0].toUpperCase() }}
               </div>
               <div class="member-details">
@@ -109,10 +129,8 @@
         </section>
       </main>
 
-      <!-- Section: Discover Users (ONLY if NOT in a group OR Admin OR Creator) -->
-      <section class="management-section"
-        *ngIf="groups.length === 0 || auth.isAdmin(profile) || (selectedGroup && selectedGroup.adminId === profile?.uid)"
-        (click)="$event.stopPropagation()">
+      <!-- Section: Discover Users (ONLY if Admin) -->
+      <section class="management-section" *ngIf="auth.isAdmin(profile)" (click)="$event.stopPropagation()">
         <div class="glass-search-header">
           <div class="section-header">
             <span class="material-symbols-outlined">person_add</span>
@@ -126,10 +144,10 @@
         </div>
 
         <div class="users-grid">
-          <div class="user-card dashboard-card" *ngFor="let user of availableUsers"
+          <div class="user-card glass-card" *ngFor="let user of availableUsers"
             [class.expanded]="expandedUserId === (user.id || user.uid) || closingUserId === (user.id || user.uid)">
             <div class="card-content">
-              <div class="user-avatar-main">
+              <div class="avatar avatar-lg">
                 {{ (user.displayName || 'U')[0].toUpperCase() }}
               </div>
               <div class="user-main-info">
@@ -206,5 +224,43 @@
         <p>מעדכן נתונים...</p>
       </div>
     </ng-template>
+
+    <!-- Direct Invite Modal -->
+    <div *ngIf="directInviteGroup" class="confirm-modal-overlay">
+      <div class="confirm-modal glass-morphism">
+        <header class="modal-header">
+          <span class="material-symbols-outlined icon-xl text-gradient">group_add</span>
+          <h2>הזמנה לקבוצה: <span class="highlight">{{ directInviteGroup.name }}</span></h2>
+        </header>
+
+        <div class="modal-body" style="margin: 1.5rem 0; text-align: center;">
+          <p>הוזמנת להצטרף לקבוצה על ידי שיתוף קישור.</p>
+          <div class="group-info-card"
+            style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.25rem; margin: 1rem 0; text-align: right;">
+            <div class="info-row"
+              style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; color: #fff;">
+              <span class="material-symbols-outlined" style="color: #4CAF50;">person</span>
+              <span>מנהל הקבוצה: <strong>{{ directInviteGroup.creatorName }}</strong></span>
+            </div>
+            <div class="info-row" style="display: flex; align-items: center; gap: 0.75rem; color: #fff;">
+              <span class="material-symbols-outlined" style="color: #4CAF50;">groups</span>
+              <span>מספר חברים נוכחי: <strong>{{ directInviteGroup.members.length }}</strong></span>
+            </div>
+          </div>
+          <p class="question" style="font-weight: 600; color: #fff;">האם ברצונך לקבל את ההזמנה ולהצטרף לקבוצה?</p>
+        </div>
+
+        <div class="confirm-actions">
+          <button class="btn btn-approve" (click)="acceptDirectInvite()">
+            <span class="material-symbols-outlined">check_circle</span>
+            אשר והצטרף
+          </button>
+          <button class="btn btn-outline" (click)="closeDirectInvite()">
+            <span class="material-symbols-outlined">cancel</span>
+            דחה הזמנה
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </section>

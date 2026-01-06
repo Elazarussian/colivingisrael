@@ -10,22 +10,7 @@
   --container-max: 1200px;
 }
 
-.search-groups-dashboard {
-  direction: rtl;
-  min-height: calc(100vh - 80px);
-  background: transparent;
-  color: var(--text-primary);
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  padding: 2rem 1rem;
-}
-
-.container {
-  width: 100%;
-  max-width: var(--container-max);
-  margin: 0 auto;
-}
+/* Dashboards controls container moved to global or kept as specific wrapper */
 
 /* Dashboard Controls */
 .dashboard-controls {
@@ -33,12 +18,9 @@
 }
 
 .controls-wrapper {
-  background: var(--glass-bg);
-  backdrop-filter: blur(15px);
-  border: 1px solid var(--glass-border);
+  /* Using global .glass-panel logic eventually, but keeping padding specific */
   border-radius: 24px;
   padding: 2rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -148,12 +130,9 @@
 
 /* Management Main */
 .management-main {
-  background: var(--glass-bg);
-  backdrop-filter: blur(15px);
-  border: 1px solid var(--glass-border);
+  /* Using global .glass-panel logic */
   border-radius: 24px;
   padding: 2.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .group-detail-header {
@@ -234,23 +213,7 @@
   margin-bottom: 4rem;
 }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.section-header .material-symbols-outlined {
-  font-size: 2rem;
-  color: var(--accent-color);
-}
-
-.section-header h3 {
-  font-size: 1.5rem;
-  margin: 0;
-  font-weight: 700;
-}
+/* .section-header styles moved to global styles.css */
 
 /* Grids */
 .members-grid,
@@ -277,18 +240,7 @@
   transform: translateY(-2px);
 }
 
-.avatar-sm {
-  width: 48px;
-  height: 48px;
-  background: linear-gradient(135deg, var(--accent-color), #2e7d32);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 1.2rem;
-  box-shadow: 0 4px 12px var(--accent-glow);
-}
+/* .avatar-sm styles moved to global styles.css */
 
 .member-details {
   flex-grow: 1;
@@ -313,19 +265,7 @@
 }
 
 /* User Card (Dashboard Style) */
-.dashboard-card {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  overflow: hidden;
-  transition: var(--transition);
-}
-
-.dashboard-card:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--accent-color);
-  transform: translateY(-5px);
-}
+/* .dashboard-card styles now use global .glass-card */
 
 .card-content {
   padding: 1.5rem;
@@ -404,29 +344,7 @@
 }
 
 /* Loader */
-.loader-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem;
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(255, 255, 255, 0.1);
-  border-top-color: var(--accent-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* .loader-container and .spinner moved to global styles.css */
 
 /* Global overrides for Questions Manager */
 ::ng-deep .questions-manager-container {
@@ -451,4 +369,34 @@
   .input-group-premium {
     flex-direction: column;
   }
+}
+
+.input-inline-sm {
+  width: 65px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 0.2rem 0.5rem;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  outline: none;
+  transition: var(--transition);
+  text-align: center;
+  margin: 0 0.5rem;
+}
+
+.input-inline-sm:focus {
+  border-color: var(--accent-color);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.control-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
 }

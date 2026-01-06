@@ -75,7 +75,7 @@
       <ng-container *ngIf="user$ | async as user; else guestLinks">
         <a routerLink="/profile" (click)="closeMenu()" routerLinkActive="active" class="profile-link">
           <div class="avatar-wrapper">
-            <div class="avatar-circle">{{ (user.displayName || 'U')[0] | uppercase }}</div>
+            <div class="avatar avatar-sm">{{ (user.displayName || 'U')[0] | uppercase }}</div>
             <div class="notification-badge" *ngIf="pendingInvitationsCount > 0">{{ pendingInvitationsCount }}</div>
           </div>
           <span class="user-name">{{ user.displayName || 'פרופיל' }}</span>

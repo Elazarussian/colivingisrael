@@ -31,6 +31,7 @@ export interface Group {
     membersJoinedAt?: { [uid: string]: any }; // UID -> Timestamp
     createdAt: any;
     fullMembers?: any[]; // For rich display in profile
+    requiredMembers?: number;
 }
 
 export interface Invitation {
@@ -67,7 +68,7 @@ export class GroupService {
     }
 
 
-    async createGroup(name: string, description: string = ''): Promise<string> {
+    async createGroup(name: string, requiredMembers: number, description: string = ''): Promise<string> {
         const user = await this.auth.auth?.currentUser;
         if (!user) throw new Error('User not authenticated');
 
@@ -84,7 +85,8 @@ export class GroupService {
             membersJoinedAt: {
                 [user.uid]: serverTimestamp()
             },
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+            requiredMembers
         };
 
         const docRef = await addDoc(this.groupsCollection, groupData);
@@ -168,6 +170,13 @@ export class GroupService {
     async deleteGroup(groupId: string): Promise<void> {
         const groupRef = doc(db!, `${this.auth.dbPath}groups`, groupId);
         await deleteDoc(groupRef);
+    }
+
+    async updateGroupRequiredMembers(groupId: string, count: number): Promise<void> {
+        const groupRef = doc(db!, `${this.auth.dbPath}groups`, groupId);
+        await updateDoc(groupRef, {
+            requiredMembers: count
+        });
     }
 
 

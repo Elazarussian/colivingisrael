@@ -29,12 +29,14 @@
                                 title="תציג מפרסמים">▾</span>
                         </div>
 
-                        <div *ngIf="showPublisherSuggestions" class="publisher-suggestions">
-                            <div *ngFor="let s of getPublisherSuggestions()" (click)="selectPublisher(s.uid)"
-                                class="suggestion-item">
-                                <div class="suggestion-name">{{ s.displayName }}</div>
+                        <div *ngIf="showPublisherSuggestions" class="suggestions-list">
+                            <div *ngFor="let s of getPublisherSuggestions()"
+                                (click)="$event.stopPropagation(); selectPublisher(s.uid)" class="suggestion-item">
+                                <div class="suggestion-title">{{ s.displayName }}</div>
+                                <div class="suggestion-subtitle">{{ s.uid }}</div>
                             </div>
-                            <div *ngIf="getPublisherSuggestions().length === 0" class="no-results">אין תוצאות</div>
+                            <div *ngIf="getPublisherSuggestions().length === 0" class="empty-state"
+                                style="padding: 1rem; border: none; background: transparent;">אין תוצאות</div>
                         </div>
                     </div>
                 </div>
@@ -42,7 +44,7 @@
         </ng-container>
 
         <div class="list">
-            <div class="apt-card" *ngFor="let a of apartmentsFromDb">
+            <div class="apt-card glass-card" *ngFor="let a of apartmentsFromDb">
                 <div class="card-media">
                     <img *ngIf="getPrimaryImage(a) as img" [src]="img" alt="תמונת דירה" loading="lazy" />
                     <div *ngIf="!getPrimaryImage(a)" class="empty-image">

@@ -16,24 +16,10 @@
     gap: 1rem;
 }
 
+/* .apt-card styles merged with global .glass-card */
 .apt-card {
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
     padding: 0;
-    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s, box-shadow 0.2s;
-    display: flex;
-    flex-direction: column;
-    color: #fff;
-}
-
-.apt-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .card-media {
@@ -209,44 +195,9 @@
 }
 
 /* Refined Suggestions List */
-.publisher-suggestions {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    left: 0;
-    background: rgba(30, 30, 30, 0.95);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-    max-height: 280px;
-    overflow-y: auto;
-    z-index: 100;
-    padding: 0.5rem;
-}
+/* Suggestions List styles moved to global styles.css */
 
-.suggestion-item {
-    padding: 0.75rem 1rem;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.15s;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-}
 
-.suggestion-item:last-child {
-    border-bottom: none;
-}
-
-.suggestion-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateX(-4px);
-}
-
-.suggestion-name {
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.95);
-    font-size: 0.95rem;
-}
 
 .suggestion-uid {
     font-size: 0.75rem;
