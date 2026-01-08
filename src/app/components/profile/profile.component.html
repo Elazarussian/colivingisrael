@@ -135,6 +135,15 @@
                         style="font-size:1rem;vertical-align:middle;">calendar_today</span> נוצרה: {{
                       activeGroup.createdAt?.toDate() | date:'dd/MM/yyyy' }}</span>
                   </div>
+                  <div class="group-properties" *ngIf="activeGroup.properties?.length"
+                    style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    <span *ngFor="let prop of activeGroup.properties"
+                      style="background: rgba(76, 175, 80, 0.1); color: #4caf50; border: 1px solid rgba(76, 175, 80, 0.3); padding: 0.2rem 0.6rem; border-radius: 100px; font-size: 0.8rem; font-weight: 600;">
+                      <span class="material-symbols-outlined"
+                        style="font-size: 0.9rem; vertical-align: middle; margin-left: 2px;">star</span>
+                      {{ prop }}
+                    </span>
+                  </div>
                 </div>
                 <div *ngIf="activeGroup.adminId !== profile?.uid; else creatorGroupMsg">
                   <button class="btn btn-cancel btn-sm" (click)="leaveGroup(activeGroup)" title="צא מהקבוצה">
@@ -183,7 +192,7 @@
                         <div class="unfurl-content-wrapper"
                           *ngIf="expandedMemberId === (member.uid || member.id) || closingMemberId === (member.uid || member.id)">
                           <app-questions-manager mode="view-answers" [userId]="member.uid || member.id"
-                            [onlyPersonalQuestions]="true"
+                            [onlyPersonalQuestions]="false" [showOnlyPublicAnswers]="true"
                             (closed)="toggleQuickView(member.uid || member.id)"></app-questions-manager>
                           <div class="unfurl-footer">
                             <button class="btn btn-outline btn-sm" (click)="toggleQuickView(member.uid || member.id)">
@@ -255,7 +264,8 @@
                               <div class="unfurl-content-wrapper"
                                 *ngIf="expandedMemberId === (member.uid || member.id) || closingMemberId === (member.uid || member.id)">
                                 <app-questions-manager mode="view-answers" [userId]="member.uid || member.id"
-                                  [onlyPersonalQuestions]="true" (closed)="toggleQuickView(member.uid || member.id)">
+                                  [onlyPersonalQuestions]="false" [showOnlyPublicAnswers]="true"
+                                  (closed)="toggleQuickView(member.uid || member.id)">
                                 </app-questions-manager>
                                 <div class="unfurl-footer">
                                   <button class="btn btn-outline btn-sm"

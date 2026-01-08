@@ -132,7 +132,7 @@ export class ProfileComponent implements OnInit {
       // Dynamic imports to avoid adding firestore imports at top-level of this file
       const { collection, getDocs } = await import('firebase/firestore');
 
-      const regSnap = await getDocs(collection(db, regCol));
+      const regSnap = await getDocs(collection(db!, regCol));
       regSnap.docs.forEach(d => {
         const obj: any = { id: d.id, ...((d.data && (d.data() as any)) || {}) };
         this.registrationQuestionMap[d.id] = obj;
@@ -140,7 +140,7 @@ export class ProfileComponent implements OnInit {
         if (obj && obj.key) this.registrationQuestionMap[obj.key] = obj;
       });
 
-      const pdSnap = await getDocs(collection(db, pdCol));
+      const pdSnap = await getDocs(collection(db!, pdCol));
       pdSnap.docs.forEach(d => {
         const obj: any = { id: d.id, ...((d.data && (d.data() as any)) || {}) };
         this.personalDataQuestionMap[d.id] = obj;

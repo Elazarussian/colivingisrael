@@ -32,6 +32,7 @@ export interface Group {
     createdAt: any;
     fullMembers?: any[]; // For rich display in profile
     requiredMembers?: number;
+    properties?: string[];
 }
 
 export interface Invitation {
@@ -68,7 +69,7 @@ export class GroupService {
     }
 
 
-    async createGroup(name: string, requiredMembers: number, description: string = ''): Promise<string> {
+    async createGroup(name: string, requiredMembers: number, description: string = '', properties: string[] = []): Promise<string> {
         const user = await this.auth.auth?.currentUser;
         if (!user) throw new Error('User not authenticated');
 
@@ -86,7 +87,8 @@ export class GroupService {
                 [user.uid]: serverTimestamp()
             },
             createdAt: serverTimestamp(),
-            requiredMembers
+            requiredMembers,
+            properties
         };
 
         const docRef = await addDoc(this.groupsCollection, groupData);
@@ -176,6 +178,21 @@ export class GroupService {
         const groupRef = doc(db!, `${this.auth.dbPath}groups`, groupId);
         await updateDoc(groupRef, {
             requiredMembers: count
+        });
+    }
+
+    async updateGroupDetails(groupId: string, description: string, properties: string[]): Promise<void> {
+        const groupRef = doc(db!, `${this.auth.dbPath}groups`, groupId);
+        await updateDoc(groupRef, {
+            description,
+            properties
+        });
+    }
+
+    async updateGroupAdmin(groupId: string, newAdminId: string): Promise<void> {
+        const groupRef = doc(db!, `${this.auth.dbPath}groups`, groupId);
+        await updateDoc(groupRef, {
+            adminId: newAdminId
         });
     }
 
@@ -333,5 +350,35 @@ export class GroupService {
         const inviteId = `${toUid}_${groupId}`;
         const invRef = doc(db!, `${this.auth.dbPath}groupInvites/${inviteId}`);
         await deleteDoc(invRef);
+    }
+
+    // --- Group Properties Management ---
+
+    private get groupPropertiesCollection() {
+        return collection(db!, `${this.auth.dbPath}groupProperties`);
+    }
+
+    async getGroupProperties(): Promise<string[]> {
+        const snap = await getDocs(this.groupPropertiesCollection);
+        return snap.docs.map(d => d.data()['name'] as string);
+    }
+
+    async addGroupProperty(name: string): Promise<void> {
+        const q = query(this.groupPropertiesCollection, where('name', '==', name));
+        const snap = await getDocs(q);
+        if (!snap.empty) return; // Already exists
+
+        await addDoc(this.groupPropertiesCollection, {
+            name,
+            createdAt: serverTimestamp()
+        });
+    }
+
+    async removeGroupProperty(name: string): Promise<void> {
+        const q = query(this.groupPropertiesCollection, where('name', '==', name));
+        const snap = await getDocs(q);
+        for (const d of snap.docs) {
+            await deleteDoc(d.ref);
+        }
     }
 }

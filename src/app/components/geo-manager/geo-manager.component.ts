@@ -23,7 +23,7 @@ export class GeoManagerComponent implements OnInit {
   _neighborhoodEditing: boolean[] = [];
   _neighborhoodEditValues: string[] = [];
 
-  constructor(public auth: AuthService, private cdr: ChangeDetectorRef) {}
+  constructor(public auth: AuthService, private cdr: ChangeDetectorRef) { }
 
   ngOnInit() {
     this.loadCities();
@@ -35,7 +35,7 @@ export class GeoManagerComponent implements OnInit {
     if (!this.auth.db) return;
     try {
       const { collection, getDocs } = await import('firebase/firestore');
-      const colRef = collection(this.auth.db, `${this.auth.dbPath}israel_locations`);
+      const colRef = collection(this.auth.db!, `${this.auth.dbPath}israel_locations`);
       const snap = await getDocs(colRef);
       this.cities = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
       this.cities.forEach(c => {
@@ -70,7 +70,7 @@ export class GeoManagerComponent implements OnInit {
     if (!name || !this.auth.db) return;
     try {
       const { collection, addDoc } = await import('firebase/firestore');
-      const colRef = collection(this.auth.db, `${this.auth.dbPath}israel_locations`);
+      const colRef = collection(this.auth.db!, `${this.auth.dbPath}israel_locations`);
       const docRef = await addDoc(colRef, { name, neighborhoods: [] });
       this.cities.push({ id: docRef.id, name, neighborhoods: [] });
       this.newCityName = '';
@@ -85,7 +85,7 @@ export class GeoManagerComponent implements OnInit {
     if (!name || !this.selectedCityId || !this.auth.db) return;
     try {
       const { doc, updateDoc, arrayUnion } = await import('firebase/firestore');
-      const docRef = doc(this.auth.db, `${this.auth.dbPath}israel_locations`, this.selectedCityId);
+      const docRef = doc(this.auth.db!, `${this.auth.dbPath}israel_locations`, this.selectedCityId);
       await updateDoc(docRef, { neighborhoods: arrayUnion(name) });
       const city = this.cities.find(c => c.id === this.selectedCityId);
       if (city) {
@@ -140,7 +140,7 @@ export class GeoManagerComponent implements OnInit {
     if (!city.id || !this.auth.db) return;
     try {
       const { doc, updateDoc, arrayRemove, arrayUnion } = await import('firebase/firestore');
-      const docRef = doc(this.auth.db, `${this.auth.dbPath}israel_locations`, city.id);
+      const docRef = doc(this.auth.db!, `${this.auth.dbPath}israel_locations`, city.id);
       const oldVal = city.neighborhoods[index];
       await updateDoc(docRef, { neighborhoods: arrayRemove(oldVal) });
       await updateDoc(docRef, { neighborhoods: arrayUnion(newVal) });
@@ -156,7 +156,7 @@ export class GeoManagerComponent implements OnInit {
     if (!city.id || !this.auth.db) return;
     try {
       const { doc, updateDoc, arrayRemove } = await import('firebase/firestore');
-      const docRef = doc(this.auth.db, `${this.auth.dbPath}israel_locations`, city.id);
+      const docRef = doc(this.auth.db!, `${this.auth.dbPath}israel_locations`, city.id);
       const val = city.neighborhoods[index];
       await updateDoc(docRef, { neighborhoods: arrayRemove(val) });
       city.neighborhoods = (city.neighborhoods || []).filter((n: string, i: number) => i !== index);
@@ -175,7 +175,7 @@ export class GeoManagerComponent implements OnInit {
     if (!this.auth.db) return;
     try {
       const { doc, updateDoc } = await import('firebase/firestore');
-      const docRef = doc(this.auth.db, `${this.auth.dbPath}israel_locations`, city.id);
+      const docRef = doc(this.auth.db!, `${this.auth.dbPath}israel_locations`, city.id);
       await updateDoc(docRef, { name: newName });
       city.name = newName;
       city._editing = false;
@@ -190,7 +190,7 @@ export class GeoManagerComponent implements OnInit {
     if (!this.auth.db) return;
     try {
       const { doc, deleteDoc } = await import('firebase/firestore');
-      const docRef = doc(this.auth.db, `${this.auth.dbPath}israel_locations`, city.id);
+      const docRef = doc(this.auth.db!, `${this.auth.dbPath}israel_locations`, city.id);
       await deleteDoc(docRef);
       this.cities = this.cities.filter(c => c.id !== city.id);
       if (this.selectedCityId === city.id) {
@@ -213,7 +213,7 @@ export class GeoManagerComponent implements OnInit {
     if (!this.selectedCityId || !this.auth.db) return;
     try {
       const { doc, updateDoc, arrayRemove, arrayUnion } = await import('firebase/firestore');
-      const docRef = doc(this.auth.db, `${this.auth.dbPath}israel_locations`, this.selectedCityId);
+      const docRef = doc(this.auth.db!, `${this.auth.dbPath}israel_locations`, this.selectedCityId);
       const oldVal = this.selectedCityNeighborhoods[index];
       await updateDoc(docRef, { neighborhoods: arrayRemove(oldVal) });
       await updateDoc(docRef, { neighborhoods: arrayUnion(newVal) });
@@ -232,7 +232,7 @@ export class GeoManagerComponent implements OnInit {
     if (!this.selectedCityId || !this.auth.db) return;
     try {
       const { doc, updateDoc, arrayRemove } = await import('firebase/firestore');
-      const docRef = doc(this.auth.db, `${this.auth.dbPath}israel_locations`, this.selectedCityId);
+      const docRef = doc(this.auth.db!, `${this.auth.dbPath}israel_locations`, this.selectedCityId);
       const val = this.selectedCityNeighborhoods[index];
       await updateDoc(docRef, { neighborhoods: arrayRemove(val) });
       const city = this.cities.find(c => c.id === this.selectedCityId);

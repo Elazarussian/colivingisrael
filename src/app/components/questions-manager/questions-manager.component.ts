@@ -21,6 +21,7 @@ export interface Question {
     order?: number;
     createdAt?: string;
     permanent?: boolean;
+    public?: boolean;
 }
 
 @Component({
@@ -36,6 +37,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
     @Input() editApartment: { id: string, data: any } | null = null; // if set, save will update this apartment
     @Input() userId?: string;
     @Input() onlyPersonalQuestions = false; // Filter to show only personal data questions
+    @Input() showOnlyPublicAnswers = false; // Filter to show only questions marked as public
 
 
     @Output() completed = new EventEmitter<void>();
@@ -212,7 +214,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         if (!this.auth.db) return;
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snap = await getDocs(collection(this.auth.db, `${this.auth.dbPath}israel_locations`));
+            const snap = await getDocs(collection(this.auth.db!, `${this.auth.dbPath}israel_locations`));
             this.cities = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
             this.cdr.detectChanges();
         } catch (err) {
@@ -393,7 +395,8 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
             min: 1,
             max: 5,
             maxSelections: undefined,
-            permanent: false
+            permanent: false,
+            public: true
         };
     }
 
@@ -402,7 +405,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         if (!this.auth.db) return [];
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snapshot = await getDocs(collection(this.auth.db, `${this.auth.dbPath}newUsersQuestions`));
+            const snapshot = await getDocs(collection(this.auth.db!, `${this.auth.dbPath}newUsersQuestions`));
             const questions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
             // Sort by order field if present, otherwise by createdAt
             return questions.sort((a, b) => {
@@ -423,7 +426,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         if (!this.auth.db) return [];
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snapshot = await getDocs(collection(this.auth.db, `${this.auth.dbPath}maskirQuestions`));
+            const snapshot = await getDocs(collection(this.auth.db!, `${this.auth.dbPath}maskirQuestions`));
             const questions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
             return questions.sort((a, b) => {
                 if (a.order !== undefined && b.order !== undefined) {
@@ -443,7 +446,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         if (!this.auth.db) return [];
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snapshot = await getDocs(collection(this.auth.db, `${this.auth.dbPath}userPersonalDataQuestions`));
+            const snapshot = await getDocs(collection(this.auth.db!, `${this.auth.dbPath}userPersonalDataQuestions`));
             const questions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
             // Sort by order field if present, otherwise by createdAt
             return questions.sort((a, b) => {
@@ -464,7 +467,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         if (!this.auth.db) return [];
         try {
             const { collection, getDocs } = await import('firebase/firestore');
-            const snapshot = await getDocs(collection(this.auth.db, `${this.auth.dbPath}apartmentQuestions`));
+            const snapshot = await getDocs(collection(this.auth.db!, `${this.auth.dbPath}apartmentQuestions`));
             const questions = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Question));
             return questions.sort((a, b) => {
                 if (a.order !== undefined && b.order !== undefined) {
@@ -485,7 +488,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         try {
             const { collection, addDoc } = await import('firebase/firestore');
             // collectionName passed in is short name, need to prepend TABLE
-            await addDoc(collection(this.auth.db, `${this.auth.dbPath}${collectionName}`), questionData);
+            await addDoc(collection(this.auth.db!, `${this.auth.dbPath}${collectionName}`), questionData);
         } catch (err) {
             console.error('Error adding question:', err);
             throw err;
@@ -496,7 +499,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         if (!this.auth.db) return;
         try {
             const { doc, deleteDoc } = await import('firebase/firestore');
-            await deleteDoc(doc(this.auth.db, `${this.auth.dbPath}${collectionName}`, id));
+            await deleteDoc(doc(this.auth.db!, `${this.auth.dbPath}${collectionName}`, id));
         } catch (err) {
             console.error('Error deleting question:', err);
             throw err;
@@ -507,7 +510,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         if (!this.auth.db) return;
         try {
             const { doc, updateDoc } = await import('firebase/firestore');
-            await updateDoc(doc(this.auth.db, `${this.auth.dbPath}${collectionName}`, id), questionData);
+            await updateDoc(doc(this.auth.db!, `${this.auth.dbPath}${collectionName}`, id), questionData);
         } catch (err) {
             console.error('Error updating question:', err);
             throw err;
@@ -518,7 +521,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         if (!this.auth.db) return {};
         try {
             const { doc, getDoc } = await import('firebase/firestore');
-            const ref = doc(this.auth.db, `${this.auth.dbPath}profiles`, uid);
+            const ref = doc(this.auth.db!, `${this.auth.dbPath}profiles`, uid);
             const snap = await getDoc(ref);
             return snap.exists() ? (snap.data() as any).questions || {} : {};
         } catch (err) {
@@ -634,6 +637,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
             key: q.key || null,
             type: q.type,
             permanent: !!q.permanent,
+            public: q.public !== undefined ? !!q.public : true,
             createdAt: q.createdAt || new Date().toISOString()
         };
 
@@ -825,11 +829,11 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
 
             if (this.editApartment && this.editApartment.id) {
                 const { updateDoc, doc } = await import('firebase/firestore');
-                await updateDoc(doc(this.auth.db, `${this.auth.dbPath}apartments`, this.editApartment.id), payload);
+                await updateDoc(doc(this.auth.db!, `${this.auth.dbPath}apartments`, this.editApartment.id), payload);
                 this.msg.show('הדירה עודכנה במאגר');
             } else {
                 const { collection, addDoc } = await import('firebase/firestore');
-                await addDoc(collection(this.auth.db, `${this.auth.dbPath}apartments`), payload);
+                await addDoc(collection(this.auth.db!, `${this.auth.dbPath}apartments`), payload);
                 this.msg.show('הדירה נשמרה במאגר');
             }
 
@@ -855,16 +859,35 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
 
             let allKeys = Object.keys(this.viewedUserAnswers || {});
 
-            if (this.onlyPersonalQuestions) {
-                // Ensure we have the list of personal questions loaded to check against
-                if (this.personalDataQuestions.length === 0) {
-                    await this.loadPersonalDataQuestions();
-                }
-                const personalIds = new Set(this.personalDataQuestions.map(q => q.id));
-                const personalKeys = new Set(this.personalDataQuestions.map(q => q.key).filter(k => !!k));
+            // Fetch question definitions to check 'public' flag
+            const [regQs, pdQs, mkQs] = await Promise.all([
+                this.getRegistrationQuestions(),
+                this.getPersonalDataQuestions(),
+                this.getMaskirQuestions()
+            ]);
+            const allQuestions = [...regQs, ...pdQs, ...mkQs];
+            const questionMap = new Map<string, Question>();
+            allQuestions.forEach(q => {
+                if (q.id) questionMap.set(q.id, q);
+                if (q.key) questionMap.set(q.key, q);
+            });
 
-                // Filter keys that match either ID or Key of a personal question
+            if (this.onlyPersonalQuestions) {
+                // Ensure pdQs is already available from Promise.all above
+                const personalIds = new Set(pdQs.map(q => q.id));
+                const personalKeys = new Set(pdQs.map(q => q.key).filter(k => !!k));
                 allKeys = allKeys.filter(k => personalIds.has(k) || personalKeys.has(k));
+
+                // Also update component state for consistency
+                this.personalDataQuestions = pdQs;
+            }
+
+            if (this.showOnlyPublicAnswers) {
+                allKeys = allKeys.filter(k => {
+                    const q_def = questionMap.get(k);
+                    // Show if explicitly true or if undefined (default to public)
+                    return q_def && q_def.public !== false;
+                });
             }
 
             // sort by order if possible? For now, just existing order or keys
@@ -1039,6 +1062,20 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         } catch (err) {
             console.error('Error updating question orders:', err);
             this.msg.show('שגיאה בעדכון סדר השאלות');
+        }
+    }
+
+    async toggleQuestionPublic(q: Question, isPersonalData: boolean, isMaskir: boolean = false, isApartment: boolean = false) {
+        if (!q.id) return;
+        const collectionName = isApartment ? 'apartmentQuestions' : (isMaskir ? 'maskirQuestions' : (isPersonalData ? 'userPersonalDataQuestions' : 'newUsersQuestions'));
+        const newPublic = q.public === undefined ? false : !q.public;
+        try {
+            await this.updateQuestionInFirebase(collectionName, q.id, { public: newPublic });
+            q.public = newPublic;
+            this.cdr.detectChanges();
+        } catch (err) {
+            console.error('Error toggling public visibility:', err);
+            this.msg.show('שגיאה בעדכון הגדרות פרטיות');
         }
     }
 

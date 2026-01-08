@@ -32,14 +32,11 @@
           </div>
         </div>
 
-        <!-- Create Group (Only for non-members or admins) -->
         <div class="group-create-action" *ngIf="auth.isAdmin(profile) || groups.length === 0">
           <div class="input-group-premium">
-            <label class="control-label">מספר שותפים דרוש:</label>
-            <input type="number" [(ngModel)]="newGroupRequiredMembers" min="2" max="10" class="input-main input-short">
-            <button class="btn btn-special" (click)="createGroup()">
+            <button class="btn btn-special" (click)="openCreateGroupModal()">
               <span class="material-symbols-outlined">add_circle</span>
-              צור קבוצה
+              צור קבוצה חדשה
             </button>
           </div>
         </div>
@@ -62,6 +59,7 @@
                 (click)="deleteGroup(selectedGroup)" title="מחק קבוצה">
                 <span class="material-symbols-outlined">delete</span> מחק קבוצה
               </button>
+
               <button class="btn btn-sm btn-invite-link"
                 *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid"
                 [class.success]="inviteCopySuccess" (click)="copyInviteLink()" title="העתק קישור הזמנה מהיר">
@@ -98,6 +96,72 @@
                 שותפים דרושים: <strong>{{ selectedGroup.requiredMembers || 2 }}</strong>
               </span>
             </div>
+
+            <div class="group-description-bar editable-section"
+              *ngIf="!isEditingGroupDetails && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid || selectedGroup.description)">
+              <div class="section-label-row" *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid">
+                <label class="section-label">תיאור הקבוצה:</label>
+                <button class="btn-icon btn-sm btn-icon-inline" (click)="startEditingGroupDetails()" title="ערוך תיאור">
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </div>
+              <p class="description-text" *ngIf="selectedGroup.description">{{ selectedGroup.description }}</p>
+              <p class="description-text empty-hint"
+                *ngIf="!selectedGroup.description && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid)">
+                לחץ על האייקון כדי להוסיף תיאור לקבוצה...
+              </p>
+            </div>
+
+            <div class="group-properties-bar editable-section"
+              *ngIf="!isEditingGroupDetails && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid || (selectedGroup.properties && selectedGroup.properties.length > 0))">
+              <div class="section-label-row" *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid">
+                <label class="section-label">מאפייני הקבוצה:</label>
+                <button class="btn-icon btn-sm btn-icon-inline" (click)="startEditingGroupDetails()"
+                  title="ערוך מאפיינים">
+                  <span class="material-symbols-outlined">edit</span>
+                </button>
+              </div>
+              <div class="properties-chips" *ngIf="selectedGroup.properties && selectedGroup.properties.length > 0">
+                <span *ngFor="let prop of selectedGroup.properties" class="property-tag">
+                  <span class="material-symbols-outlined">star</span>
+                  {{ prop }}
+                </span>
+              </div>
+              <p class="description-text empty-hint"
+                *ngIf="(!selectedGroup.properties || selectedGroup.properties.length === 0) && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid)">
+                לחץ על האייקון כדי להוסיף מאפיינים לקבוצה...
+              </p>
+            </div>
+
+            <!-- Edit Mode UI -->
+            <div class="group-edit-container" *ngIf="isEditingGroupDetails">
+              <div class="form-section">
+                <label class="section-label">ערוך תיאור:</label>
+                <textarea [(ngModel)]="editGroupDescription" class="input-main textarea-description"></textarea>
+              </div>
+
+              <div class="form-section">
+                <label class="section-label">ערוך מאפיינים:</label>
+                <div class="properties-selection-grid">
+                  <button *ngFor="let prop of availableProperties" class="property-selection-chip"
+                    [class.selected]="isEditPropertySelected(prop)" (click)="toggleEditProperty(prop)">
+                    <span class="material-symbols-outlined">
+                      {{ isEditPropertySelected(prop) ? 'check_box' : 'check_box_outline_blank' }}
+                    </span>
+                    {{ prop }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="edit-actions" style="display:flex; gap:1rem; margin-top:1rem;">
+                <button class="btn btn-approve" (click)="saveGroupDetails()">
+                  <span class="material-symbols-outlined">save</span> שמור שינויים
+                </button>
+                <button class="btn btn-cancel" (click)="cancelEditingGroupDetails()">
+                  ביטול
+                </button>
+              </div>
+            </div>
           </div>
         </header>
 
@@ -120,7 +184,8 @@
                 </span>
               </div>
               <!-- Remove Member restricted to creator/admin -->
-              <button class="btn-icon btn-remove" *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile.uid"
+              <button class="btn-icon btn-remove"
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile.uid) && ((member.id || member.uid) !== selectedGroup.adminId || auth.isAdmin(profile))"
                 (click)="removeMember(member)" title="הסר מהקבוצה">
                 <span class="material-symbols-outlined">person_remove</span>
               </button>
@@ -131,84 +196,94 @@
 
       <!-- Section: Discover Users (ONLY if Admin) -->
       <section class="management-section" *ngIf="auth.isAdmin(profile)" (click)="$event.stopPropagation()">
-        <div class="glass-search-header">
+        <header class="section-toggle-header" (click)="showAllParticipants = !showAllParticipants">
           <div class="section-header">
+            <span class="material-symbols-outlined">{{ showAllParticipants ? 'expand_less' : 'expand_more' }}</span>
             <span class="material-symbols-outlined">person_add</span>
-            <h3>כל המשתתפים</h3>
+            <h3>כל המשתתפים ({{ availableUsers.length }})</h3>
           </div>
-          <div class="global-search-bar">
-            <span class="material-symbols-outlined">search</span>
-            <input type="text" [(ngModel)]="searchTerm" (input)="filterUsers()"
-              placeholder="חפש משתמשים לפי שם או אימייל..." class="search-input">
-          </div>
-        </div>
+        </header>
 
-        <div class="users-grid">
-          <div class="user-card glass-card" *ngFor="let user of availableUsers"
-            [class.expanded]="expandedUserId === (user.id || user.uid) || closingUserId === (user.id || user.uid)">
-            <div class="card-content">
-              <div class="avatar avatar-lg">
-                {{ (user.displayName || 'U')[0].toUpperCase() }}
+        <div class="expandable-section" [class.expanded]="showAllParticipants">
+          <div class="expandable-inner">
+            <div class="glass-search-header">
+              <div class="global-search-bar">
+                <span class="material-symbols-outlined">search</span>
+                <input type="text" [(ngModel)]="searchTerm" (input)="filterUsers()"
+                  placeholder="חפש משתמשים לפי שם או אימייל..." class="search-input">
               </div>
-              <div class="user-main-info">
-                <h3>{{ user.displayName || 'משתמש ללא שם' }}</h3>
-                <p class="text-muted">{{ user.email }}</p>
-                <!-- Group Membership Badge -->
-                <div class="badge badge-blue" *ngIf="getUserGroup(user) as g">
-                  <span class="material-symbols-outlined">group</span>
-                  {{ g.name }}
-                </div>
+            </div>
 
-              </div>
-              <!-- Actions hidden if in a group (already handled by outer *ngIf, but safe to keep) -->
-              <div class="user-actions-ui"
-                *ngIf="selectedGroup && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid)">
-                <ng-container *ngIf="!hasPendingInvite(user); else inviteSentBadge">
-                  <button class="btn btn-outline btn-sm" (click)="inviteToGroup(user)">הזמן</button>
-                  <button class="btn btn-special btn-sm" *ngIf="auth.isAdmin(profile)"
-                    (click)="addToGroup(user)">הוסף</button>
-                </ng-container>
-                <ng-template #inviteSentBadge>
-                  <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
-                    <div class="badge badge-yellow">
-                      <span class="material-symbols-outlined">mark_email_read</span>
-                      הזמנה נשלחה
+            <div class="users-grid">
+              <div class="user-card glass-card" *ngFor="let user of availableUsers"
+                [class.expanded]="expandedUserId === (user.id || user.uid) || closingUserId === (user.id || user.uid)">
+                <div class="card-content">
+                  <div class="avatar avatar-lg">
+                    {{ (user.displayName || 'U')[0].toUpperCase() }}
+                  </div>
+                  <div class="user-main-info">
+                    <h3>{{ user.displayName || 'משתמש ללא שם' }}</h3>
+                    <p class="text-muted">{{ user.email }}</p>
+                    <!-- Group Membership Badge -->
+                    <div class="badge badge-blue" *ngIf="getUserGroup(user) as g">
+                      <span class="material-symbols-outlined">group</span>
+                      {{ g.name }}
                     </div>
-                    <button class="btn btn-outline btn-sm" (click)="cancelInvite(user)">בטל הזמנה</button>
+
                   </div>
-                </ng-template>
+                  <!-- Actions hidden if in a group (already handled by outer *ngIf, but safe to keep) -->
+                  <div class="user-actions-ui"
+                    *ngIf="selectedGroup && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid)">
+                    <ng-container *ngIf="!hasPendingInvite(user); else inviteSentBadge">
+                      <button class="btn btn-outline btn-sm" (click)="inviteToGroup(user)">הזמן</button>
+                      <button class="btn btn-special btn-sm" *ngIf="auth.isAdmin(profile)"
+                        (click)="addToGroup(user)">הוסף</button>
+                    </ng-container>
+                    <ng-template #inviteSentBadge>
+                      <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                        <div class="badge badge-yellow">
+                          <span class="material-symbols-outlined">mark_email_read</span>
+                          הזמנה נשלחה
+                        </div>
+                        <button class="btn btn-outline btn-sm" (click)="cancelInvite(user)">בטל הזמנה</button>
+                      </div>
+                    </ng-template>
 
 
-              </div>
-            </div>
-            <div class="card-footer">
-              <button class="btn-text" (click)="toggleQuickView(user.id || user.uid)">
-                <span class="material-symbols-outlined">{{ expandedUserId === (user.id || user.uid) ? 'expand_less' :
-                  'visibility' }}</span>
-                {{ expandedUserId === (user.id || user.uid) ? 'סגור תצוגה' : 'תצוגה מהירה' }}
-              </button>
-            </div>
+                  </div>
+                </div>
+                <div class="card-footer">
+                  <button class="btn-text" (click)="toggleQuickView(user.id || user.uid)">
+                    <span class="material-symbols-outlined">{{ expandedUserId === (user.id || user.uid) ? 'expand_less'
+                      :
+                      'visibility' }}</span>
+                    {{ expandedUserId === (user.id || user.uid) ? 'סגור תצוגה' : 'תצוגה מהירה' }}
+                  </button>
+                </div>
 
-            <!-- Inline Unfolding Content -->
-            <div class="user-card-unfurl" [class.expanded]="expandedUserId === (user.id || user.uid)">
-              <div class="unfurl-inner">
-                <div class="unfurl-content-wrapper"
-                  *ngIf="expandedUserId === (user.id || user.uid) || closingUserId === (user.id || user.uid)">
-                  <app-questions-manager mode="view-answers" [userId]="user.id || user.uid"
-                    [onlyPersonalQuestions]="true" (closed)="toggleQuickView(user.id || user.uid)">
-                  </app-questions-manager>
-                  <div class="unfurl-footer">
-                    <button class="btn btn-outline btn-sm" (click)="toggleQuickView(user.id || user.uid)">
-                      <span class="material-symbols-outlined">expand_less</span> סגור תצוגה
-                    </button>
+                <!-- Inline Unfolding Content -->
+                <div class="user-card-unfurl" [class.expanded]="expandedUserId === (user.id || user.uid)">
+                  <div class="unfurl-inner">
+                    <div class="unfurl-content-wrapper"
+                      *ngIf="expandedUserId === (user.id || user.uid) || closingUserId === (user.id || user.uid)">
+                      <app-questions-manager mode="view-answers" [userId]="user.id || user.uid"
+                        [onlyPersonalQuestions]="true" [showOnlyPublicAnswers]="true"
+                        (closed)="toggleQuickView(user.id || user.uid)">
+                      </app-questions-manager>
+                      <div class="unfurl-footer">
+                        <button class="btn btn-outline btn-sm" (click)="toggleQuickView(user.id || user.uid)">
+                          <span class="material-symbols-outlined">expand_less</span> סגור תצוגה
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+            <div *ngIf="availableUsers.length === 0" class="empty-state">
+              <p>לא נמצאו משתמשים נוספים.</p>
+            </div>
           </div>
-        </div>
-        <div *ngIf="availableUsers.length === 0" class="empty-state">
-          <p>לא נמצאו משתמשים נוספים.</p>
         </div>
       </section>
     </div>
@@ -225,6 +300,57 @@
       </div>
     </ng-template>
 
+    <!-- Create Group Modal -->
+    <div *ngIf="showCreateGroupModal" class="confirm-modal-overlay" (click)="closeCreateGroupModal()">
+      <div class="confirm-modal glass-morphism creation-modal" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <span class="material-symbols-outlined icon-xl text-gradient">group_add</span>
+          <h2>יצירת קבוצה חדשה</h2>
+        </header>
+
+        <div class="modal-body">
+          <div class="form-section">
+            <label class="section-label">תיאור הקבוצה:</label>
+            <textarea [(ngModel)]="newGroupDescription" placeholder="כתוב תיאור קצר על הקבוצה, מה אתם מחפשים וכו'..."
+              class="input-main textarea-description"></textarea>
+          </div>
+
+          <div class="form-section">
+            <label class="section-label">מספר שותפים דרוש (כולל אותך):</label>
+            <div class="number-input-wrapper">
+              <input type="number" [(ngModel)]="newGroupRequiredMembers" min="2" max="10"
+                class="input-main input-short">
+              <span class="unit">שותפים</span>
+            </div>
+          </div>
+
+          <div class="form-section" *ngIf="availableProperties.length > 0">
+            <label class="section-label">מאפייני הקבוצה:</label>
+            <p class="section-hint">בחר את המאפיינים שמתארים את הקבוצה שלך:</p>
+            <div class="properties-selection-grid">
+              <button *ngFor="let prop of availableProperties" class="property-selection-chip"
+                [class.selected]="isPropertySelected(prop)" (click)="toggleProperty(prop)">
+                <span class="material-symbols-outlined">
+                  {{ isPropertySelected(prop) ? 'check_box' : 'check_box_outline_blank' }}
+                </span>
+                {{ prop }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="confirm-actions">
+          <button class="btn btn-approve btn-create" (click)="createGroup()">
+            <span class="material-symbols-outlined">add_task</span>
+            צור קבוצה עכשיו
+          </button>
+          <button class="btn btn-cancel" (click)="closeCreateGroupModal()">
+            ביטול
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Direct Invite Modal -->
     <div *ngIf="directInviteGroup" class="confirm-modal-overlay">
       <div class="confirm-modal glass-morphism">
@@ -235,16 +361,50 @@
 
         <div class="modal-body" style="margin: 1.5rem 0; text-align: center;">
           <p>הוזמנת להצטרף לקבוצה על ידי שיתוף קישור.</p>
+
           <div class="group-info-card"
-            style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.25rem; margin: 1rem 0; text-align: right;">
+            style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.5rem; margin: 1rem 0; text-align: right;">
+
             <div class="info-row"
-              style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; color: #fff;">
+              style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; color: #fff;">
               <span class="material-symbols-outlined" style="color: #4CAF50;">person</span>
               <span>מנהל הקבוצה: <strong>{{ directInviteGroup.creatorName }}</strong></span>
             </div>
-            <div class="info-row" style="display: flex; align-items: center; gap: 0.75rem; color: #fff;">
-              <span class="material-symbols-outlined" style="color: #4CAF50;">groups</span>
-              <span>מספר חברים נוכחי: <strong>{{ directInviteGroup.members.length }}</strong></span>
+
+            <!-- Description -->
+            <div class="info-row" *ngIf="directInviteGroup.description" style="margin-bottom: 1rem;">
+              <p
+                style="color: rgba(255,255,255,0.7); font-size: 0.95rem; line-height: 1.5; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px;">
+                {{ directInviteGroup.description }}
+              </p>
+            </div>
+
+            <!-- Properties -->
+            <div class="info-row" *ngIf="directInviteGroup.properties?.length" style="margin-bottom: 1.25rem;">
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                <span *ngFor="let prop of directInviteGroup.properties"
+                  style="background: rgba(76, 175, 80, 0.1); color: #4caf50; border: 1px solid rgba(76, 175, 80, 0.3); padding: 0.2rem 0.6rem; border-radius: 100px; font-size: 0.8rem; font-weight: 600;">
+                  <span class="material-symbols-outlined"
+                    style="font-size: 0.8rem; vertical-align: middle; margin-left: 2px;">star</span>
+                  {{ prop }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Members List -->
+            <div class="info-row">
+              <strong style="display: block; margin-bottom: 0.5rem; color: #fff; font-size: 0.9rem;">חברי הקבוצה ({{
+                directInviteGroup.members.length }}):</strong>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                <div *ngFor="let member of directInviteGroup.fullMembers"
+                  style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.05); padding: 0.4rem 0.75rem; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="avatar avatar-xs" style="width: 24px; height: 24px; font-size: 0.8rem;">
+                    {{ (member.displayName || 'U')[0].toUpperCase() }}
+                  </div>
+                  <span style="font-size: 0.85rem; color: rgba(255,255,255,0.9);">{{ member.displayName || 'משתמש'
+                    }}</span>
+                </div>
+              </div>
             </div>
           </div>
           <p class="question" style="font-weight: 600; color: #fff;">האם ברצונך לקבל את ההזמנה ולהצטרף לקבוצה?</p>
@@ -255,9 +415,60 @@
             <span class="material-symbols-outlined">check_circle</span>
             אשר והצטרף
           </button>
-          <button class="btn btn-outline" (click)="closeDirectInvite()">
+          <button class="btn btn-cancel" (click)="closeDirectInvite()">
             <span class="material-symbols-outlined">cancel</span>
             דחה הזמנה
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leader Removal Modal (Admins Only) -->
+    <div *ngIf="showLeaderRemovalModal" class="confirm-modal-overlay" style="z-index: 5500;">
+      <div class="confirm-modal" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <span class="material-symbols-outlined icon-xl text-gradient"
+            style="color: #ff5252; font-size: 3rem;">warning</span>
+          <h2>הסרת מנהל קבוצה</h2>
+        </header>
+        <div class="modal-body" style="text-align: right;">
+          <p>שים לב - אתה מוחק את מנהל הקבוצה (<strong>{{ userToRemove?.displayName || userToRemove?.email }}</strong>).
+          </p>
+          <p>עליך להחליט אם למחוק את הקבוצה לחלוטין או להפוך משתמש אחר למנהל הקבוצה.</p>
+
+          <div *ngIf="selectedGroupMembers.length > 1; else mustDelete" style="margin-top: 1.5rem;">
+            <label class="section-label"
+              style="display: block; margin-bottom: 0.5rem; color: #4caf50; font-weight: 700;">בחר מנהל חדש
+              לקבוצה:</label>
+            <div class="member-selection-list"
+              style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+              <ng-container *ngFor="let member of selectedGroupMembers">
+                <button *ngIf="(member.id || member.uid) !== (userToRemove?.id || userToRemove?.uid)"
+                  class="btn btn-outline"
+                  style="justify-content: flex-start; text-align: right; width: 100%; padding: 0.75rem;"
+                  (click)="transferLeadershipAndRemove(member.id || member.uid)">
+                  <div class="avatar avatar-xs"
+                    style="margin-left: 10px; width: 28px; height: 28px; font-size: 0.9rem;">
+                    {{ (member.displayName || 'U')[0].toUpperCase() }}
+                  </div>
+                  הפוך את {{ member.displayName }} למנהל והסר את המנהל הנוכחי
+                </button>
+              </ng-container>
+            </div>
+          </div>
+          <ng-template #mustDelete>
+            <p
+              style="color: #ff5252; font-weight: 600; margin-top: 1rem; text-align: center; border: 1px dashed rgba(255,82,82,0.3); padding: 1rem; border-radius: 8px;">
+              אין משתמשים אחרים להעביר אליהם את הניהול. הקבוצה תימחק במידה ותמשיך.
+            </p>
+          </ng-template>
+        </div>
+        <div class="confirm-actions" style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: center;">
+          <button class="btn btn-danger" (click)="deleteGroupAndRemove()">
+            <span class="material-symbols-outlined">delete</span> מחק קבוצה והסר משתמש
+          </button>
+          <button class="btn btn-secondary" (click)="showLeaderRemovalModal = false; userToRemove = null;">
+            ביטול
           </button>
         </div>
       </div>

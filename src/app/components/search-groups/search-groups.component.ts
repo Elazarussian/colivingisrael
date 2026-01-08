@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { GroupService, Group } from '../../services/group.service';
 import { MessageService } from '../../services/message.service';
 import { QuestionsManagerComponent } from '../questions-manager/questions-manager.component';
+import { doc, getDoc } from 'firebase/firestore';
 
 @Component({
   selector: 'app-search-groups',
@@ -20,6 +21,7 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
   allUsers: any[] = [];
   filteredUsers: any[] = [];
   searchTerm: string = '';
+  showAllParticipants: boolean = false;
 
   groups: Group[] = []; // Displayed groups (filtered for user)
   allKnownGroups: Group[] = []; // All groups for lookup (badges)
@@ -41,6 +43,18 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
   pendingInvites: Set<string> = new Set();
   inviteCopySuccess: boolean = false;
 
+  showCreateGroupModal: boolean = false;
+  newGroupDescription: string = '';
+  availableProperties: string[] = [];
+  selectedProperties: string[] = [];
+
+  isEditingGroupDetails: boolean = false;
+  editGroupDescription: string = '';
+  editGroupProperties: string[] = [];
+
+  showLeaderRemovalModal: boolean = false;
+  userToRemove: any = null;
+
   constructor(
     public auth: AuthService,
     private groupService: GroupService,
@@ -55,6 +69,7 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
       if (p) {
         this.loadData();
         this.handleAutoInvite();
+        this.loadAvailableProperties();
       }
     });
 
@@ -77,6 +92,15 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
           return;
         }
 
+        // Fetch member profiles for display in the modal
+        if (group.members && group.members.length > 0) {
+          try {
+            (group as any).fullMembers = await this.auth.getProfiles(group.members);
+          } catch (err) {
+            console.error('Error fetching profiles for auto invite', err);
+          }
+        }
+
         // Instead of auto-inviting, show a popup modal
         this.directInviteGroup = group;
         this.cdr.detectChanges();
@@ -84,26 +108,44 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     }
   }
 
+
   async acceptDirectInvite() {
     if (!this.directInviteGroup || !this.profile) return;
+
     const group = this.directInviteGroup;
     this.directInviteGroup = null;
 
+    const inviteId = `${this.profile.uid}_${group.id}`;
+
     try {
-      // 1. Send the invitation (to satisfy security rules/records)
+      // 1. Check if an invite already exists (environment-aware via GroupService logic)
+      // We don't directly check existence here to avoid permission issues if doc doesn't exist,
+      // instead we try to "proactively" ensure it exists.
+
+      this.messageService.show('מעבד הצטרפות...');
+
+      // 2. Proactively create/ensure self-invite exists to satisfy joining rules
+      // This makes shared "Direct Invite Links" work for everyone.
       await this.groupService.inviteUserToGroup(group.id!, group.name, this.profile.uid);
 
-      // 2. Immediately respond and join
-      const inviteId = `${this.profile.uid}_${group.id}`;
+      // 3. Small delay to ensure Firestore consistency for the rules engine
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      // 4. Join the group using the invite
       await this.groupService.respondToInvitation(inviteId, group.id!, 'accepted');
 
       this.messageService.show(`הצטרפת בהצלחה לקבוצה: ${group.name}`);
-      this.loadGroups(); // Refresh status
-    } catch (err) {
-      console.error('Failed to accept direct invite', err);
-      this.messageService.show('שגיאה בהצטרפות לקבוצה. נסה שוב מאוחר יותר.');
+      await this.loadGroups();
+    } catch (err: any) {
+      console.error('❌ FAILED TO JOIN VIA DIRECT INVITE:', err);
+      if (err.message?.includes('permission')) {
+        this.messageService.show('שגיאת הרשאות: וודא שאתה מחובר ושיש לך הרשאה מתאימה.');
+      } else {
+        this.messageService.show('שגיאה בהצטרפות לקבוצה. נסה שוב מאוחר יותר.');
+      }
     }
   }
+
 
   closeDirectInvite() {
     this.directInviteGroup = null;
@@ -128,7 +170,7 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
   async loadAllUsers() {
     if (!this.auth.db) return;
     const { collection, getDocs } = await import('firebase/firestore');
-    const profilesCol = collection(this.auth.db, `${this.auth.dbPath}profiles`);
+    const profilesCol = collection(this.auth.db!, `${this.auth.dbPath}profiles`);
     const snapshot = await getDocs(profilesCol);
     this.allUsers = snapshot.docs
       .map(d => ({ id: d.id, ...d.data() } as any))
@@ -193,6 +235,7 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     this.selectedGroup = null;
     this.selectedGroupMembers = [];
     this.pendingInvites.clear();
+    this.isEditingGroupDetails = false;
     if (this.pendingInvitesUnsubscribe) {
       this.pendingInvitesUnsubscribe();
       this.pendingInvitesUnsubscribe = null;
@@ -275,9 +318,44 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     return this.allUsers.find(u => (u.id || u.uid) === this.expandedUserId);
   }
 
+  async loadAvailableProperties() {
+    try {
+      this.availableProperties = await this.groupService.getGroupProperties();
+    } catch (err) {
+      console.error('Error loading properties:', err);
+    }
+  }
+
+  toggleProperty(prop: string) {
+    if (this.selectedProperties.includes(prop)) {
+      this.selectedProperties = this.selectedProperties.filter(p => p !== prop);
+    } else {
+      this.selectedProperties.push(prop);
+    }
+  }
+
+  isPropertySelected(prop: string): boolean {
+    return this.selectedProperties.includes(prop);
+  }
+
+  openCreateGroupModal() {
+    // Restriction: User cannot create if already in a group (unless admin)
+    if (!this.auth.isAdmin(this.profile) && this.groups.length > 0) {
+      alert('לא ניתן ליצור קבוצה חדשה כאשר אתה כבר חבר בקבוצה.');
+      return;
+    }
+    this.showCreateGroupModal = true;
+    this.newGroupDescription = '';
+    this.selectedProperties = [];
+    this.newGroupRequiredMembers = 2;
+  }
+
+  closeCreateGroupModal() {
+    this.showCreateGroupModal = false;
+  }
+
   async createGroup() {
-    // Determine the next group name based on all existing groups
-    // Find the highest number in names like "קבוצה 1", "קבוצה 2"
+    // Determine the next group name
     const groupNumbers = this.allKnownGroups
       .map(g => {
         const match = g.name.match(/קבוצה\s+(\d+)/);
@@ -286,15 +364,18 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     const nextNumber = Math.max(0, ...groupNumbers) + 1;
     const autoGroupName = `קבוצה ${nextNumber}`;
 
-    // Restriction: User cannot create if already in a group (unless admin)
-    if (!this.auth.isAdmin(this.profile) && this.groups.length > 0) {
-      alert('לא ניתן ליצור קבוצה חדשה כאשר אתה כבר חבר בקבוצה.');
-      return;
-    }
-
     try {
-      const id = await this.groupService.createGroup(autoGroupName, this.newGroupRequiredMembers);
-      this.newGroupRequiredMembers = 2; // Reset to default
+      const id = await this.groupService.createGroup(
+        autoGroupName,
+        this.newGroupRequiredMembers,
+        this.newGroupDescription,
+        this.selectedProperties
+      );
+
+      this.showCreateGroupModal = false;
+      this.newGroupRequiredMembers = 2;
+      this.newGroupDescription = '';
+      this.selectedProperties = [];
 
       // Ensure groups are loaded
       await this.loadGroups();
@@ -331,13 +412,68 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
 
   async removeMember(user: any) {
     if (!this.selectedGroup || !this.selectedGroup.id) return;
+    const targetUid = user.id || user.uid;
+
+    // 1. Restriction: Creator/Admin cannot remove themselves
+    if (targetUid === this.selectedGroup.adminId && this.profile.uid === this.selectedGroup.adminId) {
+      alert('מנהל קבוצה אינו יכול להסיר את עצמו. עליך למחוק את הקבוצה לחלוטין אם ברצונך לצאת.');
+      return;
+    }
+
+    // 2. Special logic: Site Administrator removes the Group Leader
+    if (targetUid === this.selectedGroup.adminId && this.auth.isAdmin(this.profile)) {
+      this.userToRemove = user;
+      this.showLeaderRemovalModal = true;
+      return;
+    }
+
+    // 3. Normal Removal logic
     if (!confirm(`האם אתה בטוח שברצונך להסיר את ${user.displayName || 'משתמש'} מהקבוצה?`)) return;
 
     try {
-      await this.groupService.removeUserFromGroup(this.selectedGroup.id, user.id || user.uid);
+      await this.groupService.removeUserFromGroup(this.selectedGroup.id, targetUid);
+      this.messageService.show(`המשתמש ${user.displayName || 'משתמש'} הוסר מהקבוצה.`);
       await this.loadGroups();
     } catch (err) {
       console.error('Error removing member', err);
+    }
+  }
+
+  async deleteGroupAndRemove() {
+    if (!this.selectedGroup || !this.userToRemove) return;
+    const groupId = this.selectedGroup.id!;
+    const userName = this.userToRemove.displayName || 'מנהל הקבוצה';
+
+    try {
+      await this.groupService.deleteGroup(groupId);
+      this.showLeaderRemovalModal = false;
+      this.userToRemove = null;
+      this.deselectGroup();
+      this.messageService.show(`הקבוצה נמחקה והמשתמש ${userName} הוסר.`);
+    } catch (err) {
+      console.error('Error deleting group during leader removal:', err);
+      alert('שגיאה במחיקת הקבוצה');
+    }
+  }
+
+  async transferLeadershipAndRemove(newAdminId: string) {
+    if (!this.selectedGroup || !this.userToRemove) return;
+    const groupId = this.selectedGroup.id!;
+    const oldAdminId = this.userToRemove.id || this.userToRemove.uid;
+
+    try {
+      // 1. Update group admin to the new person
+      await this.groupService.updateGroupAdmin(groupId, newAdminId);
+      // 2. Remove the old admin
+      await this.groupService.removeUserFromGroup(groupId, oldAdminId);
+
+      this.showLeaderRemovalModal = false;
+      this.userToRemove = null;
+      this.messageService.show('ניהול הקבוצה הועבר והמשתמש הוסר בהצלחה.');
+      await this.loadGroups();
+    } catch (err) {
+      console.error('Error transferring leadership:', err);
+      alert('שגיאה בהעברת הניהול');
     }
   }
 
@@ -453,6 +589,46 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     }
   }
 
+  startEditingGroupDetails() {
+    if (!this.selectedGroup) return;
+    this.isEditingGroupDetails = true;
+    this.editGroupDescription = this.selectedGroup.description || '';
+    this.editGroupProperties = [...(this.selectedGroup.properties || [])];
+  }
+
+  cancelEditingGroupDetails() {
+    this.isEditingGroupDetails = false;
+  }
+
+  async saveGroupDetails() {
+    if (!this.selectedGroup || !this.selectedGroup.id) return;
+
+    try {
+      await this.groupService.updateGroupDetails(
+        this.selectedGroup.id,
+        this.editGroupDescription,
+        this.editGroupProperties
+      );
+      this.isEditingGroupDetails = false;
+      this.messageService.show('פרטי הקבוצה עודכנו בהצלחה');
+    } catch (err) {
+      console.error('Error saving group details:', err);
+      alert('שגיאה בעדכון פרטי הקבוצה');
+    }
+  }
+
+  toggleEditProperty(prop: string) {
+    if (this.editGroupProperties.includes(prop)) {
+      this.editGroupProperties = this.editGroupProperties.filter(p => p !== prop);
+    } else {
+      this.editGroupProperties.push(prop);
+    }
+  }
+
+  isEditPropertySelected(prop: string): boolean {
+    return this.editGroupProperties.includes(prop);
+  }
+
   isUserInSelectedGroup(user: any): boolean {
     if (!this.selectedGroup) return false;
     return this.selectedGroup.members.includes(user.id || user.uid);
@@ -529,7 +705,7 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
       try {
         document.execCommand('copy');
         //קישור להזמנה הועתק ללוח!
-//this.messageService.show('קישור להזמנה הועתק ללוח!');
+        //this.messageService.show('קישור להזמנה הועתק ללוח!');
       } catch (err) {
         alert('שגיאה בהעתקת הקישור: ' + inviteLink);
       }

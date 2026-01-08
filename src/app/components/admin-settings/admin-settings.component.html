@@ -58,6 +58,15 @@
           </div>
         </div>
 
+        <div class="admin-groups" style="margin-top:1rem;">
+          <h2>ניהול הגדרות קבוצה</h2>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap; margin-top:0.5rem;">
+            <button class="btn btn-special" (click)="showPropertiesManager = !showPropertiesManager">
+              {{ showPropertiesManager ? 'סגור ניהול מאפיינים' : 'נהל מאפייני קבוצה' }}
+            </button>
+          </div>
+        </div>
+
         <div *ngIf="showUsersTable && allUsersError" class="error-message" style="margin-top:1rem">
           {{ allUsersError }}
           <div style="margin-top:.5rem;display:flex;gap:.5rem;justify-content:flex-end">
@@ -72,6 +81,10 @@
       </app-questions-manager>
 
       <app-geo-manager *ngIf="showGeoManager" (closed)="closeGeoManager()"></app-geo-manager>
+
+      <div *ngIf="showPropertiesManager" style="margin-top: 20px;">
+        <app-group-properties-manager></app-group-properties-manager>
+      </div>
 
       <!-- TEST USER GENERATION MODAL -->
       <div *ngIf="showGenerateModal" class="modal-overlay" (click)="closeGenerateModal()">

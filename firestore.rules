@@ -6,15 +6,28 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isAdminRoot() {
-      let p = /databases/$(database)/documents/profiles/$(request.auth.uid);
-      return isSignedIn() && exists(p) && get(p).data.role == 'admin';
+    function isAdmin() {
+      let uid = request.auth.uid;
+      let rootProfile = /databases/$(database)/documents/profiles/$(uid);
+      let testProfile = /databases/$(database)/documents/testdata/db/profiles/$(uid);
+      return isSignedIn() && (
+        (exists(rootProfile) && get(rootProfile).data.role == 'admin') ||
+        (exists(testProfile) && get(testProfile).data.role == 'admin')
+      );
     }
 
-    function isAdminTest() {
-      let p = /databases/$(database)/documents/testdata/db/profiles/$(request.auth.uid);
-      return isSignedIn() && exists(p) && get(p).data.role == 'admin';
+    match /groupProperties/{propId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
+
+    match /testdata/db/groupProperties/{propId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    function isAdminRoot() { return isAdmin(); }
+    function isAdminTest() { return isAdmin(); }
 
     // Helper to check for a valid invite in the ROOT collection
     function hasInviteRoot(groupId) {
@@ -44,8 +57,11 @@ service cloud.firestore {
         || (isSignedIn() && resource.data.adminId == request.auth.uid)
         || (
           isSignedIn()
-          && hasInviteRoot(groupId)
           && request.resource.data.members.hasAny([request.auth.uid])
+          && (
+            exists(/databases/$(database)/documents/groupInvites/$(request.auth.uid + '_' + groupId)) ||
+            exists(/databases/$(database)/documents/testdata/db/groupInvites/$(request.auth.uid + '_' + groupId))
+          )
         );
 
       match /members/{memberUid} {
@@ -64,15 +80,20 @@ service cloud.firestore {
     match /groupInvites/{inviteId} {
       allow create: if isAdminRoot() || (
         isSignedIn()
+        && request.resource.data.toUid == request.auth.uid
+        && request.resource.data.inviterUid == request.auth.uid
+      ) || (
+        isSignedIn()
         && request.resource.data.inviterUid == request.auth.uid
         && get(/databases/$(database)/documents/groups/$(request.resource.data.groupId)).data.adminId == request.auth.uid
       );
 
       allow read: if isSignedIn()
         && (
-          resource.data.toUid == request.auth.uid
-          || resource.data.inviterUid == request.auth.uid
+          (resource != null && resource.data.toUid == request.auth.uid)
+          || (resource != null && resource.data.inviterUid == request.auth.uid)
           || isAdminRoot()
+          || (resource == null) // Allow checking for non-existent invites
         );
 
       allow delete: if isSignedIn()
@@ -84,6 +105,8 @@ service cloud.firestore {
 
       allow update: if false;
     }
+
+
 
     // --- PUBLIC DATA ---
 
@@ -135,8 +158,11 @@ service cloud.firestore {
           || (isSignedIn() && resource.data.adminId == request.auth.uid)
           || (
             isSignedIn()
-            && hasInviteTest(groupId)
             && request.resource.data.members.hasAny([request.auth.uid])
+            && (
+              exists(/databases/$(database)/documents/groupInvites/$(request.auth.uid + '_' + groupId)) ||
+              exists(/databases/$(database)/documents/testdata/db/groupInvites/$(request.auth.uid + '_' + groupId))
+            )
           );
 
         match /members/{memberUid} {
@@ -155,15 +181,20 @@ service cloud.firestore {
       match /groupInvites/{inviteId} {
         allow create: if isAdminTest() || (
           isSignedIn()
+          && request.resource.data.toUid == request.auth.uid
+          && request.resource.data.inviterUid == request.auth.uid
+        ) || (
+          isSignedIn()
           && request.resource.data.inviterUid == request.auth.uid
           && get(/databases/$(database)/documents/testdata/db/groups/$(request.resource.data.groupId)).data.adminId == request.auth.uid
         );
 
         allow read: if isSignedIn()
           && (
-            resource.data.toUid == request.auth.uid
-            || resource.data.inviterUid == request.auth.uid
+            (resource != null && resource.data.toUid == request.auth.uid)
+            || (resource != null && resource.data.inviterUid == request.auth.uid)
             || isAdminTest()
+            || (resource == null) // Allow checking for non-existent invites
           );
 
         allow delete: if isSignedIn()
@@ -175,6 +206,8 @@ service cloud.firestore {
 
         allow update: if false;
       }
+
+
     }
 
     match /{document=**} {

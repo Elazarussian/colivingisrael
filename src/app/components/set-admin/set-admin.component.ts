@@ -42,7 +42,7 @@ export class SetAdminComponent {
             }
 
             console.log('Setting admin role for user:', user.uid);
-            const profileRef = doc(this.auth.db, `${this.auth.dbPath}profiles`, user.uid);
+            const profileRef = doc(this.auth.db!, `${this.auth.dbPath}profiles`, user.uid);
             await setDoc(profileRef, { role: 'admin' }, { merge: true });
 
             this.message = '✅ Admin role set! Refreshing profile...';

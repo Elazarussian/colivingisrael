@@ -35,6 +35,44 @@
     flex-shrink: 0;
 }
 
+.public-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.public-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.public-toggle-btn.active {
+    background: rgba(76, 175, 80, 0.15);
+    border-color: rgba(76, 175, 80, 0.3);
+    color: #4caf50;
+}
+
+.public-toggle-btn.active:hover {
+    background: rgba(76, 175, 80, 0.25);
+    color: #66bb6a;
+}
+
+.public-toggle-btn .material-symbols-outlined {
+    font-size: 1.25rem;
+}
+
+.public-toggle-btn .btn-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
 .permanent-badge {
     font-size: 0.95rem;
     color: #b00;

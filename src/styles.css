@@ -1,11 +1,19 @@
+/* ==========================================================================
+   1. VARIABLES & BASE STYLES
+   ========================================================================== */
 :root {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     line-height: 1.5;
     font-weight: 400;
     color-scheme: light dark;
     color: rgba(255, 255, 255, 0.87);
-    /* height of the fixed topbar; adjust if topbar changes */
     --topbar-height: 64px;
+    --primary-gradient: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
+    --primary-hover: #43a047;
+    --danger-color: #ff5252;
+    --danger-hover: #ff1744;
+    --glass-bg: rgba(255, 255, 255, 0.04);
+    --glass-border: rgba(255, 255, 255, 0.1);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -15,18 +23,12 @@ body {
     min-width: 320px;
     min-height: 100vh;
     position: relative;
-    /* reserve space for fixed topbar so it won't cover page titles/buttons */
     padding-top: var(--topbar-height);
     background-image: url('assets/building.png');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
     background-repeat: no-repeat;
-}
-
-/* Site-wide RTL */
-html[dir="rtl"],
-body {
     direction: rtl;
     text-align: right;
 }
@@ -35,7 +37,6 @@ body::before {
     content: '';
     position: fixed;
     inset: 0;
-    /* shorthand for top/left/right/bottom */
     background: linear-gradient(135deg, rgba(30, 15, 0, 0.5) 0%, rgba(38, 19, 0, 0.7) 50%, rgba(77, 42, 7, 0.9) 100%);
     z-index: -1;
     pointer-events: none;
@@ -44,11 +45,19 @@ body::before {
 #app {
     width: 100%;
     margin: 0;
-    /* ensure page content is pushed below the fixed topbar */
-    /* padding-top: var(--topbar-height); */
-    padding: 0
+    padding: 0;
 }
 
+h1 {
+    font-size: 4rem;
+    font-weight: 700;
+    margin-bottom: .5rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================================================
+   2. NAVIGATION
+   ========================================================================== */
 nav {
     position: fixed;
     top: 0;
@@ -59,7 +68,7 @@ nav {
     padding: 1rem 2rem;
     z-index: 1000;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3)
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 nav a {
@@ -70,244 +79,18 @@ nav a {
     font-size: 1.1rem;
     transition: all .3s;
     padding: .5rem 1rem;
-    border-radius: 8px
+    border-radius: 8px;
 }
 
 nav a:hover {
     color: #fff;
     background: rgba(255, 255, 255, 0.1);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5)
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 nav a.active {
     color: #4CAF50;
-    background: rgba(76, 175, 80, 0.1)
-}
-
-h1 {
-    font-size: 4rem;
-    font-weight: 700;
-    margin-bottom: .5rem;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5)
-}
-
-.hero {
-    position: relative;
-    height: 100vh;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff
-}
-
-.hero-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(rgba(0, 0, 0, 0.01), rgba(0, 0, 0, 0.05));
-    z-index: 1
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    padding: 2rem
-}
-
-.subtitle {
-    font-size: 1.5rem;
-    margin-bottom: 2.5rem;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5)
-}
-
-.cta-buttons {
-    display: flex;
-    gap: 1.5rem;
-    justify-content: center
-}
-
-/* Global button styles */
-button,
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: .5rem;
-    font-family: inherit;
-    background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
-    color: #fff;
-    text-align: center;
-    border: none;
-    border-radius: 10px;
-    padding: .75rem 1.5rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
-}
-
-button:hover,
-.btn:hover {
-    background: #43a047;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(76, 175, 80, 0.25);
-}
-
-button:disabled,
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
-    background: #555 !important;
-    box-shadow: none !important;
-}
-
-/* Button variants for specific contexts */
-.question-actions .btn {
-    padding: 0.45rem 0.6rem;
-    font-size: 0.9rem;
-}
-
-.yesno-buttons .btn {
-    min-width: 100px;
-    padding: 1rem 2rem;
-}
-
-.inv-actions .btn {
-    padding: 0.5rem 1.25rem;
-}
-
-.geo-item-actions button {
-    margin-left: 0.35rem;
-}
-
-/* Base Variants - Standardized */
-.btn-approve,
-.btn-special,
-.btn-regular,
-.btn-secondary,
-.btn-outline,
-.btn-text,
-.btn-icon,
-.btn-remove {
-    background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
-    color: #fff;
-    border: none;
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
-}
-
-.btn-approve:hover,
-.btn-special:hover,
-.btn-regular:hover,
-.btn-secondary:hover,
-.btn-outline:hover,
-.btn-text:hover,
-.btn-icon:hover,
-.btn-remove:hover {
-    background: #43a047;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(76, 175, 80, 0.25);
-}
-
-.btn-cancel,
-.btn-danger {
-    background: transparent;
-    color: #ff5252;
-    border: 1px solid rgba(255, 82, 82, 0.3);
-    box-shadow: none;
-}
-
-.btn-cancel:hover,
-.btn-danger:hover {
-    background: rgba(255, 82, 82, 0.1);
-    color: #ff1744;
-    border-color: #ff1744;
-    transform: translateY(-2px);
-}
-
-/* Professional Invite Button */
-.btn-invite-link {
-    background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%) !important;
-    color: #fff !important;
-    border: none !important;
-    box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3) !important;
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-invite-link:hover {
-    background: linear-gradient(135deg, #8e24aa 0%, #ab47bc 100%) !important;
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4) !important;
-}
-
-.btn-invite-link.success {
-    background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%) !important;
-    box-shadow: 0 4px 15px rgba(67, 160, 71, 0.4) !important;
-}
-
-.btn-invite-link .material-symbols-outlined {
-    font-size: 1.25rem;
-    transition: transform 0.3s ease;
-}
-
-.btn-invite-link:active .material-symbols-outlined {
-    transform: scale(0.85);
-}
-
-.btn-sm,
-.btn-small {
-    padding: 0.45rem 0.75rem !important;
-    font-size: 0.85rem !important;
-    border-radius: 8px !important;
-    min-width: 0 !important;
-}
-
-.btn-icon-base,
-.btn-icon {
-    width: 36px;
-    height: 36px;
-    padding: 0 !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50% !important;
-    flex-shrink: 0;
-}
-
-/* Specific Component Buttons */
-.group-chip {
-    padding: 0.6rem 1.25rem;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-}
-
-.group-chip.active {
-    background: #4caf50;
-    border-color: #4caf50;
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.2);
-    color: #fff;
-}
-
-.tab-btn {
-    flex: 1;
-    padding: 0.6rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    color: rgba(255, 255, 255, 0.9);
-    border-radius: 10px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    transition: all 0.18s;
-}
-
-.tab-btn.active {
-    background: #4caf50;
-    color: white;
-    border-color: rgba(76, 175, 80, 0.25);
+    background: rgba(76, 175, 80, 0.1);
 }
 
 .menu-toggle {
@@ -345,17 +128,220 @@ button:disabled,
     transform: rotate(-45deg) translate(5px, -6px);
 }
 
+/* ==========================================================================
+   3. HERO SECTION
+   ========================================================================== */
+.hero {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
 
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(0, 0, 0, 0.01), rgba(0, 0, 0, 0.05));
+    z-index: 1;
+}
 
+.hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 2rem;
+}
 
-/* Shared layout and form utilities (used across multiple components) */
+.subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 2.5rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.cta-buttons {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+/* ==========================================================================
+   4. STANDARDIZED BUTTONS
+   ========================================================================== */
+button,
+.btn,
+.btn-approve,
+.btn-special,
+.btn-regular,
+.btn-secondary,
+.btn-outline,
+.btn-text,
+.btn-icon,
+.btn-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    font-family: inherit;
+    background: var(--primary-gradient);
+    color: #fff;
+    text-align: center;
+    border: none;
+    border-radius: 10px;
+    padding: .75rem 1.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+}
+
+button:hover,
+.btn:hover,
+.btn-approve:hover,
+.btn-special:hover,
+.btn-regular:hover,
+.btn-secondary:hover,
+.btn-outline:hover,
+.btn-text:hover,
+.btn-icon:hover,
+.btn-remove:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(76, 175, 80, 0.25);
+}
+
+button:disabled,
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    background: #555 !important;
+    box-shadow: none !important;
+}
+
+/* Button Variants */
+.btn-cancel,
+.btn-danger {
+    background: transparent;
+    color: var(--danger-color);
+    border: 1px solid rgba(255, 82, 82, 0.3);
+    box-shadow: none;
+}
+
+.btn-cancel:hover,
+.btn-danger:hover {
+    background: rgba(255, 82, 82, 0.1);
+    color: var(--danger-hover);
+    border-color: var(--danger-hover);
+}
+
+.btn-invite-link {
+    background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%) !important;
+    box-shadow: 0 4px 15px rgba(156, 39, 176, 0.3) !important;
+}
+
+.btn-invite-link:hover {
+    background: linear-gradient(135deg, #8e24aa 0%, #ab47bc 100%) !important;
+    box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4) !important;
+}
+
+.btn-invite-link.success {
+    background: var(--primary-gradient) !important;
+    box-shadow: 0 4px 15px rgba(67, 160, 71, 0.4) !important;
+}
+
+/* Button Sizes & Icon Bases */
+.btn-sm,
+.btn-small {
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.85rem !important;
+    border-radius: 8px !important;
+}
+
+.btn-icon-base,
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    flex-shrink: 0;
+}
+
+.btn-fit-content {
+    width: fit-content !important;
+    padding: .75rem 2rem !important;
+    margin-top: 1rem;
+}
+
+.icon-only {
+    padding: 0 !important;
+    min-width: 0 !important;
+}
+
+/* Contextual Button Adjustments */
+.question-actions .btn {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.9rem;
+}
+
+.yesno-buttons .btn {
+    min-width: 100px;
+    padding: 1rem 2rem;
+}
+
+.inv-actions .btn {
+    padding: 0.5rem 1.25rem;
+}
+
+.geo-item-actions button {
+    margin-left: 0.35rem;
+}
+
+/* Tabs & Chips */
+.group-chip {
+    padding: 0.6rem 1.25rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.group-chip.active {
+    background: #4caf50;
+    border-color: #4caf50;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.2);
+    color: #fff;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 0.6rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.18s;
+}
+
+.tab-btn.active {
+    background: #4caf50;
+    color: white;
+}
+
+/* ==========================================================================
+   5. LAYOUT & CONTAINERS
+   ========================================================================== */
 .container {
     max-width: 900px;
     margin: 0 auto;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--glass-bg);
     padding: 2rem;
     border-radius: 12px;
-    text-align: right
+    text-align: right;
 }
 
 .content-section {
@@ -367,91 +353,66 @@ button:disabled,
     max-width: 900px;
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    transition: all .3s
+    transition: all .3s;
 }
 
 .content-section:hover {
     background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.25);
     transform: translateY(-5px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4)
 }
 
 .card-container {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 1rem
+    gap: 1rem;
 }
 
-.card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(15px);
-    border-radius: 15px;
-    padding: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    margin: 1rem;
-    flex: 1 1 250px
-}
-
-/* Glass Card - Modern premium panel */
+.card,
 .glass-panel,
-.glass-card {
+.glass-card,
+.card-base,
+.geo-card {
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(15px);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
+    border-radius: 15px;
     padding: 1.5rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     transition: all 0.3s ease;
+    flex: 1 1 250px;
 }
 
+.card:hover,
 .glass-panel:hover,
-.glass-card:hover {
+.glass-card:hover,
+.card-base:hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-4px);
 }
 
-/* Standard form controls */
+/* ==========================================================================
+   6. FORM ELEMENTS
+   ========================================================================== */
 input,
 textarea,
-select {
+select,
+.form-control {
+    width: 100%;
     padding: .9rem;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 10px;
     font-size: 1rem;
     background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.95)
-}
-
-input::placeholder,
-textarea::placeholder {
-    color: rgba(255, 255, 255, 0.7)
+    color: rgba(255, 255, 255, 0.95);
+    transition: all 0.2s;
+    box-sizing: border-box;
 }
 
 input:focus,
 textarea:focus,
-select:focus {
-    outline: none;
-    background: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.12)
-}
-
-/* Reusable form-control class used across components */
-.form-control {
-    width: 100%;
-    padding: 0.9rem;
-    margin-bottom: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    font-size: 1rem;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.95);
-    transition: all 0.2s;
-}
-
+select:focus,
 .form-control:focus {
     outline: none;
     background: rgba(255, 255, 255, 0.12);
@@ -459,35 +420,34 @@ select:focus {
     box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
 }
 
+input::placeholder,
+textarea::placeholder,
 .form-control::placeholder {
     color: rgba(255, 255, 255, 0.4);
 }
 
-/* Utility: make a button take fit-content width */
-.btn-fit-content {
-    width: fit-content !important;
-    padding-left: 2rem;
-    padding-right: 2rem;
-    margin-top: 1rem;
-}
-
-/* .btn-close styles moved to consolidated section below line 626 */
-
-/* Icon-only logic merged with btn-close */
-
-/* Fix dropdown options visibility globally */
 select option {
     background-color: #2c2c2c;
     color: rgba(255, 255, 255, 0.95);
-    padding: 0.5rem
+    padding: 0.5rem;
 }
 
-/* Divider helper used in auth modal and elsewhere */
+.input-short {
+    width: 15ch !important;
+    min-width: 100px;
+    display: inline-block;
+}
+
+.input-long {
+    width: 100% !important;
+    display: block;
+}
+
 .divider {
     display: flex;
     align-items: center;
     margin: 1.25rem 0;
-    color: rgba(255, 255, 255, 0.8)
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .divider::before,
@@ -495,14 +455,13 @@ select option {
     content: '';
     flex: 1;
     height: 1px;
-    background: rgba(255, 255, 255, 0.06)
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .divider span {
-    padding: 0 0.75rem
+    padding: 0 0.75rem;
 }
 
-/* Error message block */
 .error-message {
     color: #ffebee;
     background: rgba(244, 67, 54, 0.18);
@@ -511,38 +470,33 @@ select option {
     margin-top: .9rem;
     text-align: center;
     font-weight: 500;
-    min-height: 20px
 }
 
 .error-message:empty {
-    display: none
+    display: none;
 }
 
-/* Modal Styles - standardizing on one robust implementation */
-.modal-overlay {
+/* ==========================================================================
+   7. MODALS
+   ========================================================================== */
+.modal-overlay,
+.confirm-modal-overlay {
     display: flex !important;
     position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
+    inset: 0 !important;
     background-color: rgba(0, 0, 0, 0.85) !important;
     backdrop-filter: blur(6px) !important;
-    -webkit-backdrop-filter: blur(6px) !important;
     align-items: center !important;
     justify-content: center !important;
     z-index: 2100 !important;
-    pointer-events: auto !important;
 }
 
-.modal-content {
-    /* Merged styles for dark theme and layout */
+.modal-content,
+.confirm-modal {
     background: #1a1a1a !important;
-    /* Force dark theme */
     color: #ffffff !important;
     border: 1px solid rgba(255, 255, 255, 0.06);
     padding: 2rem;
-    /* Initial padding, can be overridden by media queries */
     border-radius: 16px;
     width: 92%;
     max-width: 480px;
@@ -553,7 +507,13 @@ select option {
     overflow-y: auto;
 }
 
-/* Close Button (Red X with animation) */
+.confirm-modal {
+    max-width: 400px;
+    text-align: center;
+    border-radius: 24px;
+    animation: modalScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .btn-close {
     position: absolute;
     top: 1.5rem;
@@ -561,22 +521,21 @@ select option {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(244, 67, 54, 0.1);
-    color: #ff5252;
+    color: var(--danger-color);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 10;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .btn-close:hover {
     background: #f44336;
     color: #fff;
     transform: rotate(180deg) scale(1.1);
-    box-shadow: 0 0 15px rgba(244, 67, 54, 0.4);
 }
 
 .btn-close::before,
@@ -587,7 +546,6 @@ select option {
     height: 2px;
     background-color: currentColor;
     border-radius: 2px;
-    transition: background-color 0.3s;
 }
 
 .btn-close::before {
@@ -596,68 +554,6 @@ select option {
 
 .btn-close::after {
     transform: rotate(-45deg);
-}
-
-.btn-close.icon-only {
-    /* icon-only centering handled by base .btn-close */
-    box-sizing: border-box;
-}
-
-.icon-only {
-    padding: 0 !important;
-    min-width: 0 !important;
-}
-
-
-/* Ensure inputs inside modals respect modal padding and don't overflow on small screens */
-.modal-content input,
-.modal-content textarea,
-.modal-content select,
-.modal-content .form-control {
-    box-sizing: border-box;
-    /* max-width is handled by .input-short/long classes mostly, but this ensures no overflow */
-    max-width: 100%;
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.2) !important;
-}
-
-/* Specific overrides for modal inner elements ensuring they don't break layout */
-.modal-content h3,
-.modal-content h4 {
-    margin: 0 0 .5rem 0;
-}
-
-@media (max-width: 480px) {
-    .modal-content {
-        padding: 1.25rem;
-    }
-
-    /* Shorten the main question text input and similar full-width inputs on narrow screens */
-    .modal-content .form-control {
-        max-width: 100%;
-        /* rely on box-sizing */
-        padding: 0.75rem;
-        font-size: 0.95rem;
-    }
-
-    /* Make auto-size inputs a bit more compact on very small screens */
-    .modal-content .auto-size-input {
-        width: 10ch !important;
-        min-width: 6ch !important;
-    }
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateY(-30px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
 }
 
 .modal-header {
@@ -672,101 +568,12 @@ select option {
 .modal-header h2 {
     margin: 0;
     font-size: 1.8rem;
-    color: rgba(255, 255, 255, 0.95);
     font-weight: 700;
 }
 
-/* Admin Badge used in profile and elsewhere */
-.admin-badge {
-    display: inline-block;
-    margin: 0 0 1.5rem 0;
-    padding: 1rem 2rem;
-    background: linear-gradient(135deg, #d32f2f, #e53935);
-    color: #fff;
-    font-size: 2.5rem;
-    font-weight: 900;
-    text-align: center;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(211, 47, 47, 0.5);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    animation: adminPulse 2s ease-in-out infinite;
-}
-
-@keyframes adminPulse {
-
-    0%,
-    100% {
-        box-shadow: 0 8px 24px rgba(211, 47, 47, 0.5);
-        transform: scale(1);
-    }
-
-    50% {
-        box-shadow: 0 12px 32px rgba(211, 47, 47, 0.7);
-        transform: scale(1.02);
-    }
-}
-
-/* Language flag icons used in admin question forms */
-.lang-flag {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    cursor: pointer;
-    border-radius: 3px;
-    transition: transform .12s ease, opacity .12s ease;
-    /* emoji-friendly stack: prefer system color emoji fonts then fall back */
-    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", "Segoe UI Symbol", sans-serif;
-    font-size: 20px;
-    /* ensure emoji is large enough */
-}
-
-.lang-flag:hover {
-    transform: translateY(-2px) scale(1.03);
-}
-
-/* Twemoji output (images) sizing to match emoji spans */
-.emoji,
-img.emoji {
-    width: 20px !important;
-    height: 20px !important;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-
-@media (max-width:768px) {
-    h1 {
-        font-size: 2.5rem
-    }
-
-    .cta-buttons {
-        flex-direction: column;
-        gap: 1rem
-    }
-
-    .cta-buttons .btn {
-        width: auto !important;
-        padding: 0.5rem 1rem;
-        min-width: 0;
-    }
-
-    nav {
-        padding: .75rem 1rem
-    }
-
-    nav a {
-        font-size: 1rem;
-        margin: 0 .5rem;
-        padding: .4rem .8rem
-    }
-}
-
-/* Common Layout & Components */
-
+/* ==========================================================================
+   8. COMMON COMPONENTS
+   ========================================================================== */
 /* Section Headers */
 .section-header {
     display: flex;
@@ -829,12 +636,57 @@ img.emoji {
     box-shadow: 0 8px 24px rgba(76, 175, 80, 0.3);
 }
 
+/* Badges */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.badge-default {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.badge-admin,
+.badge-red {
+    background: rgba(244, 67, 54, 0.15);
+    color: #ff5252;
+    border-color: rgba(244, 67, 54, 0.3);
+}
+
+.badge-success,
+.badge-green {
+    background: rgba(76, 175, 80, 0.15);
+    color: #69f0ae;
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.badge-info,
+.badge-blue {
+    background: rgba(33, 150, 243, 0.15);
+    color: #40c4ff;
+    border-color: rgba(33, 150, 243, 0.3);
+}
+
+.badge-warning,
+.badge-yellow {
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffd740;
+    border-color: rgba(255, 193, 7, 0.3);
+}
+
 /* Loaders */
 .loader-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     padding: 3rem;
     width: 100%;
 }
@@ -849,12 +701,6 @@ img.emoji {
     margin-bottom: 1rem;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
 /* Suggestions & Autocomplete */
 .suggestions-list {
     background: rgba(30, 30, 30, 0.95);
@@ -867,7 +713,7 @@ img.emoji {
     z-index: 1000;
     padding: 0.5rem;
     list-style: none;
-    margin: 0.5rem 0 0 0;
+    margin-top: 0.5rem;
 }
 
 .suggestion-item {
@@ -878,10 +724,6 @@ img.emoji {
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     display: flex;
     flex-direction: column;
-}
-
-.suggestion-item:last-child {
-    border-bottom: none;
 }
 
 .suggestion-item:hover {
@@ -910,7 +752,9 @@ img.emoji {
     margin: 1rem 0;
 }
 
-/* Geo manager specific styles */
+/* ==========================================================================
+   9. GEO MANAGER SPECIFIC
+   ========================================================================== */
 .geo-list {
     list-style: none;
     padding: 0;
@@ -927,25 +771,17 @@ img.emoji {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-weight: 500;
+    transition: all 0.2s;
 }
 
-.geo-list li .muted {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: .85rem;
+.geo-list li:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-2px);
 }
 
-/* ensure modal-content in geo manager is readable on dark background */
-.modal-content h3,
-.modal-content h4 {
-    margin: 0 0 .5rem 0;
-}
-
-/* Geo manager modal layout improvements */
 .geo-columns {
     display: flex;
     gap: 0.6rem;
-    align-items: flex-start;
     flex-wrap: wrap;
 }
 
@@ -962,29 +798,6 @@ img.emoji {
     margin-bottom: .6rem;
 }
 
-.geo-form-row label {
-    font-weight: 600;
-    font-size: .95rem;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-/* Make modal content scrollable on small screens and prevent buttons from overlaying inputs */
-@media (max-width: 640px) {
-    .geo-columns {
-        flex-direction: column;
-    }
-
-    .geo-left,
-    .geo-right {
-        min-width: 100%;
-    }
-
-    /* .btn-fit-content width handled by global class mostly, ensuring full width on mobile if needed */
-    .btn-fit-content {
-        width: 100% !important;
-    }
-}
-
 .geo-item {
     display: flex;
     justify-content: space-between;
@@ -992,90 +805,11 @@ img.emoji {
     gap: .75rem;
 }
 
-.geo-item-left {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-}
-
-.geo-item-actions {
-    display: flex;
-    gap: .4rem;
-    align-items: center;
-}
-
-.geo-item input.form-control {
-    min-width: 130px;
-}
-
-.geo-item .btn {
-    padding: .45rem .6rem;
-    font-size: .9rem
-}
-
-/* Card-like panels for geo manager */
-.geo-card {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.02));
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    padding: 1rem;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
-}
-
 .geo-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 1rem
-}
-
-.geo-section-title {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 700
-}
-
-.geo-subtitle {
-    margin: 0;
-    font-size: .9rem;
-    color: rgba(255, 255, 255, 0.75)
-}
-
-.geo-input {
-    width: 100%;
-    margin-top: .3rem;
-    max-width: 320px
-}
-
-.geo-controls {
-    margin-top: .35rem;
-    display: flex;
-    gap: .4rem;
-    align-items: center
-}
-
-.geo-action-btn {
-    padding: .35rem .6rem
-}
-
-.city-name {
-    font-weight: 600
-}
-
-
-
-
-
-/* subtle hover for list items */
-.geo-list li:hover {
-    background: rgba(255, 255, 255, 0.02);
-    transform: translateY(-2px);
-}
-
-/* compact buttons inside lists */
-.geo-item-actions .btn {
-    padding: .35rem .5rem;
-    font-size: .85rem
+    gap: 1rem;
 }
 
 .city-neighborhoods {
@@ -1085,70 +819,22 @@ img.emoji {
     margin-top: .4rem;
 }
 
-
-/* Standardized Input Sizes */
-.input-short {
-    width: 15ch !important;
-    min-width: 100px;
-    max-width: 100%;
-    display: inline-block;
-}
-
-.input-long {
-    width: 100% !important;
-    display: block;
-    box-sizing: border-box;
-}
-
-/* Global Confirmation Modals */
-.confirm-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(8px);
-    z-index: 5000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: modalFadeIn 0.3s ease;
-}
-
-.confirm-modal {
-    background: #1a1a1a;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 2.5rem;
-    border-radius: 24px;
-    max-width: 400px;
-    width: 90%;
-    text-align: center;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-    animation: modalScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    direction: rtl;
-}
-
-.confirm-modal h3 {
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
-    color: #fff;
-}
-
-/* Global Table Styles */
+/* ==========================================================================
+   10. GLOBAL TABLES
+   ========================================================================== */
 .table-container {
     width: 100%;
     overflow-x: auto;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    width: 100%;
     text-align: right;
-    direction: rtl;
 }
 
 .table th,
@@ -1162,102 +848,107 @@ img.emoji {
     background: rgba(255, 255, 255, 0.04);
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
-    font-size: 0.95rem;
-    white-space: nowrap;
-}
-
-.table tr:last-child td {
-    border-bottom: none;
 }
 
 .table tr:hover td {
     background: rgba(255, 255, 255, 0.02);
 }
 
-/* Global Badge Styles */
-.badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.3rem 0.75rem;
-    border-radius: 100px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-    border: 1px solid transparent;
-}
-
-.badge-default {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.badge-admin,
-.badge-red {
-    background: rgba(244, 67, 54, 0.15);
-    color: #ff5252;
-    border: 1px solid rgba(244, 67, 54, 0.3);
-}
-
-.badge-success,
-.badge-green {
-    background: rgba(76, 175, 80, 0.15);
-    color: #69f0ae;
-    border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.badge-info,
-.badge-blue {
-    background: rgba(33, 150, 243, 0.15);
-    color: #40c4ff;
-    border: 1px solid rgba(33, 150, 243, 0.3);
-}
-
-.badge-warning,
-.badge-yellow {
-    background: rgba(255, 193, 7, 0.15);
-    color: #ffd740;
-    border: 1px solid rgba(255, 193, 7, 0.3);
-}
-
-
-/* Enhanced Card Base */
-.card-base {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+/* ==========================================================================
+   11. SPECIAL EFFECTS & UTILITIES
+   ========================================================================== */
+.admin-badge {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #d32f2f, #e53935);
+    color: #fff;
+    font-size: 2.5rem;
+    font-weight: 900;
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(211, 47, 47, 0.5);
+    animation: adminPulse 2s ease-in-out infinite;
+    border: 3px solid rgba(255, 255, 255, 0.3);
 }
 
-.card-base:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
-    border-color: rgba(255, 255, 255, 0.15);
+.lang-flag {
+    display: inline-flex;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    font-size: 20px;
+    transition: transform .12s ease;
 }
 
-.confirm-modal p {
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 2rem;
-    line-height: 1.6;
+.lang-flag:hover {
+    transform: translateY(-2px) scale(1.1);
 }
 
-.confirm-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
+/* Twemoji support */
+.emoji,
+img.emoji {
+    width: 20px !important;
+    height: 20px !important;
+    display: inline-block;
+    vertical-align: middle;
 }
 
-@keyframes modalFadeIn {
+/* ==========================================================================
+   12. RESPONSIVE DESIGN
+   ========================================================================== */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.5rem;
+    }
+
+    .cta-buttons {
+        flex-direction: column;
+    }
+
+    nav {
+        padding: .75rem 1rem;
+    }
+
+    nav a {
+        margin: 0 .5rem;
+        padding: .4rem .8rem;
+    }
+
+    .modal-content {
+        padding: 1.25rem;
+    }
+
+    .content-section {
+        padding: 2rem 1.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .geo-columns {
+        flex-direction: column;
+    }
+
+    .geo-left,
+    .geo-right {
+        min-width: 100%;
+    }
+
+    .btn-fit-content {
+        width: 100% !important;
+    }
+}
+
+/* ==========================================================================
+   13. ANIMATIONS
+   ========================================================================== */
+@keyframes slideIn {
     from {
+        transform: translateY(-30px);
         opacity: 0;
     }
 
     to {
+        transform: translateY(0);
         opacity: 1;
     }
 }
@@ -1271,5 +962,25 @@ img.emoji {
     to {
         transform: scale(1);
         opacity: 1;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes adminPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 8px 24px rgba(211, 47, 47, 0.5);
+        transform: scale(1);
+    }
+
+    50% {
+        box-shadow: 0 12px 32px rgba(211, 47, 47, 0.7);
+        transform: scale(1.02);
     }
 }

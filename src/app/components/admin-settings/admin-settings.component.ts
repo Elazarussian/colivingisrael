@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { QuestionsManagerComponent } from '../questions-manager/questions-manager.component';
 import { GeoManagerComponent } from '../geo-manager/geo-manager.component';
+import { GroupPropertiesManagerComponent } from '../group-properties-manager/group-properties-manager.component';
 
 @Component({
   selector: 'app-admin-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, QuestionsManagerComponent, GeoManagerComponent],
+  imports: [CommonModule, FormsModule, QuestionsManagerComponent, GeoManagerComponent, GroupPropertiesManagerComponent],
   templateUrl: './admin-settings.component.html',
   styleUrls: ['./admin-settings.component.css']
 })
@@ -23,6 +24,8 @@ export class AdminSettingsComponent {
   selectedUserId?: string;
 
   showGeoManager = false;
+
+  showPropertiesManager = false;
 
   showGenerateModal = false;
   testUserAmount = 5;

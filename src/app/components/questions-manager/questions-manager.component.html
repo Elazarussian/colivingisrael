@@ -15,10 +15,18 @@
     <!-- shared question list item template -->
     <ng-template #questionItem let-q let-i="index" let-listLen="listLen" let-moveUpFn="moveUpFn"
         let-moveDownFn="moveDownFn" let-openEditFn="openEditFn" let-deleteFn="deleteFn" let-moveArgs="moveArgs"
-        let-openArgs="openArgs">
+        let-openArgs="openArgs" let-togglePublicFn="togglePublicFn">
         <div class="question-item glass-card">
             <div class="question-info">
-                <strong>{{q.text}}</strong>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <strong>{{q.text}}</strong>
+                    <span class="badge"
+                        [style.background]="q.public !== false ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 255, 255, 0.05)'"
+                        [style.color]="q.public !== false ? '#4caf50' : '#888'"
+                        style="font-size:0.7rem; padding: 2px 6px; border-radius: 4px;">
+                        {{ q.public !== false ? 'גלוי לכולם' : 'לא גלוי' }}
+                    </span>
+                </div>
                 <span *ngIf="q.key" style="font-size:0.8rem;color:#666;margin-right:0.5rem;">(Key: {{q.key}})</span>
                 <span class="question-type">({{q.type}})</span>
                 <ng-container *ngTemplateOutlet="optionsPreview; context: { $implicit: q }"></ng-container>
@@ -30,7 +38,19 @@
                     [disabled]="i === listLen - 1" title="הורד">↓</button>
                 <button *ngIf="!q.permanent" class="btn btn-special btn-sm"
                     (click)="openEditFn(q, openArgs?.a, openArgs?.b, openArgs?.c)">ערוך</button>
-                <button *ngIf="!q.permanent" class="btn btn-cancel btn-sm" (click)="deleteFn(q.id || '')">מחק</button>
+
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <button *ngIf="!q.permanent" class="btn btn-cancel btn-sm"
+                        (click)="deleteFn(q.id || '')">מחק</button>
+                    <button class="public-toggle-btn" [class.active]="q.public !== false"
+                        (click)="togglePublicFn(q, moveArgs?.a, moveArgs?.b, moveArgs?.c)"
+                        [title]="q.public !== false ? 'התשובה גלויה לכולם' : 'התשובה פרטית למשתמש'">
+                        <span class="material-symbols-outlined">{{ q.public !== false ? 'visibility' : 'visibility_off'
+                            }}</span>
+                        <span class="btn-label">{{ q.public !== false ? 'גלוי' : 'לא גלוי' }}</span>
+                    </button>
+                </div>
+
                 <span *ngIf="q.permanent" class="permanent-badge">שאלה קבועה</span>
             </div>
         </div>
@@ -74,6 +94,15 @@
                             (change)="onPermanentCheckboxChanged(model.permanent)"> סמן על מנת להפוך את השאלה לקבועה
                         (בלתי ניתנת למחיקה)
                     </label>
+                    <div style="margin-top:0.75rem;">
+                        <button type="button" class="public-toggle-btn" [class.active]="model.public"
+                            (click)="model.public = !model.public">
+                            <span class="material-symbols-outlined">{{ model.public ? 'visibility' : 'visibility_off'
+                                }}</span>
+                            <span class="btn-label">{{ model.public ? 'הצג תשובה לכל המשתמשים (גלוי לכולם)' : 'שמור
+                                תשובה כפרטית (לא גלוי)' }}</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -268,7 +297,7 @@
 
                     <ng-container *ngFor="let q of questions; let i = index">
                         <ng-container
-                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: questions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteQuestion.bind(this), moveArgs: { a: false }, openArgs: { a: false } }"></ng-container>
+                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: questions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteQuestion.bind(this), togglePublicFn: toggleQuestionPublic.bind(this), moveArgs: { a: false }, openArgs: { a: false } }"></ng-container>
                     </ng-container>
                 </div>
 
@@ -295,7 +324,7 @@
 
                     <ng-container *ngFor="let q of personalDataQuestions; let i = index">
                         <ng-container
-                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: personalDataQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deletePersonalDataQuestion.bind(this), moveArgs: { a: true }, openArgs: { a: true } }"></ng-container>
+                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: personalDataQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deletePersonalDataQuestion.bind(this), togglePublicFn: toggleQuestionPublic.bind(this), moveArgs: { a: true }, openArgs: { a: true } }"></ng-container>
                     </ng-container>
                 </div>
 
@@ -322,7 +351,7 @@
 
                     <ng-container *ngFor="let q of maskirQuestions; let i = index">
                         <ng-container
-                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: maskirQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteMaskirQuestion.bind(this), moveArgs: { a: false, b: true }, openArgs: { a: false, b: true } }"></ng-container>
+                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: maskirQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteMaskirQuestion.bind(this), togglePublicFn: toggleQuestionPublic.bind(this), moveArgs: { a: false, b: true }, openArgs: { a: false, b: true } }"></ng-container>
                     </ng-container>
                 </div>
 
@@ -349,7 +378,7 @@
 
                     <ng-container *ngFor="let q of apartmentQuestions; let i = index">
                         <ng-container
-                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: apartmentQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteApartmentQuestion.bind(this), moveArgs: { a: false, b: false, c: true }, openArgs: { a: false, b: false, c: true } }"></ng-container>
+                            *ngTemplateOutlet="questionItem; context: { $implicit: q, index: i, listLen: apartmentQuestions.length, moveUpFn: moveQuestionUp.bind(this), moveDownFn: moveQuestionDown.bind(this), openEditFn: openEditQuestion.bind(this), deleteFn: deleteApartmentQuestion.bind(this), togglePublicFn: toggleQuestionPublic.bind(this), moveArgs: { a: false, b: false, c: true }, openArgs: { a: false, b: false, c: true } }"></ng-container>
                     </ng-container>
                 </div>
 
@@ -620,6 +649,16 @@
                     <label style="opacity:0.5">מפתח (לא ניתן לעריכה)</label>
                     <input [ngModel]="editingQuestion.key" disabled class="form-control input-short"
                         style="opacity:0.5" />
+                </div>
+
+                <div style="margin-bottom:1.5rem; margin-top: 1rem;">
+                    <button type="button" class="public-toggle-btn" [class.active]="editingQuestion.public"
+                        (click)="editingQuestion.public = !editingQuestion.public">
+                        <span class="material-symbols-outlined">{{ editingQuestion.public ? 'visibility' :
+                            'visibility_off' }}</span>
+                        <span class="btn-label">{{ editingQuestion.public ? 'הצג תשובה לכל המשתמשים (גלוי לכולם)' :
+                            'שמור תשובה כפרטית' }}</span>
+                    </button>
                 </div>
 
                 <label>סוג תשובה</label>
