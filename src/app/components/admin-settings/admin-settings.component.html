@@ -64,8 +64,13 @@
             <button class="btn btn-special" (click)="showPropertiesManager = !showPropertiesManager">
               {{ showPropertiesManager ? 'סגור ניהול מאפיינים' : 'נהל מאפייני קבוצה' }}
             </button>
+            <button class="btn btn-special" (click)="openGroupSettingsModal()">
+              <span class="material-symbols-outlined">settings_suggest</span>
+              הגדרות קבוצות
+            </button>
           </div>
         </div>
+
 
         <div *ngIf="showUsersTable && allUsersError" class="error-message" style="margin-top:1rem">
           {{ allUsersError }}
@@ -113,6 +118,83 @@
               [disabled]="isGenerating || testUserAmount < 1">
               {{ isGenerating ? 'יוצר...' : 'צור משתמשים' }}
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GROUP SETTINGS MODAL -->
+      <div *ngIf="showGroupSettingsModal" class="modal-overlay" (click)="closeGroupSettingsModal()">
+        <div class="modal-content glass-panel" (click)="$event.stopPropagation()" style="max-width: 500px;">
+          <header class="modal-header">
+            <span class="material-symbols-outlined" style="font-size: 2rem; color: #4caf50;">timer</span>
+            <h2>הגבלת זמן לקבוצה חדשה</h2>
+          </header>
+
+          <div class="modal-body">
+            <p style="font-size:0.95rem; color:rgba(255,255,255,0.7); margin-bottom:1.5rem; line-height:1.5;">
+              כאן ניתן להגדיר את משך הזמן שבו קבוצה חדשה חייבת להגיע לאחוז התפוסה הנדרש.
+              אם הקבוצה לא תעמוד ביעד, היא תסומן כ"פג תוקף".
+            </p>
+
+            <div class="form-group glass-card"
+              style="padding: 1.5rem; background: rgba(255,255,255,0.02); margin-bottom: 1.5rem;">
+              <label class="section-label"
+                style="display:block; margin-bottom:1rem; color:#4caf50; font-weight:700;">הגדרת טיימר:</label>
+
+              <div style="display:flex; align-items:center; gap:1rem; justify-content: center;">
+                <div style="text-align:center;">
+                  <input type="number" [(ngModel)]="groupTimeoutHoursInput" min="0" class="input-main"
+                    style="width:80px; text-align:center; font-size:1.2rem;">
+                  <span style="display:block; font-size:0.8rem; margin-top:0.5rem; color:#aaa;">שעות</span>
+                </div>
+                <span style="font-size:1.5rem; font-weight:bold;">:</span>
+                <div style="text-align:center;">
+                  <input type="number" [(ngModel)]="groupTimeoutMinutesInput" min="0" max="59" class="input-main"
+                    style="width:80px; text-align:center; font-size:1.2rem;">
+                  <span style="display:block; font-size:0.8rem; margin-top:0.5rem; color:#aaa;">דקות</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group glass-card" style="padding: 1.5rem; background: rgba(255,255,255,0.02);">
+              <label class="section-label"
+                style="display:block; margin-bottom:1rem; color:#ff9800; font-weight:700;">אחוז תפוסה נדרש:</label>
+
+              <p style="font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:1rem; line-height:1.4;">
+                כמה אחוזים מהחברים הנדרשים צריכים להצטרף בזמן שהוגדר כדי שהקבוצה תישאר פעילה?
+              </p>
+
+              <div style="display:flex; align-items:center; gap:1rem; justify-content: center;">
+                <input type="number" [(ngModel)]="groupThresholdPercentInput" min="1" max="100" class="input-main"
+                  style="width:100px; text-align:center; font-size:1.3rem;">
+                <span style="font-size:1.2rem; font-weight:600; color:#ff9800;">%</span>
+              </div>
+
+              <div
+                style="margin-top: 1rem; padding: 0.75rem; background: rgba(255,152,0,0.1); border-radius: 8px; border: 1px solid rgba(255,152,0,0.3);">
+                <p style="font-size:0.8rem; color:rgba(255,255,255,0.8); margin:0; text-align:center;">
+                  <span class="material-symbols-outlined"
+                    style="font-size:1rem; vertical-align:middle; color:#ff9800;">info</span>
+                  אופן החישוב: אם קבוצה דורשת 10 חברים ואחוז התפוסה הוא {{ groupThresholdPercentInput }}%,
+                  צריכים להצטרף לפחות {{ Math.ceil(10 * groupThresholdPercentInput / 100) }} חברים בזמן שהוגדר.
+                </p>
+              </div>
+
+              <div *ngIf="settingsSuccess" style="color:#69f0ae; margin-top:1rem; text-align:center; font-weight:bold;">
+                <span class="material-symbols-outlined" style="vertical-align:bottom;">check_circle</span> {{
+                settingsSuccess }}
+              </div>
+              <div *ngIf="settingsError" style="color:#ff5252; margin-top:1rem; text-align:center; font-weight:bold;">
+                <span class="material-symbols-outlined" style="vertical-align:bottom;">error</span> {{ settingsError }}
+              </div>
+            </div>
+
+            <div class="modal-actions" style="display:flex; gap:1rem; justify-content:center; margin-top:2rem;">
+              <button class="btn btn-approve" (click)="saveSystemSettings()" style="min-width:150px;">
+                <span class="material-symbols-outlined">save</span> שמור הגדרות
+              </button>
+              <button class="btn btn-cancel" (click)="closeGroupSettingsModal()">ביטול</button>
+            </div>
           </div>
         </div>
       </div>

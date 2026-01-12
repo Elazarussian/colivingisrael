@@ -39,6 +39,18 @@ service cloud.firestore {
        return exists(/databases/$(database)/documents/testdata/db/groupInvites/$(request.auth.uid + '_' + groupId));
     }
 
+
+    // --- SYSTEM SETTINGS ---
+    match /systemSettings/general {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /testdata/db/systemSettings/general {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
     // --- ROOT DATA ---
 
     match /profiles/{userId} {
@@ -52,9 +64,16 @@ service cloud.firestore {
       allow create: if isAdminRoot() || (isSignedIn() && request.resource.data.adminId == request.auth.uid);
       allow delete: if isAdminRoot() || (isSignedIn() && resource.data.adminId == request.auth.uid);
 
-      // Allow creator to update or user to join if they have an invite
+      // Allow creator to update, user to join w/ invite, OR any user to trigger expiration
       allow update: if isAdminRoot()
         || (isSignedIn() && resource.data.adminId == request.auth.uid)
+        || (
+          isSignedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status == 'expired'
+          && resource.data.expirationTime != null
+          && request.time > resource.data.expirationTime
+        )
         || (
           isSignedIn()
           && request.resource.data.members.hasAny([request.auth.uid])
@@ -156,6 +175,13 @@ service cloud.firestore {
 
         allow update: if isAdminTest()
           || (isSignedIn() && resource.data.adminId == request.auth.uid)
+          || (
+            isSignedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+            && request.resource.data.status == 'expired'
+            && resource.data.expirationTime != null
+            && request.time > resource.data.expirationTime
+          )
           || (
             isSignedIn()
             && request.resource.data.members.hasAny([request.auth.uid])

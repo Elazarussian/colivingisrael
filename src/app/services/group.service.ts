@@ -16,9 +16,12 @@ import {
     arrayUnion,
     arrayRemove,
     onSnapshot,
-    Unsubscribe
+    Unsubscribe,
+    Timestamp,
+    writeBatch
 } from 'firebase/firestore';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { GroupNotification } from '../models/notification.model';
 
 export interface Group {
     id?: string;
@@ -33,6 +36,13 @@ export interface Group {
     fullMembers?: any[]; // For rich display in profile
     requiredMembers?: number;
     properties?: string[];
+    purpose?: string;
+    apartmentId?: string;
+    apartmentData?: any;
+    // Auto-destruct fields
+    expirationTime?: any; // Timestamp
+    status?: 'active' | 'expired' | 'completed';
+    groupThresholdPercent?: number; // percent used to decide expiration (stored at creation)
 }
 
 export interface Invitation {
@@ -69,7 +79,15 @@ export class GroupService {
     }
 
 
-    async createGroup(name: string, requiredMembers: number, description: string = '', properties: string[] = []): Promise<string> {
+    async createGroup(
+        name: string,
+        requiredMembers: number,
+        description: string = '',
+        properties: string[] = [],
+        purpose: string = '',
+        apartmentId: string = '',
+        apartmentData: any = null
+    ): Promise<string> {
         const user = await this.auth.auth?.currentUser;
         if (!user) throw new Error('User not authenticated');
 
@@ -88,8 +106,41 @@ export class GroupService {
             },
             createdAt: serverTimestamp(),
             requiredMembers,
-            properties
+            properties,
+            purpose,
+            apartmentData
         };
+
+        // Calculate Expiration
+        try {
+            const settingsRef = doc(db!, `${this.auth.dbPath}systemSettings`, 'general');
+            const settingsSnap = await getDoc(settingsRef);
+            let hours = 24; // default
+            if (settingsSnap.exists()) {
+                const sData = settingsSnap.data();
+                if (sData && sData['groupTimeoutHours']) {
+                    hours = Number(sData['groupTimeoutHours']);
+                }
+                // Persist the threshold percent on the group so future changes to settings
+                // don't affect already created groups
+                if (sData && sData['groupThresholdPercent'] !== undefined) {
+                    groupData.groupThresholdPercent = Number(sData['groupThresholdPercent']);
+                }
+            }
+            const now = new Date();
+            const expiry = new Date(now.getTime() + hours * 60 * 60 * 1000);
+
+            groupData.expirationTime = Timestamp.fromDate(expiry);
+            groupData.status = 'active';
+
+        } catch (e) {
+            console.error('Error calculating expiration:', e);
+            // Fallback
+            groupData.status = 'active';
+            // Default 24h
+            const now = new Date();
+            groupData.expirationTime = Timestamp.fromDate(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+        }
 
         const docRef = await addDoc(this.groupsCollection, groupData);
         return docRef.id;
@@ -181,12 +232,24 @@ export class GroupService {
         });
     }
 
-    async updateGroupDetails(groupId: string, description: string, properties: string[]): Promise<void> {
+    async updateGroupDetails(
+        groupId: string,
+        description: string,
+        properties: string[],
+        purpose?: string,
+        apartmentId?: string,
+        apartmentData?: any
+    ): Promise<void> {
         const groupRef = doc(db!, `${this.auth.dbPath}groups`, groupId);
-        await updateDoc(groupRef, {
+        const update: any = {
             description,
             properties
-        });
+        };
+        if (purpose !== undefined) update.purpose = purpose;
+        if (apartmentId !== undefined) update.apartmentId = apartmentId;
+        if (apartmentData !== undefined) update.apartmentData = apartmentData;
+
+        await updateDoc(groupRef, update);
     }
 
     async updateGroupAdmin(groupId: string, newAdminId: string): Promise<void> {
@@ -381,4 +444,68 @@ export class GroupService {
             await deleteDoc(d.ref);
         }
     }
+
+    // --- Notifications Management ---
+
+    private get notificationsCollection() {
+        return collection(db!, `${this.auth.dbPath}notifications`);
+    }
+
+    async createNotification(notification: Omit<GroupNotification, 'id' | 'createdAt'>): Promise<void> {
+        await addDoc(this.notificationsCollection, {
+            ...notification,
+            createdAt: serverTimestamp()
+        });
+    }
+
+    async getUserNotifications(userId: string): Promise<GroupNotification[]> {
+        const q = query(
+            this.notificationsCollection,
+            where('userId', '==', userId)
+        );
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() } as GroupNotification));
+    }
+
+    listenToUserNotifications(userId: string, callback: (notifications: GroupNotification[]) => void): Unsubscribe {
+        const q = query(
+            this.notificationsCollection,
+            where('userId', '==', userId)
+        );
+        return onSnapshot(q, (snapshot) => {
+            const notifications = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as GroupNotification));
+            callback(notifications);
+        });
+    }
+
+    async markNotificationAsRead(notificationId: string): Promise<void> {
+        const notifRef = doc(db!, `${this.auth.dbPath}notifications`, notificationId);
+        await updateDoc(notifRef, { read: true });
+    }
+
+    async deleteNotification(notificationId: string): Promise<void> {
+        const notifRef = doc(db!, `${this.auth.dbPath}notifications`, notificationId);
+        await deleteDoc(notifRef);
+    }
+
+    async notifyGroupExpiration(groupId: string, groupName: string, memberIds: string[]): Promise<void> {
+        // Create notifications for all members
+        const batch = writeBatch(db!);
+
+        for (const memberId of memberIds) {
+            const notifRef = doc(this.notificationsCollection);
+            batch.set(notifRef, {
+                userId: memberId,
+                groupId,
+                groupName,
+                type: 'group_expired',
+                message: `הקבוצה "${groupName}" פגה תוקפה ונסגרה. כעת תוכל ליצור קבוצה חדשה או להצטרף לקבוצה קיימת.`,
+                read: false,
+                createdAt: serverTimestamp()
+            });
+        }
+
+        await batch.commit();
+    }
 }
+

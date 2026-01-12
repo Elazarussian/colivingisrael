@@ -7,7 +7,9 @@ import { AuthService } from '../../services/auth.service';
 import { GroupService, Group } from '../../services/group.service';
 import { MessageService } from '../../services/message.service';
 import { QuestionsManagerComponent } from '../questions-manager/questions-manager.component';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, Timestamp, updateDoc } from 'firebase/firestore'; // Import Timestamp
+import { db } from '../../firebase-config'; // Import db directly for updates if needed
+import { interval, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-search-groups',
@@ -23,10 +25,25 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
   searchTerm: string = '';
   showAllParticipants: boolean = false;
 
-  groups: Group[] = []; // Displayed groups (filtered for user)
+  groups: Group[] = []; // ALL groups user can see (active + expired)
+  activeGroups: Group[] = [];
+  expiredGroups: Group[] = [];
+
+  // Helper to check if user needs to be restricted (has an ACTIVE group)
+  get hasActiveGroup(): boolean {
+    if (!this.profile) return false;
+    return this.activeGroups.some(g => (g.members || []).includes(this.profile.uid));
+  }
+
   allKnownGroups: Group[] = []; // All groups for lookup (badges)
+
+  countdowns: { [groupId: string]: string } = {};
+  private timerSub: Subscription | null = null;
   selectedGroup: Group | null = null;
   newGroupRequiredMembers: number = 2; // Default to 2 members
+
+  // Cached threshold percentage from settings
+  private cachedThresholdPercent: number = 40; // Default 40%
 
   directInviteGroup: Group | null = null; // Group from URL invitation link
 
@@ -52,6 +69,13 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
   editGroupDescription: string = '';
   editGroupProperties: string[] = [];
 
+  newGroupPurpose: string = '';
+  newGroupApartmentId: string = '';
+  newGroupApartmentData: any = null;
+  allApartments: any[] = [];
+  showApartmentSelection: boolean = false;
+  showAddOwnApartment: boolean = false;
+
   showLeaderRemovalModal: boolean = false;
   userToRemove: any = null;
 
@@ -70,8 +94,12 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
         this.loadData();
         this.handleAutoInvite();
         this.loadAvailableProperties();
+        this.loadApartments();
+        this.loadThresholdPercent();
       }
     });
+
+    this.timerSub = interval(1000).subscribe(() => this.updateCountdowns());
 
     // Handle case where user hits the page with an invite link but is not logged in
     this.auth.user$.pipe(take(1)).subscribe(user => {
@@ -79,6 +107,12 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
         this.auth.showAuthModal();
       }
     });
+  }
+
+  ngOnDestroy() {
+    if (this.timerSub) this.timerSub.unsubscribe();
+    this.deselectGroup();
+    if (this.allGroupsUnsubscribe) this.allGroupsUnsubscribe();
   }
 
   async handleAutoInvite() {
@@ -89,6 +123,15 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
       if (group) {
         if (group.members.includes(this.profile.uid)) {
           this.messageService.show('הינך כבר חבר בקבוצה זו.');
+          return;
+        }
+
+        // Check if user is already a member of ANY *ACTIVE* group
+        const userGroups = await this.groupService.getGroupsForUser(this.profile.uid);
+        const hasActive = userGroups.some(g => g.status !== 'expired' && g.status !== 'completed'); // Check status
+
+        if (hasActive) {
+          this.messageService.show('את\\ה כבר חבר\\ה בקבוצה פעילה, על מנת להצטרף לקבוצה חדשה, עליך לצאת מהקבוצה הנוכחית');
           return;
         }
 
@@ -178,6 +221,21 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     this.filterUsers();
   }
 
+  async loadThresholdPercent() {
+    try {
+      const settingsRef = doc(db!, `${this.auth.dbPath}systemSettings`, 'general');
+      const settingsSnap = await getDoc(settingsRef);
+      if (settingsSnap.exists()) {
+        const sData = settingsSnap.data();
+        if (sData && sData['groupThresholdPercent'] !== undefined) {
+          this.cachedThresholdPercent = Number(sData['groupThresholdPercent']);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading threshold percent:', e);
+    }
+  }
+
   async loadGroups() {
     if (!this.profile) return;
 
@@ -190,36 +248,164 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     this.allGroupsUnsubscribe = this.groupService.listenToAllGroups((allGroups) => {
       this.allKnownGroups = allGroups;
 
+
       if (this.auth.isAdmin(this.profile)) {
         this.groups = [...this.allKnownGroups];
       } else {
-        // Regular users only see groups they are in (for sidebar)
+        // Regular users see all groups they are a member of (Active AND Expired)
+        // This allows them to see history in the sidebar
         this.groups = this.allKnownGroups.filter(g => (g.members || []).includes(this.profile.uid));
       }
 
+      // Re-categorize active vs expired
+      this.categorizeGroups();
+
       // Handle selection preserverance / update
       if (this.selectedGroup) {
+        // ... (existing logic)
         const found = this.allKnownGroups.find(g => g.id === this.selectedGroup?.id);
         if (found) {
-          // Check access rights if user was kicked or group deleted
+          // Allow viewing expired groups too
           if (this.auth.isAdmin(this.profile) || (found.members || []).includes(this.profile.uid)) {
             this.selectedGroup = found;
             this.updateMemberLists();
           } else {
-            this.deselectGroup(); // Access lost
+            // If regular user and group is expired, they can still view if they were a member?
+            // Logic above covers it.
+            this.deselectGroup();
           }
         } else {
-          this.deselectGroup(); // Group deleted
+          this.deselectGroup();
         }
       }
 
-      // Auto-select if regular user has a group and nothing selected
-      if (!this.auth.isAdmin(this.profile) && this.groups.length > 0 && !this.selectedGroup) {
-        this.selectGroup(this.groups[0]);
+      // Auto-select
+      if (!this.auth.isAdmin(this.profile) && this.activeGroups.length > 0 && !this.selectedGroup) {
+        this.selectGroup(this.activeGroups[0]);
       }
 
       this.cdr.detectChanges();
     });
+  }
+
+  categorizeGroups() {
+    this.activeGroups = [];
+    this.expiredGroups = [];
+
+    this.groups.forEach(g => {
+      // Check for auto-destruct condition
+      this.checkAutoDestruct(g);
+
+      if (g.status === 'expired') {
+        this.expiredGroups.push(g);
+      } else {
+        this.activeGroups.push(g);
+      }
+    });
+  }
+
+  async checkAutoDestruct(g: Group) {
+    if (g.status === 'expired' || g.status === 'completed') return;
+
+    if (!g.expirationTime) return;
+
+    const now = new Date();
+    // Handle Timestamp or Date object
+    const expiresAt = g.expirationTime.toDate ? g.expirationTime.toDate() : new Date(g.expirationTime);
+
+    if (now > expiresAt) {
+      // Time passed. Check Threshold.
+      const currentMembers = g.members.length;
+      const target = g.requiredMembers || 0;
+
+      // Use per-group stored threshold if present, otherwise fetch settings (default 40%)
+      let thresholdPercent = 40;
+      if (g.groupThresholdPercent !== undefined && g.groupThresholdPercent !== null) {
+        thresholdPercent = Number(g.groupThresholdPercent);
+      } else {
+        try {
+          const settingsRef = doc(db!, `${this.auth.dbPath}systemSettings`, 'general');
+          const settingsSnap = await getDoc(settingsRef);
+          if (settingsSnap.exists()) {
+            const sData = settingsSnap.data();
+            if (sData && sData['groupThresholdPercent'] !== undefined) {
+              thresholdPercent = Number(sData['groupThresholdPercent']);
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching threshold percent:', e);
+        }
+      }
+
+      const threshold = target * (thresholdPercent / 100);
+
+      if (currentMembers < threshold) {
+        // EXPIRE IT
+        // Update local state immediately to avoid flickers
+        g.status = 'expired';
+
+        // Store member IDs before clearing
+        const memberIds = [...g.members];
+
+        // If I am the admin or just a user, trigger the db update (lazy cleanup)
+        // Only trigger if no one else has done it (status check again inside function?)
+        try {
+          const gRef = doc(db!, `${this.auth.dbPath}groups`, g.id!);
+
+          // Update group status to expired and clear members array
+          await updateDoc(gRef, {
+            status: 'expired',
+            members: [] // Clear members so they're no longer restricted
+          });
+
+          // Send notifications to all former members
+          await this.groupService.notifyGroupExpiration(g.id!, g.name, memberIds);
+
+          console.log(`✅ Group ${g.name} expired and ${memberIds.length} members notified`);
+        } catch (e) {
+          console.error('Error auto-expiring group:', e);
+        }
+      }
+    }
+  }
+
+  updateCountdowns() {
+    const now = new Date().getTime();
+    this.activeGroups.forEach(g => {
+      if (!g.expirationTime || g.status !== 'active') {
+        this.countdowns[g.id!] = '';
+        return;
+      }
+
+      // Check if threshold met - if so, countdown stops
+      const currentMembers = g.members.length;
+      const target = g.requiredMembers || 0;
+
+      // Prefer per-group stored thresholdPercent; fallback to cached global
+      const usePercent = g.groupThresholdPercent !== undefined && g.groupThresholdPercent !== null
+        ? Number(g.groupThresholdPercent)
+        : this.cachedThresholdPercent;
+      const threshold = target * (usePercent / 100);
+
+      if (currentMembers >= threshold) {
+        this.countdowns[g.id!] = 'הקבוצה באוויר!'; // "Group is Live!"
+        return;
+      }
+
+      const expiresAt = (g.expirationTime.toDate ? g.expirationTime.toDate() : new Date(g.expirationTime)).getTime();
+      const diff = expiresAt - now;
+
+      if (diff <= 0) {
+        this.countdowns[g.id!] = 'פג תוקף';
+      } else {
+        // Format HH:MM:SS
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        this.countdowns[g.id!] = `${hours}ש ${minutes}ד ${seconds}ש`;
+      }
+    });
+    this.cdr.detectChanges();
   }
 
   selectGroup(group: Group, event?: MouseEvent) {
@@ -339,15 +525,20 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
   }
 
   openCreateGroupModal() {
-    // Restriction: User cannot create if already in a group (unless admin)
-    if (!this.auth.isAdmin(this.profile) && this.groups.length > 0) {
-      alert('לא ניתן ליצור קבוצה חדשה כאשר אתה כבר חבר בקבוצה.');
+    // Restriction: User cannot create if already in an ACTIVE group (unless admin)
+    if (!this.auth.isAdmin(this.profile) && this.hasActiveGroup) {
+      alert('לא ניתן ליצור קבוצה חדשה כאשר אתה כבר חבר בקבוצה פעילה.');
       return;
     }
     this.showCreateGroupModal = true;
     this.newGroupDescription = '';
     this.selectedProperties = [];
     this.newGroupRequiredMembers = 2;
+    this.newGroupPurpose = '';
+    this.newGroupApartmentId = '';
+    this.newGroupApartmentData = null;
+    this.showApartmentSelection = false;
+    this.showAddOwnApartment = false;
   }
 
   closeCreateGroupModal() {
@@ -364,12 +555,25 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     const nextNumber = Math.max(0, ...groupNumbers) + 1;
     const autoGroupName = `קבוצה ${nextNumber}`;
 
+    if (!this.newGroupPurpose) {
+      alert('אנא בחר את מטרת הקבוצה.');
+      return;
+    }
+
+    if (this.newGroupPurpose === 'יש דירה מחפש שותפים' && !this.newGroupApartmentId && !this.newGroupApartmentData) {
+      alert('יש לבחור דירה או למלא פרטי דירה.');
+      return;
+    }
+
     try {
       const id = await this.groupService.createGroup(
         autoGroupName,
         this.newGroupRequiredMembers,
         this.newGroupDescription,
-        this.selectedProperties
+        this.selectedProperties,
+        this.newGroupPurpose,
+        this.newGroupApartmentId,
+        this.newGroupApartmentData
       );
 
       this.showCreateGroupModal = false;
@@ -713,15 +917,77 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnDestroy() {
-    if (this.pendingInvitesUnsubscribe) {
-      this.pendingInvitesUnsubscribe();
-    }
-    if (this.groupUnsubscribe) {
-      this.groupUnsubscribe();
-    }
-    if (this.allGroupsUnsubscribe) {
-      this.allGroupsUnsubscribe();
+  async loadApartments() {
+    if (!this.auth.db) return;
+    try {
+      const { collection, getDocs } = await import('firebase/firestore');
+      const snap = await getDocs(collection(this.auth.db, `${this.auth.dbPath}apartments`));
+      this.allApartments = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+    } catch (err) {
+      console.error('Error loading apartments:', err);
     }
   }
+
+  onPurposeChange() {
+    this.newGroupApartmentId = '';
+    this.newGroupApartmentData = null;
+    this.showApartmentSelection = false;
+    this.showAddOwnApartment = false;
+    this.cdr.detectChanges();
+  }
+
+  toggleApartmentSelection() {
+    this.showApartmentSelection = !this.showApartmentSelection;
+    this.showAddOwnApartment = false;
+  }
+
+  toggleAddOwnApartment() {
+    this.showAddOwnApartment = !this.showAddOwnApartment;
+    this.showApartmentSelection = false;
+  }
+
+  selectApartment(apt: any) {
+    this.newGroupApartmentId = apt.id;
+    this.newGroupApartmentData = null;
+    this.showApartmentSelection = false;
+    this.messageService.show(`נבחרה הדירה: ${apt.title || apt.address || apt.id}`);
+  }
+
+  onApartmentDataSaved(data: any) {
+    this.newGroupApartmentData = data;
+    this.newGroupApartmentId = '';
+    this.showAddOwnApartment = false;
+    this.messageService.show('נתוני הדירה נשמרו בהצלחה לקבוצה');
+  }
+
+  getApartmentTitle(apt: any): string {
+    return apt.title || apt.address || 'דירה ללא כותרת';
+  }
+
+  getGroupManagerName(group: Group): string {
+    if (!group || !group.adminId) return 'ללא מנהל';
+    if (this.profile && group.adminId === this.profile.uid) return this.profile.displayName || 'אני';
+
+    // Search in allUsers
+    const manager = this.allUsers.find(u => (u.id || u.uid) === group.adminId);
+    if (manager) return manager.displayName || 'משתמש';
+
+    return 'לא נמצא';
+  }
+
+  keys(obj: any): string[] {
+    if (!obj) return [];
+    return Object.keys(obj).filter(k => k !== 'id' && k !== 'createdAt' && k !== 'createdBy' && k !== 'createdByDisplayName');
+  }
+
+  formatAnswer(ans: any): string {
+    if (ans === null || ans === undefined) return '-';
+    if (Array.isArray(ans)) return ans.join(', ');
+    if (typeof ans === 'boolean') return ans ? 'כן' : 'לא';
+    if (ans && typeof ans === 'object' && 'min' in ans && 'max' in ans) {
+      return `${ans.min} - ${ans.max}`;
+    }
+    return String(ans);
+  }
+
 }

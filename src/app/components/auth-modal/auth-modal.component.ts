@@ -66,7 +66,7 @@ export class AuthModalComponent {
     try {
       if (this.activeTab === 'signup') {
         await this.authService.signup(this.email, this.password, this.selectedRole);
-        try { this.router.navigate(['/profile'], { queryParams: { showOnboarding: '1' } }); } catch (e) { }
+        try { this.router.navigate(['/profile'], { queryParams: { showRegistration: '1' } }); } catch (e) { }
       } else {
         await this.authService.login(this.email, this.password);
       }

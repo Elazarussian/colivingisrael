@@ -5,6 +5,8 @@ import { AuthService } from '../../services/auth.service';
 import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { QuestionsManagerComponent } from '../questions-manager/questions-manager.component';
 import { GroupService, Group, Invitation } from '../../services/group.service';
+import { GroupNotification } from '../../models/notification.model';
+import { combineLatest } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
@@ -26,12 +28,14 @@ export class ProfileComponent implements OnInit {
   userGroups: Group[] = [];
   activeGroup: any = null; // Enriched group object for single-group display
   invitations: Invitation[] = [];
+  notifications: GroupNotification[] = [];
   loadingGroups = false;
   private groupsUnsubscribe: (() => void) | null = null;
+  private notificationsUnsubscribe: (() => void) | null = null;
 
   // Questions / onboarding (user-facing)
   showQuestionsManager = false;
-  questionsMode: 'onboarding' | 'edit-answers' | 'view-answers' = 'onboarding';
+  questionsMode: 'onboarding' | 'registration' | 'edit-answers' | 'view-answers' = 'onboarding';
   selectedUserId?: string;
   // Expansion state for member cards in invitations
   expandedMemberId: string | null = null;
@@ -46,20 +50,64 @@ export class ProfileComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
-  ) {
-    this.auth.profile$.subscribe(async (p) => {
+  ) { }
+
+  ngOnInit() {
+    // Combine profile and query params to handle onboarding triggers reactively
+    combineLatest([this.auth.profile$, this.route.queryParams]).subscribe(async ([p, params]) => {
+      console.log('📌 ProfileComponent: Subscribed update', { profile: !!p, params });
       this.profile = p;
-      if (!p) return;
+      if (!p) {
+        console.log('📌 ProfileComponent: No profile yet');
+        return;
+      }
 
       try {
-        // If onboarding has not been completed, always force the onboarding modal for non-admin users.
-        // This ensures that even if the user navigates manually to /profile they will be required
-        // to finish the personal-data onboarding before accessing profile functionality.
         const onboardingCompleted = p['onboardingCompleted'] === true;
         const isAdmin = this.auth && typeof this.auth.isAdmin === 'function' ? this.auth.isAdmin(p) : (p?.role === 'admin');
 
-        if (!onboardingCompleted && !isAdmin && !this.showQuestionsManager) {
-          this.openOnboarding();
+        console.log('📌 ProfileComponent: Status', { onboardingCompleted, isAdmin, showQuestions: this.showQuestionsManager, mode: this.questionsMode });
+
+        // Explicit trigger via query params
+        if (params['showRegistration'] === '1') {
+          console.log('📌 ProfileComponent: Triggering Registration Mode');
+          if (!this.showQuestionsManager || this.questionsMode !== 'registration') {
+            this.questionsMode = 'registration';
+            this.showQuestionsManager = true;
+            this.cdr.detectChanges(); // Force check
+          }
+        } else if (params['showOnboarding'] === '1') {
+          if (!this.showQuestionsManager || this.questionsMode !== 'onboarding') {
+            this.questionsMode = 'onboarding';
+            this.showQuestionsManager = true;
+          }
+        }
+        // Fallback: If not completed and no explicit param, assume we need to finish onboarding
+        // Fallback: If not completed and no explicit param
+        // We only want to FORCE 'registration' if registration answers are missing.
+        // We do NOT want to force 'onboarding' (personal Qs) automatically; that should be user-initiated or guard-initiated.
+        else if (!onboardingCompleted && !isAdmin && !this.showQuestionsManager && !this.onboardingPrompted) {
+          // Check if registration questions are missing.
+          // We can check this by seeing if any answer maps to a registration question (rough check) or
+          // better, rely on the fact that if they were missing, the 'showRegistration' param would likely have been passed by Guard/Auth.
+
+          // However, for manual navigation to /profile, we should be careful.
+          // If we blindly call openOnboarding(), it opens stage 2. We don't want that.
+
+          // Let's check if the user has answered ANY registration questions?
+          // Or simpler: Just DON'T auto-open onboarding here.
+          // The OnboardingGuard protects the site. If they are here, they either:
+          // 1. Have showRegistration=1 (handled above).
+          // 2. Have showOnboarding=1 (handled above).
+          // 3. Are just looking at their profile.
+
+          // So we should remove the auto-trigger for general onboarding.
+          // But we MUST ensure that if they somehow bypassed registration check, they get it.
+          // Since OnboardingGuard handles the mandatory registration check on accessing Home,
+          // we can trust that if they are here without params, they likely satisfied Stage 1.
+
+          // So: Remove the fallback auto-open.
+          // this.openOnboarding(); 
         }
       } catch (err) {
         console.error('Error during onboarding trigger:', err);
@@ -71,9 +119,7 @@ export class ProfileComponent implements OnInit {
         this.loadGroupsAndInvitations(p.uid);
       }
     });
-  }
 
-  ngOnInit() {
     // Profile keeps only user-facing features (onboarding / edit answers)
     // Preload question definitions for display purposes
     this.loadQuestionMaps();
@@ -112,11 +158,31 @@ export class ProfileComponent implements OnInit {
         this.cdr.detectChanges();
       });
     });
+
+    // Subscribe to notifications
+    this.auth.profile$.subscribe(p => {
+      if (p && p.uid) {
+        if (this.notificationsUnsubscribe) {
+          this.notificationsUnsubscribe();
+        }
+        this.notificationsUnsubscribe = this.groupService.listenToUserNotifications(p.uid, (notifications) => {
+          this.notifications = notifications.filter(n => !n.read).sort((a, b) => {
+            const aTime = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+            const bTime = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+            return bTime - aTime; // Most recent first
+          });
+          this.cdr.detectChanges();
+        });
+      }
+    });
   }
 
   ngOnDestroy() {
     if (this.groupsUnsubscribe) {
       this.groupsUnsubscribe();
+    }
+    if (this.notificationsUnsubscribe) {
+      this.notificationsUnsubscribe();
     }
   }
 
@@ -142,6 +208,15 @@ export class ProfileComponent implements OnInit {
 
       const pdSnap = await getDocs(collection(db!, pdCol));
       pdSnap.docs.forEach(d => {
+        const obj: any = { id: d.id, ...((d.data && (d.data() as any)) || {}) };
+        this.personalDataQuestionMap[d.id] = obj;
+        if (obj && obj.key) this.personalDataQuestionMap[obj.key] = obj;
+      });
+
+      // Also load Maskir questions for display in 'Personal Answers' section if user is Maskir
+      const maskirCol = `${this.auth.dbPath}maskirQuestions`;
+      const maskirSnap = await getDocs(collection(db!, maskirCol));
+      maskirSnap.docs.forEach(d => {
         const obj: any = { id: d.id, ...((d.data && (d.data() as any)) || {}) };
         this.personalDataQuestionMap[d.id] = obj;
         if (obj && obj.key) this.personalDataQuestionMap[obj.key] = obj;
@@ -176,6 +251,15 @@ export class ProfileComponent implements OnInit {
 
   hasPersonalQuestion(k: any): boolean {
     try { return !!this.personalDataQuestionMap && !!this.personalDataQuestionMap[String(k)]; } catch { return false; }
+  }
+
+  get hasAnyPersonalAnswers(): boolean {
+    if (!this.profile || !this.profile.questions) return false;
+    return Object.keys(this.profile.questions).some(k => this.hasPersonalQuestion(k));
+  }
+
+  get onBoardingFinished(): boolean {
+    return this.profile?.onboardingCompleted === true;
   }
 
   // Format an answer for display (arrays, objects, booleans)
@@ -315,6 +399,27 @@ export class ProfileComponent implements OnInit {
     } else {
       this.expandedMemberId = userId;
       this.closingMemberId = null;
+    }
+  }
+
+  async dismissNotification(notification: GroupNotification) {
+    if (!notification.id) return;
+    try {
+      await this.groupService.deleteNotification(notification.id);
+    } catch (err) {
+      console.error('Error dismissing notification:', err);
+    }
+  }
+
+  async clearAllNotifications() {
+    try {
+      for (const notif of this.notifications) {
+        if (notif.id) {
+          await this.groupService.deleteNotification(notif.id);
+        }
+      }
+    } catch (err) {
+      console.error('Error clearing notifications:', err);
     }
   }
 }

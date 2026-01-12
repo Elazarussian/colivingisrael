@@ -88,23 +88,28 @@
                 <h3>תשובות אישיות</h3>
               </div>
               <button class="btn btn-approve btn-sm" type="button" (click)="openEditAnswers()"
-                *ngIf="!showQuestionsManager">
+                *ngIf="!showQuestionsManager && onBoardingFinished">
                 <span class="material-symbols-outlined">edit</span> ערוך
               </button>
             </div>
             <div class="answers-list">
-              <ng-container *ngIf="profile?.questions as qs">
-                <div *ngFor="let item of (qs | keyvalue)">
-                  <ng-container *ngIf="hasPersonalQuestion(item.key)">
-                    <div class="answer-row">
-                      <div class="label">{{ safeQuestionLabel(item.key) }}</div>
-                      <div class="value">{{ formatAnswer(item.value) }}</div>
-                    </div>
-                  </ng-container>
-                </div>
+              <ng-container *ngIf="hasAnyPersonalAnswers">
+                <ng-container *ngIf="profile?.questions as qs">
+                  <div *ngFor="let item of (qs | keyvalue)">
+                    <ng-container *ngIf="hasPersonalQuestion(item.key)">
+                      <div class="answer-row">
+                        <div class="label">{{ safeQuestionLabel(item.key) }}</div>
+                        <div class="value">{{ formatAnswer(item.value) }}</div>
+                      </div>
+                    </ng-container>
+                  </div>
+                </ng-container>
               </ng-container>
-              <div *ngIf="!(profile?.questions | keyvalue)?.length" class="empty-state">
-                <p>טרם מילאת תשובות אישיות.</p>
+
+              <div *ngIf="!hasAnyPersonalAnswers" class="empty-state" style="text-align: center; padding: 2rem;">
+                <p style="margin-bottom: 1rem; font-size: 1.1rem; opacity: 0.9;">עוד לא ענית על שאלון אישיות. תרצה למלא
+                  אותו עכשיו?</p>
+                <button class="btn btn-approve" (click)="openOnboarding()">ענה עכשיו על שאלון אישיות</button>
               </div>
             </div>
           </div>
@@ -292,6 +297,41 @@
                     <button class="btn btn-cancel btn-sm" (click)="rejectInvitation(inv)">
                       <span class="material-symbols-outlined">close</span> דחה
                     </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr *ngIf="notifications.length > 0">
+
+            <!-- Notifications Section -->
+            <div *ngIf="notifications.length > 0" class="notifications-section">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h4>התראות ({{ notifications.length }})</h4>
+                <button class="btn btn-outline btn-sm" (click)="clearAllNotifications()"
+                  style="padding: 0.3rem 0.75rem; font-size: 0.8rem;">
+                  <span class="material-symbols-outlined" style="font-size: 1rem;">clear_all</span>
+                  נקה הכל
+                </button>
+              </div>
+              <div class="notifications-list">
+                <div *ngFor="let notif of notifications" class="notification-item-premium"
+                  [ngClass]="'notification-' + notif.type">
+                  <div class="notif-header">
+                    <span class="material-symbols-outlined">
+                      {{ notif.type === 'group_expired' ? 'history' : 'notifications' }}
+                    </span>
+                    <span class="notif-title">{{ notif.groupName }}</span>
+                    <button class="btn-icon btn-sm" (click)="dismissNotification(notif)" title="הסר התראה"
+                      style="margin-right: auto;">
+                      <span class="material-symbols-outlined">close</span>
+                    </button>
+                  </div>
+                  <div class="notif-body">
+                    <p class="notif-message">{{ notif.message }}</p>
+                    <span class="notif-time" *ngIf="notif.createdAt">
+                      {{ notif.createdAt?.toDate() | date:'dd/MM/yyyy HH:mm' }}
+                    </span>
                   </div>
                 </div>
               </div>

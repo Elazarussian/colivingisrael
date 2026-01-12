@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { GroupService } from '../../services/group.service';
 import { MessageService } from '../../services/message.service';
+import { GroupNotification } from '../../models/notification.model';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -20,6 +21,8 @@ export class TopbarComponent {
     searchTerm = '';
     showLogoutConfirm = false;
     pendingInvitationsCount = 0;
+    notificationsCount = 0;
+    private notificationsUnsubscribe: (() => void) | null = null;
 
     constructor(
         public auth: AuthService,
@@ -33,12 +36,14 @@ export class TopbarComponent {
             this.isMenuOpen = false;
         });
 
-        // Listen for profile changes to load invitations
+        // Listen for profile changes to load invitations and notifications
         this.auth.profile$.subscribe(p => {
             if (p) {
                 this.loadInvitations(p.uid);
+                this.loadNotifications(p.uid);
             } else {
                 this.pendingInvitationsCount = 0;
+                this.notificationsCount = 0;
             }
         });
 
@@ -58,6 +63,19 @@ export class TopbarComponent {
         } catch (err) {
             console.error('Error loading invitations in topbar', err);
         }
+    }
+
+    loadNotifications(uid: string) {
+        if (this.notificationsUnsubscribe) {
+            this.notificationsUnsubscribe();
+        }
+        this.notificationsUnsubscribe = this.groupService.listenToUserNotifications(uid, (notifications) => {
+            this.notificationsCount = notifications.filter(n => !n.read).length;
+        });
+    }
+
+    get totalNotificationCount(): number {
+        return this.pendingInvitationsCount + this.notificationsCount;
     }
 
     toggleMenu() {

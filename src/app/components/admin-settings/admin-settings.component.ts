@@ -33,8 +33,30 @@ export class AdminSettingsComponent {
   generationProgress = 0;
   generationError: string | null = null;
 
+  // System Settings
+  groupTimeoutHours: number = 24;
+  groupThresholdPercent: number = 40; // Default 40%
+
+  // Modal & Input State
+  showGroupSettingsModal = false;
+  groupTimeoutHoursInput: number = 24;
+  groupTimeoutMinutesInput: number = 0;
+  groupThresholdPercentInput: number = 40;
+
+  settingsError: string | null = null;
+  settingsSuccess: string | null = null;
+
+  // Expose Math for template
+  Math = Math;
+
   constructor(public auth: AuthService, private cdr: ChangeDetectorRef) {
-    this.auth.profile$.subscribe(p => { this.profile = p; if (p && this.auth.isAdmin(p)) { this.loadAllUsers(); } });
+    this.auth.profile$.subscribe(p => {
+      this.profile = p;
+      if (p && this.auth.isAdmin(p)) {
+        this.loadAllUsers();
+        this.loadSystemSettings();
+      }
+    });
   }
 
   isAdmin() { return this.auth.isAdmin(this.profile); }
@@ -190,8 +212,79 @@ export class AdminSettingsComponent {
     return names[Math.floor(Math.random() * names.length)];
   }
 
-  private getRandomHebrewWord() {
+  getRandomHebrewWord() {
     const words = ['שלום', 'בדיקה', 'טקסט', 'מידע', 'משתמש', 'דוגמה', 'תוצאה', 'ערך'];
     return words[Math.floor(Math.random() * words.length)];
+  }
+
+  async loadSystemSettings() {
+    if (!this.auth.db) return;
+    try {
+      const { doc, getDoc } = await import('firebase/firestore');
+      const settingsRef = doc(this.auth.db, `${this.auth.dbPath}systemSettings`, 'general');
+      const snap = await getDoc(settingsRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && data['groupTimeoutHours']) {
+          this.groupTimeoutHours = data['groupTimeoutHours'];
+
+          // Split into hours and minutes for the inputs
+          this.groupTimeoutHoursInput = Math.floor(this.groupTimeoutHours);
+          this.groupTimeoutMinutesInput = Math.round((this.groupTimeoutHours - this.groupTimeoutHoursInput) * 60);
+        }
+
+        // Load threshold percentage
+        if (data && data['groupThresholdPercent'] !== undefined) {
+          this.groupThresholdPercent = data['groupThresholdPercent'];
+          this.groupThresholdPercentInput = this.groupThresholdPercent;
+        }
+      }
+      this.cdr.detectChanges();
+    } catch (e) {
+      console.error('Error loading settings:', e);
+    }
+  }
+
+  async saveSystemSettings() {
+    if (!this.auth.db) return;
+    try {
+      this.settingsError = null;
+      this.settingsSuccess = null;
+      const { doc, setDoc } = await import('firebase/firestore');
+      const settingsRef = doc(this.auth.db, `${this.auth.dbPath}systemSettings`, 'general');
+
+      // Calculate total hours including decimal
+      const totalHours = this.groupTimeoutHoursInput + (this.groupTimeoutMinutesInput / 60);
+      this.groupTimeoutHours = totalHours;
+      this.groupThresholdPercent = this.groupThresholdPercentInput;
+
+      await setDoc(settingsRef, {
+        groupTimeoutHours: this.groupTimeoutHours,
+        groupThresholdPercent: this.groupThresholdPercent
+      }, { merge: true });
+
+      this.showGroupSettingsModal = false; // Close modal on success
+
+      this.settingsSuccess = 'הגדרות נשמרו בהצלחה';
+      setTimeout(() => { this.settingsSuccess = null; this.cdr.detectChanges(); }, 3000);
+      this.cdr.detectChanges();
+    } catch (e: any) {
+      console.error('Error saving settings:', e);
+      this.settingsError = 'שגיאה בשמירה: ' + e.message;
+      this.cdr.detectChanges();
+    }
+  }
+  openGroupSettingsModal() {
+    this.showGroupSettingsModal = true;
+    this.settingsError = null;
+    this.settingsSuccess = null;
+    // Ensure inputs are synced with current actual value
+    this.groupTimeoutHoursInput = Math.floor(this.groupTimeoutHours);
+    this.groupTimeoutMinutesInput = Math.round((this.groupTimeoutHours - this.groupTimeoutHoursInput) * 60);
+    this.groupThresholdPercentInput = this.groupThresholdPercent;
+  }
+
+  closeGroupSettingsModal() {
+    this.showGroupSettingsModal = false;
   }
 }

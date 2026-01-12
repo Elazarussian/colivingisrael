@@ -5,7 +5,7 @@
   <div class="container main-container">
 
     <!-- Restricted Access Message for ALL Group Members -->
-    <section class="info-section" *ngIf="selectedGroup">
+    <section class="info-section" *ngIf="hasActiveGroup && selectedGroup?.status !== 'expired'">
       <div class="glass-alert">
         <span class="material-symbols-outlined icon-lg">group_off</span>
         <div class="alert-content">
@@ -18,25 +18,49 @@
 
     <!-- Top Controls: Selection for Admin & Create Group for non-members -->
     <header class="dashboard-controls" (click)="$event.stopPropagation()">
-      <div class="controls-wrapper glass-panel" *ngIf="auth.isAdmin(profile) || groups.length === 0">
+      <div class="controls-wrapper glass-panel" *ngIf="auth.isAdmin(profile) || !hasActiveGroup">
 
-        <!-- Group Selector (ONLY for Admins) -->
-        <div class="groups-nav" *ngIf="auth.isAdmin(profile) && groups.length > 0">
+        <!-- Active Groups Selector -->
+        <div class="groups-nav" *ngIf="activeGroups.length > 0">
           <label class="nav-label">ניהול מערכת - בחר קבוצה:</label>
+
           <div class="groups-chips">
-            <button *ngFor="let g of groups" class="group-chip" [class.active]="selectedGroup?.id === g.id"
+            <button *ngFor="let g of activeGroups" class="group-chip" [class.active]="selectedGroup?.id === g.id"
               (click)="selectGroup(g, $event)">
               <span class="material-symbols-outlined">group</span>
-              {{ g.name }}
+              <div style="display:flex; flex-direction:column; align-items:flex-start">
+                <span>{{ g.name }}</span>
+                <div class="timer-container" *ngIf="countdowns[g.id || '']"
+                  style="font-size:0.75rem; margin-top:0.2rem;">
+                  <span class="material-symbols-outlined timer-icon" style="font-size:0.8rem;">timer</span>
+                  {{ countdowns[g.id || ''] }}
+                </div>
+              </div>
             </button>
           </div>
         </div>
 
-        <div class="group-create-action" *ngIf="auth.isAdmin(profile) || groups.length === 0">
+        <div class="group-create-action" *ngIf="auth.isAdmin(profile) || !hasActiveGroup">
           <div class="input-group-premium">
             <button class="btn btn-special" (click)="openCreateGroupModal()">
               <span class="material-symbols-outlined">add_circle</span>
               צור קבוצה חדשה
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Expired Groups Selector (Separate Section) -->
+      <div class="controls-wrapper glass-panel" *ngIf="expiredGroups.length > 0" style="margin-top: 1.5rem;">
+        <div class="groups-nav">
+          <label class="nav-label" style="opacity: 0.7;">היסטוריה / פגי תוקף:</label>
+
+          <div class="groups-chips">
+            <button *ngFor="let g of expiredGroups" class="group-chip expired-chip"
+              [class.active]="selectedGroup?.id === g.id" (click)="selectGroup(g, $event)"
+              style="opacity: 0.6; filter: grayscale(1);">
+              <span class="material-symbols-outlined">history</span>
+              {{ g.name }} ({{ g.members?.length || 0 }})
             </button>
           </div>
         </div>
@@ -53,24 +77,40 @@
               <h2>
                 {{ (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) ? 'ניהול קבוצה:' : 'פרטי קבוצה:' }}
                 <span class="highlight">{{ selectedGroup.name }}</span>
+                <span *ngIf="selectedGroup.status === 'expired'" class="badge badge-red"
+                  style="font-size:0.8rem; vertical-align:middle; margin-right:10px;">
+                  פג תוקף / נמחק
+                </span>
+                <div *ngIf="selectedGroup.status !== 'expired' && countdowns[selectedGroup.id || '']"
+                  class="timer-container pulsing"
+                  style="margin-right:15px; display:inline-flex; vertical-align:middle;">
+                  <div class="info-tooltip-wrapper">
+                    <span class="material-symbols-outlined info-icon">info</span>
+                    <div class="custom-tooltip">
+                      הקבוצה נסגרת אוטומטית אם לא תגיע ל-40% תפוסה בזמן זה. הזמן חברים!
+                    </div>
+                  </div>
+                  <span class="material-symbols-outlined timer-icon">timer</span>
+                  {{ countdowns[selectedGroup.id || ''] }}
+                </div>
               </h2>
               <button class="btn btn-danger btn-sm"
-                *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid"
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'"
                 (click)="deleteGroup(selectedGroup)" title="מחק קבוצה">
                 <span class="material-symbols-outlined">delete</span> מחק קבוצה
               </button>
 
               <button class="btn btn-sm btn-invite-link"
-                *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid"
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'"
                 [class.success]="inviteCopySuccess" (click)="copyInviteLink()" title="העתק קישור הזמנה מהיר">
                 <span class="material-symbols-outlined">
                   {{ inviteCopySuccess ? 'check_circle' : 'person_add' }}
                 </span>
                 {{ inviteCopySuccess ? 'הקישור הועתק!' : 'הזמן חברים לקבוצה' }}
               </button>
-              <!-- Leave Group for invited users -->
+              <!-- Leave Group for invited users (Disabled if expired) -->
               <button class="btn btn-outline btn-sm"
-                *ngIf="!auth.isAdmin(profile) && selectedGroup.adminId !== profile?.uid"
+                *ngIf="!auth.isAdmin(profile) && selectedGroup.adminId !== profile?.uid && selectedGroup.status !== 'expired'"
                 (click)="leaveGroup(selectedGroup)" title="צא מהקבוצה">
                 <span class="material-symbols-outlined">exit_to_app</span> צא מהקבוצה
               </button>
@@ -82,24 +122,39 @@
                 נוצרה ע"י: <strong>{{ selectedGroup.creatorName || 'אנונימי' }}</strong>
               </span>
               <span class="meta-item">
+                <span class="material-symbols-outlined">shield_person</span>
+                מנהל: <strong>{{ getGroupManagerName(selectedGroup) }}</strong>
+              </span>
+              <span class="meta-item">
                 <span class="material-symbols-outlined">calendar_today</span>
                 בתאריך: <strong>{{ selectedGroup.createdAt?.toDate() | date:'dd/MM/yyyy' }}</strong>
               </span>
-              <span class="meta-item" *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid">
+              <span class="meta-item"
+                *ngIf="auth.isAdmin(profile) || (selectedGroup.adminId === profile?.uid && selectedGroup.status !== 'expired')">
                 <span class="material-symbols-outlined">groups_2</span>
                 שותפים דרושים:
                 <input type="number" [ngModel]="selectedGroup.requiredMembers || 2"
                   (ngModelChange)="updateRequiredMembers($event)" min="2" max="10" class="input-inline-sm">
               </span>
-              <span class="meta-item" *ngIf="!auth.isAdmin(profile) && selectedGroup.adminId !== profile?.uid">
+              <span class="meta-item"
+                *ngIf="!auth.isAdmin(profile) && (selectedGroup.adminId !== profile?.uid || selectedGroup.status === 'expired')">
                 <span class="material-symbols-outlined">groups_2</span>
                 שותפים דרושים: <strong>{{ selectedGroup.requiredMembers || 2 }}</strong>
+              </span>
+              <span class="meta-item" *ngIf="selectedGroup.purpose">
+                <span class="material-symbols-outlined">info</span>
+                מטרת הקבוצה: <strong>{{ selectedGroup.purpose }}</strong>
+              </span>
+              <span class="meta-item" *ngIf="selectedGroup.apartmentId || selectedGroup.apartmentData">
+                <span class="material-symbols-outlined">apartment</span>
+                דירה: <strong>{{ selectedGroup.apartmentId ? 'נבחרה מהאתר' : 'נוספה ידנית' }}</strong>
               </span>
             </div>
 
             <div class="group-description-bar editable-section"
               *ngIf="!isEditingGroupDetails && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid || selectedGroup.description)">
-              <div class="section-label-row" *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid">
+              <div class="section-label-row"
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'">
                 <label class="section-label">תיאור הקבוצה:</label>
                 <button class="btn-icon btn-sm btn-icon-inline" (click)="startEditingGroupDetails()" title="ערוך תיאור">
                   <span class="material-symbols-outlined">edit</span>
@@ -107,14 +162,15 @@
               </div>
               <p class="description-text" *ngIf="selectedGroup.description">{{ selectedGroup.description }}</p>
               <p class="description-text empty-hint"
-                *ngIf="!selectedGroup.description && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid)">
+                *ngIf="!selectedGroup.description && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'">
                 לחץ על האייקון כדי להוסיף תיאור לקבוצה...
               </p>
             </div>
 
             <div class="group-properties-bar editable-section"
               *ngIf="!isEditingGroupDetails && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid || (selectedGroup.properties && selectedGroup.properties.length > 0))">
-              <div class="section-label-row" *ngIf="auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid">
+              <div class="section-label-row"
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'">
                 <label class="section-label">מאפייני הקבוצה:</label>
                 <button class="btn-icon btn-sm btn-icon-inline" (click)="startEditingGroupDetails()"
                   title="ערוך מאפיינים">
@@ -128,9 +184,37 @@
                 </span>
               </div>
               <p class="description-text empty-hint"
-                *ngIf="(!selectedGroup.properties || selectedGroup.properties.length === 0) && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid)">
+                *ngIf="(!selectedGroup.properties || selectedGroup.properties.length === 0) && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'">
                 לחץ על האייקון כדי להוסיף מאפיינים לקבוצה...
               </p>
+            </div>
+
+            <!-- Apartment Details View -->
+            <div class="group-apartment-details glass-card"
+              *ngIf="selectedGroup.apartmentId || selectedGroup.apartmentData"
+              style="margin-top: 1.5rem; padding: 1.5rem; border-radius: 12px; background: rgba(255, 255, 255, 0.03);">
+              <div class="section-label-row">
+                <span class="material-symbols-outlined" style="color: #4caf50;">apartment</span>
+                <label class="section-label">פרטי הדירה של הקבוצה:</label>
+              </div>
+
+              <div *ngIf="selectedGroup.apartmentId" class="linked-apartment">
+                <p>הקבוצה בחרה דירה מהאתר.</p>
+                <!-- We could potentially fetch and show more info here, but for now just acknowledge it -->
+                <div class="badge badge-green">דירה מקושרת מהמערכת</div>
+              </div>
+
+              <div *ngIf="selectedGroup.apartmentData" class="manual-apartment">
+                <p style="font-size: 0.9rem; color: #ccc; margin-bottom: 0.5rem;">פרטי דירה שהוזנו ידנית:</p>
+                <div class="apartment-data-list"
+                  style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                  <div *ngFor="let key of keys(selectedGroup.apartmentData)" class="data-item">
+                    <span class="data-label" style="display: block; font-size: 0.8rem; color: #888;">{{ key }}:</span>
+                    <span class="data-value" style="font-weight: 500;">{{ formatAnswer(selectedGroup.apartmentData[key])
+                      }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Edit Mode UI -->
@@ -177,15 +261,22 @@
                 {{ (member.displayName || 'U')[0].toUpperCase() }}
               </div>
               <div class="member-details">
-                <span class="name">{{ member.displayName || 'משתמש' }}</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span class="name" style="margin-bottom: 0;">{{ member.displayName || 'משתמש' }}</span>
+                  <span class="badge badge-admin" *ngIf="(member.id || member.uid) === selectedGroup.adminId"
+                    style="font-size: 0.7rem; padding: 2px 8px;">
+                    <span class="material-symbols-outlined" style="font-size: 0.8rem;">shield_person</span>
+                    מנהל קבוצה
+                  </span>
+                </div>
                 <span class="email">{{ member.email }}</span>
                 <span class="joined-at" *ngIf="selectedGroup.membersJoinedAt?.[member.id || member.uid]">
                   {{ selectedGroup.membersJoinedAt?.[member.id || member.uid]?.toDate() | date:'dd/MM/yyyy HH:mm' }}
                 </span>
               </div>
-              <!-- Remove Member restricted to creator/admin -->
+              <!-- Remove Member restricted to creator/admin AND non-expired groups -->
               <button class="btn-icon btn-remove"
-                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile.uid) && ((member.id || member.uid) !== selectedGroup.adminId || auth.isAdmin(profile))"
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile.uid) && ((member.id || member.uid) !== selectedGroup.adminId || auth.isAdmin(profile)) && selectedGroup.status !== 'expired'"
                 (click)="removeMember(member)" title="הסר מהקבוצה">
                 <span class="material-symbols-outlined">person_remove</span>
               </button>
@@ -231,9 +322,9 @@
                     </div>
 
                   </div>
-                  <!-- Actions hidden if in a group (already handled by outer *ngIf, but safe to keep) -->
+                  <!-- Actions hidden if in a group (already handled by outer *ngIf, but safe to keep), and hidden if expired -->
                   <div class="user-actions-ui"
-                    *ngIf="selectedGroup && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid)">
+                    *ngIf="selectedGroup && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'">
                     <ng-container *ngIf="!hasPendingInvite(user); else inviteSentBadge">
                       <button class="btn btn-outline btn-sm" (click)="inviteToGroup(user)">הזמן</button>
                       <button class="btn btn-special btn-sm" *ngIf="auth.isAdmin(profile)"
@@ -310,7 +401,56 @@
 
         <div class="modal-body">
           <div class="form-section">
-            <label class="section-label">תיאור הקבוצה:</label>
+            <label class="section-label">מטרת הקבוצה:</label>
+            <select [(ngModel)]="newGroupPurpose" (change)="onPurposeChange()" class="input-main">
+              <option value="">בחר מטרה...</option>
+              <option value="יש דירה מחפש שותפים">יש דירה מחפש שותפים</option>
+              <option value="יש שותפים מחפשים דירה">יש שותפים מחפשים דירה</option>
+              <option value="מחפש שותפים ודירה">מחפש שותפים ודירה</option>
+            </select>
+          </div>
+
+          <!-- Apartment logic if "Has Apartment" is chosen -->
+          <div class="form-section" *ngIf="newGroupPurpose === 'יש דירה מחפש שותפים'">
+            <label class="section-label">פרטי הדירה:</label>
+            <div class="apartment-actions" style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+              <button class="btn btn-outline btn-sm" (click)="toggleApartmentSelection()">
+                <span class="material-symbols-outlined">search</span>
+                בחר דירה קיימת מהאתר
+              </button>
+              <button class="btn btn-outline btn-sm" (click)="toggleAddOwnApartment()">
+                <span class="material-symbols-outlined">add_home</span>
+                הוסף פרטי דירה ידנית
+              </button>
+            </div>
+
+            <!-- Apartment Selection List -->
+            <div class="apartment-selector glass-panel" *ngIf="showApartmentSelection"
+              style="max-height: 200px; overflow-y: auto; padding: 1rem; border-radius: 12px; margin-bottom: 1rem;">
+              <div *ngFor="let apt of allApartments" class="apt-item" (click)="selectApartment(apt)"
+                [class.selected]="newGroupApartmentId === apt.id"
+                style="padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <span>{{ getApartmentTitle(apt) }}</span>
+                <span class="material-symbols-outlined" *ngIf="newGroupApartmentId === apt.id">check_circle</span>
+              </div>
+              <p *ngIf="allApartments.length === 0" class="empty-hint">לא נמצאו דירות באתר.</p>
+            </div>
+
+            <!-- Add Own Apartment Form -->
+            <div class="apartment-form-container glass-panel" *ngIf="showAddOwnApartment"
+              style="padding: 1rem; border-radius: 12px; margin-bottom: 1rem; max-height: 400px; overflow-y: auto;">
+              <app-questions-manager mode="add-apartment"
+                (saved)="onApartmentDataSaved($event)"></app-questions-manager>
+            </div>
+
+            <div class="selection-status badge badge-blue" *ngIf="newGroupApartmentId || newGroupApartmentData">
+              <span class="material-symbols-outlined">check</span>
+              {{ newGroupApartmentId ? 'נבחרה דירה מהאתר' : 'פרטי דירה ידניים נוספו' }}
+            </div>
+          </div>
+
+          <div class="form-section">
+            <label class="section-label">תיאור הקבוצה (יוצג לפני כולם):</label>
             <textarea [(ngModel)]="newGroupDescription" placeholder="כתוב תיאור קצר על הקבוצה, מה אתם מחפשים וכו'..."
               class="input-main textarea-description"></textarea>
           </div>

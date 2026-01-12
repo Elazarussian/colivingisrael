@@ -390,8 +390,8 @@
         </div>
     </div>
 
-    <!-- fill apartment modal (used by admin/maskir to add a listing) -->
-    <div *ngIf="mode === 'fill-apartment'" class="modal-overlay">
+    <!-- fill apartment modal (used by admin/maskir to add a listing or by users creating a group) -->
+    <div *ngIf="mode === 'fill-apartment' || mode === 'add-apartment'" class="modal-overlay">
         <div class="modal-content onboarding-modal">
             <div class="modal-header">
                 <div style="flex:1;">
@@ -442,15 +442,13 @@
     </div>
 
     <!-- onboarding modal -->
-    <div *ngIf="mode === 'onboarding'" class="modal-overlay">
+    <div *ngIf="mode === 'onboarding' || mode === 'registration'" class="modal-overlay">
         <div class="modal-content onboarding-modal">
             <div class="modal-header">
                 <div style="flex:1;">
                     <h2>{{ currentGroupTitle }}</h2>
                     <div style="font-size:0.9rem;color:#666;margin-top:0.25rem;">
                         <span>{{ currentOnboardingProgress }}</span>
-                        <span style="margin:0 0.5rem;">•</span>
-                        <span>סה"כ: {{ totalQuestionsCount }}</span>
                     </div>
                     <div *ngIf="nextGroupPreview"
                         style="font-size:0.85rem;color:#888;margin-top:0.25rem;font-style:italic;">{{ nextGroupPreview
@@ -467,8 +465,13 @@
                 </div>
 
                 <div class="onboarding-actions" style="display:flex;justify-content:space-between;margin-top:2rem;">
+
+                    <button class="btn btn-cancel" (click)="close()" style="margin-right:auto; margin-left: 1rem;"
+                        *ngIf="mode === 'onboarding'">ביטול</button>
+
                     <button class="btn btn-special" (click)="prevQuestion()"
-                        [disabled]="currentQuestionIndex === 0 && currentQuestionGroup === 0">הקודם</button>
+                        [disabled]="(currentQuestionIndex === 0 && currentQuestionGroup === 0) || (currentQuestionIndex === 0 && currentQuestionGroup === 1 && mode === 'onboarding')">הקודם</button>
+
                     <button *ngIf="!isLastOnboardingQuestion || !isLastGroup" class="btn btn-approve"
                         (click)="nextQuestion()" [disabled]="!canProceedWithQuestion()">הבא</button>
                     <button *ngIf="isLastOnboardingQuestion && isLastGroup" class="btn btn-approve"

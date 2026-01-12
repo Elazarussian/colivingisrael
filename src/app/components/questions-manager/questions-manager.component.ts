@@ -32,7 +32,7 @@ export interface Question {
     styleUrls: ['./questions-manager.component.css']
 })
 export class QuestionsManagerComponent implements OnInit, OnChanges {
-    @Input() mode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'admin-apartment' | 'onboarding' | 'edit-answers' | 'view-answers' | 'fill-apartment' = 'onboarding';
+    @Input() mode: 'admin-registration' | 'admin-personal-data' | 'admin-maskir' | 'admin-apartment' | 'onboarding' | 'registration' | 'edit-answers' | 'view-answers' | 'fill-apartment' | 'add-apartment' = 'onboarding';
     @Input() profile: any = null;
     @Input() editApartment: { id: string, data: any } | null = null; // if set, save will update this apartment
     @Input() userId?: string;
@@ -42,6 +42,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
 
     @Output() completed = new EventEmitter<void>();
     @Output() closed = new EventEmitter<void>();
+    @Output() saved = new EventEmitter<any>();
 
     // Questions lists
     questions: Question[] = [];
@@ -190,11 +191,24 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
                 await this.loadCities();
                 this.prepareOnboardingAnswers();
                 break;
+            // Duplicate removed
+
+            case 'registration':
+                await this.loadRegistrationQuestionsOnly();
+                // We might need cities if reg questions include city/neighborhood (unlikely but safe to load)
+                await this.loadCities();
+                this.prepareOnboardingAnswers();
+                break;
             case 'fill-apartment':
                 await this.loadApartmentQuestionsForFill();
                 await this.loadCities();
                 // If an editApartment was provided, use its data to prefill answers. Otherwise start empty.
                 this.prepareApartmentAnswers(this.editApartment && this.editApartment.data ? this.editApartment.data : {});
+                break;
+            case 'add-apartment':
+                await this.loadApartmentQuestionsForFill();
+                await this.loadCities();
+                this.prepareApartmentAnswers({});
                 break;
             case 'edit-answers':
                 await this.loadEditPersonalityQuestions();
@@ -821,6 +835,12 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
 
         try {
             const payload = this.mapAnswersForSave(this.apartmentQuestions, this.apartmentAnswers || {});
+
+            if (this.mode === 'add-apartment') {
+                this.saved.emit(payload);
+                return;
+            }
+
             // mark as apartment listing and include createdAt
             payload.createdAt = new Date().toISOString();
             // mark publisher / owner so we can filter later
@@ -1219,18 +1239,45 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         }
     }
 
+    async loadRegistrationQuestionsOnly() {
+        this.onboardingQuestions = await this.getRegistrationQuestions();
+        this.onboardingPersonalDataQuestions = [];
+        this.onboardingMaskirQuestions = [];
+        this.cdr.detectChanges();
+    }
+
     // === ONBOARDING METHODS ===
     prepareOnboardingAnswers() {
         this.currentQuestionIndex = 0;
-        // Start with registration questions (group 0)
-        // If no registration questions, skip to personal data questions (group 1)
-        this.currentQuestionGroup = this.onboardingQuestions.length > 0 ? 0 : 1;
+        this.currentQuestionGroup = 0;
+
+        // If in 'onboarding' mode (which implies checking for missing parts), check if registration strictly done.
+        // If so, skip to group 1.
+        // If in 'registration' mode, we only have group 0 anyway.
+
+        const existingAnswers = this.profile?.questions || {};
+
+        if (this.mode === 'onboarding' && this.onboardingQuestions.length > 0) {
+            // Check if all registration questions are validly answered
+            const regComplete = this.onboardingQuestions.every(q => {
+                const id = q.id || '';
+                const key = q.key || id;
+                // Use mapAnswers logic or direct access? Direct access to existingAnswers.
+                // Need to handle key/id mapping
+                const val = existingAnswers[key] !== undefined ? existingAnswers[key] : existingAnswers[id];
+                return this.validateAnswer(q, val);
+            });
+
+            if (regComplete) {
+                this.currentQuestionGroup = 1;
+                console.log('Skipping Registration questions (already completed)');
+            }
+        }
 
         console.log('🔍 Onboarding Debug:', {
+            mode: this.mode,
             personalDataCount: this.onboardingPersonalDataQuestions.length,
-            personalDataFirst: this.onboardingPersonalDataQuestions[0]?.text,
             registrationCount: this.onboardingQuestions.length,
-            registrationFirst: this.onboardingQuestions[0]?.text,
             startingGroup: this.currentQuestionGroup,
             groupName: this.currentQuestionGroup === 0 ? 'Registration' : 'Personal Data'
         });
@@ -1238,7 +1285,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         const isMaskir = this.profile?.role === 'maskir';
         const secondGroup = isMaskir ? this.onboardingMaskirQuestions : this.onboardingPersonalDataQuestions;
         const allQuestions = [...this.onboardingQuestions, ...secondGroup];
-        const existingAnswers = this.profile?.questions;
+
         this.onboardingAnswers = this.prepareAnswersMap(allQuestions, existingAnswers);
     }
 
@@ -1277,26 +1324,49 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         }
 
         try {
-            // Ensure all onboarding questions are answered/valid before marking onboardingCompleted
-            const allComplete = allQuestions.every(q => {
+            // Validation
+            // If in 'registration' mode, we only validate registration questions.
+            // If in 'onboarding' mode, we validate everything (because we want to reach completion).
+
+            let questionsToValidate = allQuestions;
+            if (this.mode === 'registration') {
+                questionsToValidate = this.onboardingQuestions;
+            }
+
+            const allComplete = questionsToValidate.every(q => {
                 const id = q.id || '';
                 const ansForValidation = this.onboardingAnswers[id];
                 return this.validateAnswer(q, ansForValidation);
             });
 
             if (!allComplete) {
-                // Do not mark onboarding completed if any required answer is missing.
-                this.msg.show('נא להשיב על כל שאלות הפרטי משתמש לפני השליחה.');
+                this.msg.show('נא להשיב על כל השאלות לפני השליחה.');
                 return;
             }
 
-            await this.auth.saveProfile(uid, {
-                questions: answers,
-                onboardingCompleted: true
-            });
+            // Decide whether to set onboardingCompleted = true
+            // Only if we are finishing the FINAL stage (which is usually second group, or if role has no second group?)
+            let markAsCompleted = false;
+
+            if (this.mode === 'onboarding') {
+                // In onboarding mode, we expect to finish everything.
+                markAsCompleted = true;
+            } else if (this.mode === 'registration') {
+                // In registration mode, we never mark full onboarding as completed.
+                markAsCompleted = false;
+            }
+
+            const payload: any = {
+                questions: answers
+            };
+            if (markAsCompleted) {
+                payload.onboardingCompleted = true;
+            }
+
+            await this.auth.saveProfile(uid, payload);
             this.completed.emit();
         } catch (err) {
-            console.error('Error saving onboarding answers:', err);
+            console.error('Error saving answers:', err);
             this.msg.show('שגיאה בשמירת תשובות. יש לנסות שוב מאוחר יותר.');
         }
     }
@@ -1318,6 +1388,12 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
     }
 
     get isLastGroup(): boolean {
+        if (this.mode === 'registration') return true;
+
+        const isMaskir = this.profile?.role === 'maskir';
+        const secondGroup = isMaskir ? this.onboardingMaskirQuestions : this.onboardingPersonalDataQuestions;
+        if (secondGroup.length === 0) return true;
+
         return this.currentQuestionGroup === 1;
     }
 
@@ -1326,6 +1402,7 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
     }
 
     get nextGroupPreview(): string {
+        if (this.mode === 'registration') return '';
         const isMaskir = this.profile?.role === 'maskir';
         const nextCount = isMaskir ? this.onboardingMaskirQuestions.length : this.onboardingPersonalDataQuestions.length;
         const nextLabel = isMaskir ? 'שאלון משכיר' : 'פרטי משתמש';
@@ -1342,6 +1419,11 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
     }
 
     get totalQuestionsCount(): string {
+        if (this.mode === 'registration') {
+            const total = this.onboardingQuestions.length;
+            return `${this.currentQuestionIndex + 1} / ${total}`;
+        }
+
         const isMaskir = this.profile?.role === 'maskir';
         const secondCount = isMaskir ? this.onboardingMaskirQuestions.length : this.onboardingPersonalDataQuestions.length;
         const total = this.onboardingQuestions.length + secondCount;
@@ -1355,7 +1437,15 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         if (!this.canProceedWithQuestion()) return;
 
         if (this.isLastOnboardingQuestion) {
-            if (this.currentQuestionGroup === 0 && this.onboardingPersonalDataQuestions.length > 0) {
+            // If we are in 'registration' mode, we are technically done with *this session*
+            // so we should not be calling nextQuestion() but rather submit.
+            // The UI should show "Finish" instead of "Next" for this case.
+
+            // However, if we are in 'onboarding' mode and have a second group:
+            const isMaskir = this.profile?.role === 'maskir';
+            const secondGroup = isMaskir ? this.onboardingMaskirQuestions : this.onboardingPersonalDataQuestions;
+
+            if (this.mode === 'onboarding' && this.currentQuestionGroup === 0 && secondGroup.length > 0) {
                 this.currentQuestionGroup = 1;
                 this.currentQuestionIndex = 0;
             }
@@ -1368,6 +1458,27 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         if (this.currentQuestionIndex > 0) {
             this.currentQuestionIndex--;
         } else if (this.currentQuestionGroup === 1) {
+            // Prevent going back to group 0 (registration) if we started at group 1 (personal data)
+            // or if we treat them as separate flows.
+
+            // If the user clicked "Answer personal questions now", they started at Group 1 directly (via prepareOnboardingAnswers skipping 0).
+            // So they shouldn't be able to go back to 0.
+
+            // Check if we skipped group 0:
+            const existingAnswers = this.profile?.questions || {};
+            const regComplete = this.onboardingQuestions.every(q => {
+                const id = q.id || '';
+                const key = q.key || id;
+                const val = existingAnswers[key] !== undefined ? existingAnswers[key] : existingAnswers[id];
+                return this.validateAnswer(q, val);
+            });
+
+            if (regComplete && this.mode === 'onboarding') {
+                // If registration was already complete and we are in onboarding mode, we likely started here.
+                // So disable going back.
+                return;
+            }
+
             this.currentQuestionGroup = 0;
             this.currentQuestionIndex = this.onboardingQuestions.length - 1;
         }
@@ -1382,7 +1493,17 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
     }
 
     canSubmitOnboarding(): boolean {
-        return this.onboardingPersonalDataQuestions.length > 0 && this.canProceedWithQuestion();
+        // Can submit if we are valid on the current question
+        // AND we are at the last absolute question of the allowed flow.
+
+        // Logic check:
+        // If reg mode: last question of reg questions.
+        // If onboarding mode: last question of personal/maskir questions.
+
+        // This method is primarily used by the "Finish" button which ONLY appears when
+        // isLastOnboardingQuestion && isLastGroup is true.
+        // So we just need to ensure the current answer is valid.
+        return this.canProceedWithQuestion();
     }
 
 

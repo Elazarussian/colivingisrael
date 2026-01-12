@@ -14,5 +14,5 @@ export const routes: Routes = [
     { path: 'about', component: AboutComponent, canActivate: [OnboardingGuard] },
     { path: 'apartments', component: ApartmentsComponent, canActivate: [ApartmentsGuard, OnboardingGuard] },
     { path: 'profile', component: ProfileComponent } // No guard here to avoid loop
-    ,{ path: 'admin-settings', component: AdminSettingsComponent }
+    , { path: 'admin-settings', component: AdminSettingsComponent }
 ];

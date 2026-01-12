@@ -521,3 +521,80 @@
 }
 
 /* .badge-admin styles moved to global styles.css (.badge-red) */
+
+/* Notifications Section */
+.notifications-section {
+  margin-top: 1.5rem;
+}
+
+.notifications-section h4 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  opacity: 0.8;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notification-item-premium {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  padding: 1.25rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.notification-item-premium:hover {
+  transform: translateX(-3px);
+  border-color: rgba(255, 193, 7, 0.5);
+  box-shadow: 0 6px 20px rgba(255, 193, 7, 0.15);
+}
+
+.notification-group_expired {
+  border-right: 3px solid #ff9800;
+}
+
+.notif-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.notif-header .material-symbols-outlined {
+  color: #ff9800;
+  font-size: 1.5rem;
+}
+
+.notif-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  flex-grow: 1;
+}
+
+.notif-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notif-message {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.notif-time {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
