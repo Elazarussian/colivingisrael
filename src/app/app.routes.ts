@@ -6,11 +6,11 @@ import { AdminSettingsComponent } from './components/admin-settings/admin-settin
 import { OnboardingGuard } from './onboarding.guard';
 import { ApartmentsComponent } from './components/apartments/apartments.component';
 import { ApartmentsGuard } from './apartments.guard';
-import { SearchGroupsComponent } from './components/search-groups/search-groups.component';
+import { AuthGuard } from './auth.guard';
 
 export const routes: Routes = [
     { path: '', component: HomeComponent, canActivate: [OnboardingGuard] },
-    { path: 'search-groups', component: SearchGroupsComponent, canActivate: [OnboardingGuard] },
+    { path: 'search-groups', loadComponent: () => import('./components/search-groups/search-groups.component').then(m => m.SearchGroupsComponent), canActivate: [AuthGuard, OnboardingGuard] },
     { path: 'about', component: AboutComponent, canActivate: [OnboardingGuard] },
     { path: 'apartments', component: ApartmentsComponent, canActivate: [ApartmentsGuard, OnboardingGuard] },
     { path: 'profile', component: ProfileComponent } // No guard here to avoid loop

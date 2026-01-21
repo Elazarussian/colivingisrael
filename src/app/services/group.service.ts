@@ -59,6 +59,7 @@ export interface Invitation {
     fullMembers?: any[]; // For rich display
     creatorName?: string;
     adminId?: string;
+    type?: 'manual' | 'link'; // 'manual' = invited via users list, 'link' = joining via fast link
 }
 
 @Injectable({
@@ -169,10 +170,44 @@ export class GroupService {
     }
 
     listenToAllGroups(callback: (groups: Group[]) => void): Unsubscribe {
-        return onSnapshot(this.groupsCollection, (snapshot) => {
+        const unsub = onSnapshot(this.groupsCollection, (snapshot) => {
             const groups = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Group));
             callback(groups);
         });
+        return unsub;
+    }
+
+    /**
+     * Ensure that groups which are no longer active do not retain members.
+     * This will clear the members array and optionally notify former members.
+     */
+    private async cleanupInactiveGroups(groups: Group[]): Promise<void> {
+        if (!Array.isArray(groups)) return;
+
+        for (const g of groups) {
+            try {
+                if (!g || !g.id) continue;
+                const status = g.status || 'active';
+                // Treat any non-active status as inactive to avoid strict string literal checks
+                const inactive = status !== 'active';
+                if (inactive && Array.isArray(g.members) && g.members.length > 0) {
+                    const memberIds = [...g.members];
+                    const gRef = doc(db!, `${this.auth.dbPath}groups`, g.id);
+                    // Clear members so they are no longer considered part of the group
+                    await updateDoc(gRef, { members: [] });
+
+                    // Notify former members about closure/cleanup (best-effort)
+                    try {
+                        await this.notifyGroupExpiration(g.id!, g.name, memberIds);
+                    } catch (e) {
+                        // non-fatal
+                        console.error('Failed to notify members after cleanup for group', g.id, e);
+                    }
+                }
+            } catch (e) {
+                console.error('Error during cleanupInactiveGroups for group', g && g.id, e);
+            }
+        }
     }
 
     async getGroupsForUser(uid: string): Promise<Group[]> {
@@ -201,6 +236,10 @@ export class GroupService {
         if (!snap.exists()) throw new Error('Group not found');
 
         const data = snap.data() as any;
+        const status = data.status || 'active';
+        if (status !== 'active') {
+            throw new Error('Cannot join an inactive group');
+        }
         console.log('[JOIN] members field type =', Array.isArray(data.members) ? 'array' : typeof data.members);
         console.log('[JOIN] membersJoinedAt type =', data.membersJoinedAt && typeof data.membersJoinedAt);
 
@@ -214,10 +253,23 @@ export class GroupService {
 
 
     async removeUserFromGroup(groupId: string, userId: string): Promise<void> {
+        const { deleteField } = await import('firebase/firestore');
         const groupRef = doc(db!, `${this.auth.dbPath}groups`, groupId);
-        await updateDoc(groupRef, {
-            members: arrayRemove(userId)
+        const memberRef = doc(db!, `${this.auth.dbPath}groups/${groupId}/members/${userId}`);
+
+        const batch = writeBatch(db!);
+
+        // 1. Remove from members array
+        // 2. Clear membersJoinedAt entry
+        batch.update(groupRef, {
+            members: arrayRemove(userId),
+            [`membersJoinedAt.${userId}`]: deleteField()
         });
+
+        // 3. Delete member subcollection doc
+        batch.delete(memberRef);
+
+        await batch.commit();
     }
 
     async deleteGroup(groupId: string): Promise<void> {
@@ -260,7 +312,7 @@ export class GroupService {
     }
 
 
-    async inviteUserToGroup(groupId: string, groupName: string, toUid: string) {
+    async inviteUserToGroup(groupId: string, groupName: string, toUid: string, type: 'manual' | 'link' = 'manual') {
         const userProfile = this.auth.profile;
         if (!userProfile) return;
 
@@ -274,6 +326,7 @@ export class GroupService {
             inviterUid: userProfile.uid,
             toUid,
             status: 'pending',
+            type,
             createdAt: serverTimestamp(),
         };
 
@@ -291,7 +344,8 @@ export class GroupService {
         const q = query(
             this.invitationsCollection,
             where('toUid', '==', uid),
-            where('status', '==', 'pending')
+            where('status', '==', 'pending'),
+            where('type', '==', 'manual')
         );
 
         // For immediate return of current state
@@ -333,6 +387,40 @@ export class GroupService {
         return snap.docs.map(d => ({ id: d.id, ...d.data() } as Invitation));
     }
 
+    async joinGroupDirectly(groupId: string): Promise<void> {
+        const user = this.auth.auth?.currentUser;
+        if (!user) throw new Error('User not authenticated');
+        const userId = user.uid;
+
+        const groupRef = doc(db!, `${this.auth.dbPath}groups/${groupId}`);
+        const snap = await getDoc(groupRef);
+        if (!snap.exists()) throw new Error('Group not found');
+
+        const data = snap.data() as any;
+        const status = data.status || 'active';
+        if (status !== 'active') throw new Error('Cannot join an inactive group');
+
+        const members: string[] = Array.isArray(data.members) ? data.members : [];
+        if (members.includes(userId)) return; // Already a member
+
+        // 1. Update group document (satisfies isJoiningSelf rule)
+        await updateDoc(groupRef, {
+            members: arrayUnion(userId),
+            [`membersJoinedAt.${userId}`]: serverTimestamp(),
+        });
+
+        // 2. Create member subcollection doc (satisfies members subcollection rule)
+        const memberRef = doc(db!, `${this.auth.dbPath}groups/${groupId}/members/${userId}`);
+        const memberSnap = await getDoc(memberRef);
+        if (!memberSnap.exists()) {
+            await setDoc(memberRef, {
+                uid: userId,
+                inviteId: 'direct_link',
+                joinedAt: serverTimestamp(),
+            });
+        }
+    }
+
     async respondToInvitation(
         invitationIdFromUi: string,
         _groupIdFromUi: string,
@@ -366,6 +454,8 @@ export class GroupService {
             if (!groupSnap.exists()) throw new Error('Group not found');
 
             const groupData = groupSnap.data() as any;
+            const gStatus = groupData.status || 'active';
+            if (gStatus !== 'active') throw new Error('Cannot join an inactive group');
             const members: string[] = Array.isArray(groupData.members) ? groupData.members : [];
 
             const alreadyMember = members.includes(user.uid);

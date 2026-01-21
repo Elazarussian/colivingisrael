@@ -100,13 +100,6 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     });
 
     this.timerSub = interval(1000).subscribe(() => this.updateCountdowns());
-
-    // Handle case where user hits the page with an invite link but is not logged in
-    this.auth.user$.pipe(take(1)).subscribe(user => {
-      if (!user && this.route.snapshot.queryParamMap.get('inviteGroupId')) {
-        this.auth.showAuthModal();
-      }
-    });
   }
 
   ngOnDestroy() {
@@ -158,24 +151,12 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     const group = this.directInviteGroup;
     this.directInviteGroup = null;
 
-    const inviteId = `${this.profile.uid}_${group.id}`;
-
     try {
-      // 1. Check if an invite already exists (environment-aware via GroupService logic)
-      // We don't directly check existence here to avoid permission issues if doc doesn't exist,
-      // instead we try to "proactively" ensure it exists.
-
       this.messageService.show('מעבד הצטרפות...');
 
-      // 2. Proactively create/ensure self-invite exists to satisfy joining rules
-      // This makes shared "Direct Invite Links" work for everyone.
-      await this.groupService.inviteUserToGroup(group.id!, group.name, this.profile.uid);
-
-      // 3. Small delay to ensure Firestore consistency for the rules engine
-      await new Promise(resolve => setTimeout(resolve, 600));
-
-      // 4. Join the group using the invite
-      await this.groupService.respondToInvitation(inviteId, group.id!, 'accepted');
+      // Use the new direct join method which doesn't require an invitation document
+      // and satisfies the "isJoiningSelf" Firestore rule.
+      await this.groupService.joinGroupDirectly(group.id!);
 
       this.messageService.show(`הצטרפת בהצלחה לקבוצה: ${group.name}`);
       await this.loadGroups();
@@ -410,9 +391,30 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
 
   selectGroup(group: Group, event?: MouseEvent) {
     if (event) event.stopPropagation();
+
+    // Toggle selection: if clicking the already-selected group, deselect it
+    if (this.selectedGroup && this.selectedGroup.id === group.id) {
+      this.deselectGroup();
+      return;
+    }
+
+    // If the group is inactive, prevent selection and clear members
+    if (group.status && group.status !== 'active') {
+      // Ensure UI shows it but doesn't allow join actions
+      this.selectedGroup = group;
+      this.updateMemberLists();
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.selectedGroup = group;
     this.updateMemberLists();
-    this.subscribeToPendingInvites();
+
+    // Only subscribe to pending invites if user is admin or group creator
+    if (this.auth.isAdmin(this.profile) || group.adminId === this.profile?.uid) {
+      this.subscribeToPendingInvites();
+    }
+
     this.subscribeToGroupUpdates();
     this.cdr.detectChanges();
   }
@@ -458,10 +460,13 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
       );
     }
 
+    // Requirement: always show all users in the participants list (do not hide members of the selected group)
+    // availableUsers therefore equals the filtered baseList irrespective of selectedGroup
+    this.availableUsers = baseList;
+
+    // Maintain a separate list of selected group members for the members panel and keep it searchable
     if (this.selectedGroup) {
       const memberIds = this.selectedGroup.members || [];
-      this.availableUsers = baseList.filter(u => !memberIds.includes(u.id || u.uid));
-      // Members are also filtered by search term
       this.selectedGroupMembers = this.allUsers.filter(u => memberIds.includes(u.id || u.uid));
       if (this.searchTerm.trim()) {
         const term = this.searchTerm.toLowerCase();
@@ -470,10 +475,17 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
           (u.email || '').toLowerCase().includes(term)
         );
       }
-    } else {
-      this.availableUsers = baseList;
     }
     this.cdr.detectChanges();
+  }
+
+  /**
+   * Return all groups that the given user belongs to (uses the cached allKnownGroups list).
+   * This is used to render multiple badges for a user when applicable.
+   */
+  getUserGroups(user: any): Group[] {
+    const userId = user.id || user.uid;
+    return this.allKnownGroups.filter(g => (g.members || []).includes(userId));
   }
 
   getUserGroup(user: any): Group | null {
@@ -606,6 +618,10 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
 
   async addToGroup(user: any) {
     if (!this.selectedGroup || !this.selectedGroup.id) return;
+    if (this.selectedGroup.status && this.selectedGroup.status !== 'active') {
+      this.messageService.show('לא ניתן להצטרף לקבוצה שאינה פעילה.');
+      return;
+    }
     try {
       await this.groupService.addUserToGroup(this.selectedGroup.id, user.id || user.uid);
       await this.loadGroups();
@@ -700,6 +716,10 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
 
   async inviteToGroup(user: any) {
     if (!this.selectedGroup || !this.selectedGroup.id) return;
+    if (this.selectedGroup.status && this.selectedGroup.status !== 'active') {
+      this.messageService.show('לא ניתן להזמין לקבוצה שאינה פעילה.');
+      return;
+    }
 
     const payload = {
       inviterUid: this.profile?.uid,
@@ -873,6 +893,15 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
       (updatedGroup) => {
         if (updatedGroup) {
           this.selectedGroup = updatedGroup;
+          // If group became inactive, clear members and deselect to prevent actions
+          if (updatedGroup.status && updatedGroup.status !== 'active') {
+            this.selectedGroupMembers = [];
+            this.pendingInvites.clear();
+            // Keep the group view but don't allow actions
+            this.cdr.detectChanges();
+            return;
+          }
+
           this.updateMemberLists(); // Refresh lists with new members
           this.cdr.detectChanges();
         }

@@ -137,21 +137,11 @@ export class QuestionsManagerComponent implements OnInit, OnChanges {
         }
     }
 
-    // show-message state
-    showMessageVisible = false;
-    showMessageText = '';
-
-    // called from template when show-message emits closed
-    public onShowMessageClosed(reason: any) {
-        this.showMessageVisible = false;
-        this.showMessageText = '';
-    }
 
     // show the permanent-warning when checkbox is toggled on
     public onPermanentCheckboxChanged(value: boolean) {
         if (value) {
-            this.showMessageText = 'שים לב! לאחר סימון תיבה זאת - השאלה החדשה תהיינה קבוע ולא ניתנת למחיקה באופן ישיר, אלא רק על ידי מתכנת ישירות מהfirebase.';
-            this.showMessageVisible = true;
+            this.msg.show('שים לב! משלב זה והלאה, השאלה תהיה קבועה ורק מתכנת יוכל למחוק אותה.');
         }
     }
 

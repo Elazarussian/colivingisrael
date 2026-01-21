@@ -17,40 +17,25 @@ import { QuestionsManagerComponent } from '../questions-manager/questions-manage
     styleUrls: ['./apartments.component.css']
 })
 export class ApartmentsComponent {
-    // apartments loaded from Firestore
     apartmentsFromDb: any[] = [];
-    // full list unfiltered
     allApartments: any[] = [];
-    // optional publisher filter when admin wants to filter by publisher uid
     publisherFilter: string | null = null;
-    // publisher suggestion list and UI state
     publishers: Array<{ uid: string, displayName: string }> = [];
     publisherQuery: string = '';
     showPublisherSuggestions = false;
     forceShowAllSuggestions = false;
     @ViewChild('filterContainer') filterContainer!: ElementRef;
-    // map of question key/id -> human text (from apartmentQuestions)
     questionTextMap: { [key: string]: string } = {};
-    // full list of apartment question documents (kept to resolve labels)
     apartmentQuestionList: any[] = [];
-
-    // UI state: whether to show the message for unregistered users
     showRegistrationRequired = false;
-
     constructor(public auth: AuthService, private router: Router, private msg: MessageService) {
-        // Wait until auth initialization completes to decide whether to show
-        // the registration-required overlay. This avoids showing the overlay
-        // briefly while the profile document is still being loaded on refresh.
         combineLatest([this.auth.user$, this.auth.initialized$, this.auth.profile$]).subscribe(([user, initialized, profile]) => {
             if (!initialized) {
-                // still initializing; don't show the overlay yet
                 this.showRegistrationRequired = false;
                 return;
             }
-            // only show the registration-required message when there is no logged-in user
             this.showRegistrationRequired = !user;
-            // when auth status changes (and DB may be available), try loading data
-            // If the user exists but role is not permitted, redirect away and show message
+
             if (user && profile) {
                 const role = this.auth.getUserRole(profile);
                 if (role !== 'admin' && role !== 'maskir') {
@@ -65,9 +50,7 @@ export class ApartmentsComponent {
         });
     }
 
-    // state for opening the add-apartment modal
     showAddApartment = false;
-    // editing state
     showEditApartment = false;
     editingApartment: { id: string, data: any } | null = null;
 
@@ -77,7 +60,6 @@ export class ApartmentsComponent {
 
     onApartmentSaved() {
         this.showAddApartment = false;
-        // Reload listings after a new apartment is saved
         this.loadApartments();
     }
 

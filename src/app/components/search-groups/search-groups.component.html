@@ -1,11 +1,13 @@
 <section class="search-groups-dashboard single-column"
-  style="direction: rtl; min-height: calc(100vh - 80px); display: flex; flex-direction: column; gap: 2rem; padding: 2rem 1rem;">
+  style="direction: rtl; min-height: calc(100vh - 80px); display: flex; flex-direction: column; gap: 2rem; padding: 2rem 1rem;"
+  (click)="auth.isAdmin(profile) && deselectGroup()">
 
   <!-- Content Wrapper -->
   <div class="container main-container">
 
     <!-- Restricted Access Message for ALL Group Members -->
-    <section class="info-section" *ngIf="hasActiveGroup && selectedGroup?.status !== 'expired'">
+    <section class="info-section"
+      *ngIf="hasActiveGroup && selectedGroup?.status !== 'expired' && !auth.isAdmin(profile)">
       <div class="glass-alert">
         <span class="material-symbols-outlined icon-lg">group_off</span>
         <div class="alert-content">
@@ -60,7 +62,7 @@
               [class.active]="selectedGroup?.id === g.id" (click)="selectGroup(g, $event)"
               style="opacity: 0.6; filter: grayscale(1);">
               <span class="material-symbols-outlined">history</span>
-              {{ g.name }} ({{ g.members?.length || 0 }})
+              {{ g.name }} ({{ g.members.length || 0 }})
             </button>
           </div>
         </div>
@@ -285,7 +287,7 @@
         </section>
       </main>
 
-      <!-- Section: Discover Users (ONLY if Admin) -->
+      <!-- Section: Discover Users (visible to Site Administrators only) -->
       <section class="management-section" *ngIf="auth.isAdmin(profile)" (click)="$event.stopPropagation()">
         <header class="section-toggle-header" (click)="showAllParticipants = !showAllParticipants">
           <div class="section-header">
@@ -315,11 +317,13 @@
                   <div class="user-main-info">
                     <h3>{{ user.displayName || 'משתמש ללא שם' }}</h3>
                     <p class="text-muted">{{ user.email }}</p>
-                    <!-- Group Membership Badge -->
-                    <div class="badge badge-blue" *ngIf="getUserGroup(user) as g">
-                      <span class="material-symbols-outlined">group</span>
-                      {{ g.name }}
-                    </div>
+                    <!-- Group Membership Badges: render all groups the user belongs to -->
+                    <ng-container *ngIf="getUserGroups(user) as userGroups">
+                      <div class="badge badge-blue" *ngFor="let ug of userGroups" title="{{ ug.name }}">
+                        <span class="material-symbols-outlined">group</span>
+                        {{ ug.name }}
+                      </div>
+                    </ng-container>
 
                   </div>
                   <!-- Actions hidden if in a group (already handled by outer *ngIf, but safe to keep), and hidden if expired -->

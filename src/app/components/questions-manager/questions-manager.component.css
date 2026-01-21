@@ -427,3 +427,169 @@ select.form-control-auto {
         /* Single column on mobile */
     }
 }
+
+@keyframes pulsate-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 68, 68, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+    }
+}
+
+.permanent-danger-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem 1rem;
+    background: rgba(255, 68, 68, 0.05);
+    border: 1px solid rgba(255, 68, 68, 0.15);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 1rem 0;
+    user-select: none;
+}
+
+.permanent-danger-toggle:hover {
+    background: rgba(255, 68, 68, 0.1);
+    border-color: rgba(255, 68, 68, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 68, 68, 0.1);
+}
+
+.permanent-danger-toggle.active {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: #ff4444;
+    animation: pulsate-red 2s infinite;
+}
+
+.permanent-danger-toggle .checkbox-custom {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 68, 68, 0.4);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.permanent-danger-toggle.active .checkbox-custom {
+    background: #ff4444;
+    border-color: #ff4444;
+}
+
+.permanent-danger-toggle .checkbox-custom .material-symbols-outlined {
+    font-size: 16px;
+    color: white;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.2s;
+}
+
+.permanent-danger-toggle.active .checkbox-custom .material-symbols-outlined {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.permanent-danger-toggle .toggle-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.permanent-danger-toggle.active .toggle-label {
+    color: #ff4444;
+}
+
+.visibility-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    margin-top: 1rem;
+}
+
+.visibility-toggle:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.visibility-toggle.active {
+    background: rgba(76, 175, 80, 0.08);
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.visibility-toggle .switch-track {
+    width: 44px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+
+.visibility-toggle.active .switch-track {
+    background: #4caf50;
+    box-shadow: 0 0 12px rgba(76, 175, 80, 0.3);
+}
+
+.visibility-toggle .switch-thumb {
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.visibility-toggle.active .switch-thumb {
+    right: 22px;
+}
+
+.visibility-toggle .switch-thumb .material-symbols-outlined {
+    font-size: 14px;
+    color: #333;
+}
+
+.visibility-toggle .toggle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.visibility-toggle .toggle-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.visibility-toggle .toggle-desc {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.visibility-toggle.active .toggle-desc {
+    color: rgba(76, 175, 80, 0.8);
+}
