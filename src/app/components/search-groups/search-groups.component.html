@@ -52,17 +52,32 @@
         </div>
       </div>
 
-      <!-- Expired Groups Selector (Separate Section) -->
-      <div class="controls-wrapper glass-panel" *ngIf="expiredGroups.length > 0" style="margin-top: 1.5rem;">
+      <!-- Inactive Groups Selector (Separate Section) - Admin Only -->
+      <div class="controls-wrapper glass-panel" *ngIf="auth.isAdmin(profile) && expiredGroups.length > 0" style="margin-top: 1.5rem;">
         <div class="groups-nav">
-          <label class="nav-label" style="opacity: 0.7;">היסטוריה / פגי תוקף:</label>
+          <label class="nav-label" style="opacity: 0.7;">קבוצות לא פעילות:</label>
 
           <div class="groups-chips">
             <button *ngFor="let g of expiredGroups" class="group-chip expired-chip"
               [class.active]="selectedGroup?.id === g.id" (click)="selectGroup(g, $event)"
-              style="opacity: 0.6; filter: grayscale(1);">
-              <span class="material-symbols-outlined">history</span>
-              {{ g.name }} ({{ g.members.length || 0 }})
+              [style.opacity]="g.status === 'deleted' ? '0.55' : '0.65'"
+              [style.filter]="g.status === 'deleted' ? 'grayscale(0.5) sepia(0.3)' : 'grayscale(0.8)'">
+              <!-- Deleted icon (red) -->
+              <span *ngIf="g.status === 'deleted'" class="material-symbols-outlined"
+                style="color: #ff5252;">delete</span>
+              <!-- Expired icon (orange) -->
+              <span *ngIf="g.status === 'expired'" class="material-symbols-outlined"
+                style="color: #ff9800;">timer_off</span>
+              <!-- Completed icon (green) -->
+              <span *ngIf="g.status === 'completed'" class="material-symbols-outlined"
+                style="color: #69f0ae;">check_circle</span>
+              <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                <span>{{ g.name }}</span>
+                <span style="font-size:0.72rem; margin-top:0.1rem; font-weight:600;"
+                  [style.color]="g.status === 'deleted' ? '#ff5252' : g.status === 'completed' ? '#69f0ae' : '#ff9800'">
+                  {{ g.status === 'deleted' ? 'נמחקה' : g.status === 'completed' ? 'הושלמה' : 'פג תוקף' }}
+                </span>
+              </div>
             </button>
           </div>
         </div>
@@ -79,11 +94,22 @@
               <h2>
                 {{ (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) ? 'ניהול קבוצה:' : 'פרטי קבוצה:' }}
                 <span class="highlight">{{ selectedGroup.name }}</span>
-                <span *ngIf="selectedGroup.status === 'expired'" class="badge badge-red"
+                <span *ngIf="selectedGroup.status === 'deleted'" class="badge badge-red"
                   style="font-size:0.8rem; vertical-align:middle; margin-right:10px;">
-                  פג תוקף / נמחק
+                  <span class="material-symbols-outlined" style="font-size:1rem; vertical-align:middle;">delete</span>
+                  נמחקה
                 </span>
-                <div *ngIf="selectedGroup.status !== 'expired' && countdowns[selectedGroup.id || '']"
+                <span *ngIf="selectedGroup.status === 'expired'" class="badge badge-red"
+                  style="font-size:0.8rem; vertical-align:middle; margin-right:10px; background: rgba(255,152,0,0.2); color:#ff9800; border-color:rgba(255,152,0,0.4);">
+                  <span class="material-symbols-outlined" style="font-size:1rem; vertical-align:middle;">timer_off</span>
+                  פג תוקף
+                </span>
+                <span *ngIf="selectedGroup.status === 'completed'" class="badge"
+                  style="font-size:0.8rem; vertical-align:middle; margin-right:10px; background: rgba(105,240,174,0.15); color:#69f0ae; border: 1px solid rgba(105,240,174,0.3);">
+                  <span class="material-symbols-outlined" style="font-size:1rem; vertical-align:middle;">check_circle</span>
+                  הושלמה
+                </span>
+                <div *ngIf="selectedGroup.status === 'active' && countdowns[selectedGroup.id || '']"
                   class="timer-container pulsing"
                   style="margin-right:15px; display:inline-flex; vertical-align:middle;">
                   <div class="info-tooltip-wrapper">
@@ -97,13 +123,13 @@
                 </div>
               </h2>
               <button class="btn btn-danger btn-sm"
-                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'"
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status === 'active'"
                 (click)="deleteGroup(selectedGroup)" title="מחק קבוצה">
                 <span class="material-symbols-outlined">delete</span> מחק קבוצה
               </button>
 
               <button class="btn btn-sm btn-invite-link"
-                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'"
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status === 'active'"
                 [class.success]="inviteCopySuccess" (click)="copyInviteLink()" title="העתק קישור הזמנה מהיר">
                 <span class="material-symbols-outlined">
                   {{ inviteCopySuccess ? 'check_circle' : 'person_add' }}
@@ -112,7 +138,7 @@
               </button>
               <!-- Leave Group for invited users (Disabled if expired) -->
               <button class="btn btn-outline btn-sm"
-                *ngIf="!auth.isAdmin(profile) && selectedGroup.adminId !== profile?.uid && selectedGroup.status !== 'expired'"
+                *ngIf="!auth.isAdmin(profile) && selectedGroup.adminId !== profile?.uid && selectedGroup.status === 'active'"
                 (click)="leaveGroup(selectedGroup)" title="צא מהקבוצה">
                 <span class="material-symbols-outlined">exit_to_app</span> צא מהקבוצה
               </button>
@@ -132,14 +158,14 @@
                 בתאריך: <strong>{{ selectedGroup.createdAt?.toDate() | date:'dd/MM/yyyy' }}</strong>
               </span>
               <span class="meta-item"
-                *ngIf="auth.isAdmin(profile) || (selectedGroup.adminId === profile?.uid && selectedGroup.status !== 'expired')">
+                *ngIf="auth.isAdmin(profile) || (selectedGroup.adminId === profile?.uid && selectedGroup.status === 'active')">
                 <span class="material-symbols-outlined">groups_2</span>
                 שותפים דרושים:
                 <input type="number" [ngModel]="selectedGroup.requiredMembers || 2"
                   (ngModelChange)="updateRequiredMembers($event)" min="2" max="10" class="input-inline-sm">
               </span>
               <span class="meta-item"
-                *ngIf="!auth.isAdmin(profile) && (selectedGroup.adminId !== profile?.uid || selectedGroup.status === 'expired')">
+                *ngIf="!auth.isAdmin(profile) && (selectedGroup.adminId !== profile?.uid || selectedGroup.status !== 'active')">
                 <span class="material-symbols-outlined">groups_2</span>
                 שותפים דרושים: <strong>{{ selectedGroup.requiredMembers || 2 }}</strong>
               </span>
@@ -151,12 +177,18 @@
                 <span class="material-symbols-outlined">apartment</span>
                 דירה: <strong>{{ selectedGroup.apartmentId ? 'נבחרה מהאתר' : 'נוספה ידנית' }}</strong>
               </span>
+              <!-- Deleted-at date for admin -->
+              <span class="meta-item" *ngIf="selectedGroup.status === 'deleted' && selectedGroup.deletedAt && auth.isAdmin(profile)"
+                style="color:#ff5252;">
+                <span class="material-symbols-outlined" style="color:#ff5252;">delete_history</span>
+                נמחקה בתאריך: <strong>{{ (selectedGroup.deletedAt.toDate ? selectedGroup.deletedAt.toDate() : selectedGroup.deletedAt) | date:'dd/MM/yyyy HH:mm' }}</strong>
+              </span>
             </div>
 
             <div class="group-description-bar editable-section"
               *ngIf="!isEditingGroupDetails && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid || selectedGroup.description)">
               <div class="section-label-row"
-                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'">
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status === 'active'">
                 <label class="section-label">תיאור הקבוצה:</label>
                 <button class="btn-icon btn-sm btn-icon-inline" (click)="startEditingGroupDetails()" title="ערוך תיאור">
                   <span class="material-symbols-outlined">edit</span>
@@ -164,7 +196,7 @@
               </div>
               <p class="description-text" *ngIf="selectedGroup.description">{{ selectedGroup.description }}</p>
               <p class="description-text empty-hint"
-                *ngIf="!selectedGroup.description && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'">
+                *ngIf="!selectedGroup.description && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status === 'active'">
                 לחץ על האייקון כדי להוסיף תיאור לקבוצה...
               </p>
             </div>
@@ -172,7 +204,7 @@
             <div class="group-properties-bar editable-section"
               *ngIf="!isEditingGroupDetails && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid || (selectedGroup.properties && selectedGroup.properties.length > 0))">
               <div class="section-label-row"
-                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'">
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status === 'active'">
                 <label class="section-label">מאפייני הקבוצה:</label>
                 <button class="btn-icon btn-sm btn-icon-inline" (click)="startEditingGroupDetails()"
                   title="ערוך מאפיינים">
@@ -186,7 +218,7 @@
                 </span>
               </div>
               <p class="description-text empty-hint"
-                *ngIf="(!selectedGroup.properties || selectedGroup.properties.length === 0) && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'">
+                *ngIf="(!selectedGroup.properties || selectedGroup.properties.length === 0) && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status === 'active'">
                 לחץ על האייקון כדי להוסיף מאפיינים לקבוצה...
               </p>
             </div>
@@ -278,7 +310,7 @@
               </div>
               <!-- Remove Member restricted to creator/admin AND non-expired groups -->
               <button class="btn-icon btn-remove"
-                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile.uid) && ((member.id || member.uid) !== selectedGroup.adminId || auth.isAdmin(profile)) && selectedGroup.status !== 'expired'"
+                *ngIf="(auth.isAdmin(profile) || selectedGroup.adminId === profile.uid) && ((member.id || member.uid) !== selectedGroup.adminId || auth.isAdmin(profile)) && selectedGroup.status === 'active'"
                 (click)="removeMember(member)" title="הסר מהקבוצה">
                 <span class="material-symbols-outlined">person_remove</span>
               </button>
@@ -328,7 +360,7 @@
                   </div>
                   <!-- Actions hidden if in a group (already handled by outer *ngIf, but safe to keep), and hidden if expired -->
                   <div class="user-actions-ui"
-                    *ngIf="selectedGroup && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status !== 'expired'">
+                    *ngIf="selectedGroup && (auth.isAdmin(profile) || selectedGroup.adminId === profile?.uid) && selectedGroup.status === 'active'">
                     <ng-container *ngIf="!hasPendingInvite(user); else inviteSentBadge">
                       <button class="btn btn-outline btn-sm" (click)="inviteToGroup(user)">הזמן</button>
                       <button class="btn btn-special btn-sm" *ngIf="auth.isAdmin(profile)"
@@ -409,7 +441,6 @@
             <select [(ngModel)]="newGroupPurpose" (change)="onPurposeChange()" class="input-main">
               <option value="">בחר מטרה...</option>
               <option value="יש דירה מחפש שותפים">יש דירה מחפש שותפים</option>
-              <option value="יש שותפים מחפשים דירה">יש שותפים מחפשים דירה</option>
               <option value="מחפש שותפים ודירה">מחפש שותפים ודירה</option>
             </select>
           </div>
@@ -507,10 +538,10 @@
           <p>הוזמנת להצטרף לקבוצה על ידי שיתוף קישור.</p>
 
           <div class="group-info-card"
-            style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 1.5rem; margin: 1rem 0; text-align: right;">
+            style="background: var(--bg-color, #f4f6fc); border: 1px solid var(--border-color, #e1e7f3); border-radius: 12px; padding: 1.5rem; margin: 1rem 0; text-align: right;">
 
             <div class="info-row"
-              style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; color: #fff;">
+              style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; color: var(--text-primary, #0d1b40);">
               <span class="material-symbols-outlined" style="color: #4CAF50;">person</span>
               <span>מנהל הקבוצה: <strong>{{ directInviteGroup.creatorName }}</strong></span>
             </div>
@@ -518,7 +549,7 @@
             <!-- Description -->
             <div class="info-row" *ngIf="directInviteGroup.description" style="margin-bottom: 1rem;">
               <p
-                style="color: rgba(255,255,255,0.7); font-size: 0.95rem; line-height: 1.5; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px;">
+                style="color: var(--text-secondary, #556080); font-size: 0.95rem; line-height: 1.5; background: #ffffff; border: 1px solid var(--border-color, #e1e7f3); padding: 0.75rem; border-radius: 8px;">
                 {{ directInviteGroup.description }}
               </p>
             </div>
@@ -537,21 +568,21 @@
 
             <!-- Members List -->
             <div class="info-row">
-              <strong style="display: block; margin-bottom: 0.5rem; color: #fff; font-size: 0.9rem;">חברי הקבוצה ({{
+              <strong style="display: block; margin-bottom: 0.5rem; color: var(--text-primary, #0d1b40); font-size: 0.9rem;">חברי הקבוצה ({{
                 directInviteGroup.members.length }}):</strong>
               <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
                 <div *ngFor="let member of directInviteGroup.fullMembers"
-                  style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.05); padding: 0.4rem 0.75rem; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1);">
+                  style="display: flex; align-items: center; gap: 0.5rem; background: #ffffff; padding: 0.4rem 0.75rem; border-radius: 50px; border: 1px solid var(--border-color, #e1e7f3);">
                   <div class="avatar avatar-xs" style="width: 24px; height: 24px; font-size: 0.8rem;">
                     {{ (member.displayName || 'U')[0].toUpperCase() }}
                   </div>
-                  <span style="font-size: 0.85rem; color: rgba(255,255,255,0.9);">{{ member.displayName || 'משתמש'
+                  <span style="font-size: 0.85rem; color: var(--text-primary, #0d1b40);">{{ member.displayName || 'משתמש'
                     }}</span>
                 </div>
               </div>
             </div>
           </div>
-          <p class="question" style="font-weight: 600; color: #fff;">האם ברצונך לקבל את ההזמנה ולהצטרף לקבוצה?</p>
+          <p class="question" style="font-weight: 600; color: var(--text-primary, #0d1b40);">האם ברצונך לקבל את ההזמנה ולהצטרף לקבוצה?</p>
         </div>
 
         <div class="confirm-actions">

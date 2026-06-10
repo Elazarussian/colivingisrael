@@ -1,24 +1,21 @@
 /* Auth Modal Styles */
 .modal-content {
-    /* override global slightly for this specific modal if needed, or rely on global */
     direction: rtl;
 }
 
 .modal-content h2 {
-    color: white;
+    color: var(--text-main);
     text-align: center;
-    margin-bottom: 1rem;
-    font-size: 1.6rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
+    font-weight: 700;
 }
 
 .auth-tabs {
     display: flex;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
-
-/* .tab-btn styles moved to global styles.css */
-
 
 #auth-form {
     display: flex;
@@ -29,15 +26,64 @@
 .modal-content .btn {
     width: 100%;
     justify-content: center;
-}
-
-.modal-content .btn-approve,
-.modal-content .btn-special {
-    /* specific overrides if needed, but mostly global now */
     padding: 0.95rem;
 }
 
-
 .modal-content .btn-special svg {
     background: transparent;
+    margin-left: 0.5rem;
+}
+
+.role-selector-container {
+    margin: 1.5rem 0;
+    text-align: right;
+}
+
+.role-label-title {
+    margin-bottom: 0.75rem;
+    color: var(--text-main);
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.role-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.role-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.role-option:hover {
+    background: #f1f5f9;
+    border-color: #94a3b8;
+}
+
+.role-option.selected {
+    background: rgba(59, 79, 235, 0.08);
+    border-color: var(--accent-blue);
+}
+
+.role-option span {
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.role-option input[type="radio"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--accent-blue);
 }

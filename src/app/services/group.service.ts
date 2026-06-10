@@ -41,7 +41,8 @@ export interface Group {
     apartmentData?: any;
     // Auto-destruct fields
     expirationTime?: any; // Timestamp
-    status?: 'active' | 'expired' | 'completed';
+    status?: 'active' | 'expired' | 'completed' | 'deleted';
+    deletedAt?: any; // Timestamp when group was soft-deleted
     groupThresholdPercent?: number; // percent used to decide expiration (stored at creation)
 }
 
@@ -274,7 +275,12 @@ export class GroupService {
 
     async deleteGroup(groupId: string): Promise<void> {
         const groupRef = doc(db!, `${this.auth.dbPath}groups`, groupId);
-        await deleteDoc(groupRef);
+        // Soft-delete: mark as deleted so admins can still see it in history
+        await updateDoc(groupRef, {
+            status: 'deleted',
+            members: [],
+            deletedAt: serverTimestamp()
+        });
     }
 
     async updateGroupRequiredMembers(groupId: string, count: number): Promise<void> {
@@ -403,6 +409,10 @@ export class GroupService {
         const members: string[] = Array.isArray(data.members) ? data.members : [];
         if (members.includes(userId)) return; // Already a member
 
+        if (members.length >= (data.requiredMembers || 2)) {
+            throw new Error('Group is full');
+        }
+
         // 1. Update group document (satisfies isJoiningSelf rule)
         await updateDoc(groupRef, {
             members: arrayUnion(userId),
@@ -462,6 +472,9 @@ export class GroupService {
 
             // Only attempt the join update if it will actually grow the array by 1
             if (!alreadyMember) {
+                if (members.length >= (groupData.requiredMembers || 2)) {
+                    throw new Error('Group is full');
+                }
                 const nextMembers = [...members, user.uid];
 
                 try {

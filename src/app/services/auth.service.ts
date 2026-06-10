@@ -348,7 +348,10 @@ export class AuthService {
     }
 
     // Global modal control
-    showAuthModal() {
+    public authModalDefaultRole: 'user' | 'maskir' = 'user';
+
+    showAuthModal(defaultRole: 'user' | 'maskir' = 'user') {
+        this.authModalDefaultRole = defaultRole;
         this._showAuthModal$.next(true);
     }
 

@@ -39,6 +39,8 @@ export class TopbarComponent {
         // Listen for profile changes to load invitations and notifications
         this.auth.profile$.subscribe(p => {
             if (p) {
+                // Clear any lingering global message when a user signs in
+                this.messageService.hide();
                 this.loadInvitations(p.uid);
                 this.loadNotifications(p.uid);
             } else {

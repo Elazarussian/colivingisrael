@@ -14,31 +14,27 @@
                 required />
             <input type="password" class="input-long form-control" [(ngModel)]="password" name="password"
                 placeholder="סיסמה" [required]="activeTab === 'signup' || activeTab === 'login'" />
-            <div *ngIf="activeTab === 'signup' && !password" style="color:#ffcdd2;margin-bottom:0.5rem;">יש להזין סיסמה
+            <div *ngIf="activeTab === 'signup' && !password" style="color:#d32f2f;margin-bottom:0.5rem;font-size:0.9rem;">יש להזין סיסמה
                 להרשמה</div>
 
             <!-- Role selection for signup -->
-            <div *ngIf="activeTab === 'signup'" style="margin: 1rem 0; text-align: right;">
-                <div style="margin-bottom: 0.5rem; color: #fff; font-weight: 500;">אני מתעניין כ:</div>
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <label
-                        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; background: rgba(255,255,255,0.05);">
-                        <input type="radio" name="role" [(ngModel)]="selectedRole" value="user"
-                            style="cursor: pointer;" />
-                        <span style="color: #fff;">אני מחפש דירה\שותפים</span>
+            <div *ngIf="activeTab === 'signup'" class="role-selector-container">
+                <div class="role-label-title">אני מתעניין כ:</div>
+                <div class="role-options-list">
+                    <label class="role-option" [class.selected]="selectedRole === 'user'">
+                        <input type="radio" name="role" [(ngModel)]="selectedRole" value="user" />
+                        <span>אני מחפש דירה \ שותפים</span>
                     </label>
-                    <label
-                        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; background: rgba(255,255,255,0.05);">
-                        <input type="radio" name="role" [(ngModel)]="selectedRole" value="maskir"
-                            style="cursor: pointer;" />
-                        <span style="color: #fff;">יש לי דירה להציע</span>
+                    <label class="role-option" [class.selected]="selectedRole === 'maskir'">
+                        <input type="radio" name="role" [(ngModel)]="selectedRole" value="maskir" />
+                        <span>יש לי דירה להציע</span>
                     </label>
                 </div>
             </div>
 
             <button type="submit" class="btn btn-approve" [disabled]="!email || !password || submitting">{{ activeTab
                 === 'login' ? 'התחבר' : 'הירשם' }}</button>
-            <div *ngIf="submitting" style="margin-top:0.5rem;color:#b9f6ca;">שולח...</div>
+            <div *ngIf="submitting" style="margin-top:0.5rem;color:var(--accent-blue);font-weight:600;">שולח...</div>
         </form>
 
         <div class="divider">

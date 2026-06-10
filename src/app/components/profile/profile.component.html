@@ -127,10 +127,10 @@
             <div *ngIf="activeGroup; else noGroups" class="active-group-card invitation-item-premium">
               <!-- Group Header -->
               <div class="group-header"
-                style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:1rem;">
+                style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; border-bottom:1px solid #cbd5e1; padding-bottom:1rem;">
                 <div>
-                  <h3 style="margin:0; font-size:1.3rem; color:#fff;">{{ activeGroup.name }}</h3>
-                  <p style="margin:0.25rem 0 0 0; color:rgba(255,255,255,0.6); font-size:0.9rem;"
+                  <h3 style="margin:0; font-size:1.3rem; color:#0d1b40;">{{ activeGroup.name }}</h3>
+                  <p style="margin:0.25rem 0 0 0; color:#556080; font-size:0.9rem;"
                     *ngIf="activeGroup.description">{{ activeGroup.description }}</p>
                   <div class="meta" style="margin-top:0.5rem; display:flex; gap:1rem; opacity:0.75; font-size:0.85rem;">
                     <span *ngIf="activeGroup.creatorName"><span class="material-symbols-outlined"
@@ -156,16 +156,16 @@
                   </button>
                 </div>
                 <ng-template #creatorGroupMsg>
-                  <span style="font-size: 0.85rem; color: rgba(255,255,255,0.7); font-style: italic;">
+                  <span style="font-size: 0.85rem; color: #556080; font-style: italic;">
                     הקבוצה הזאת נוצרה על ידך - ניהול הקבוצה בדף <a routerLink="/search-groups"
-                      style="color: #fff; text-decoration: underline;">חיפוש שותפים</a>
+                      style="color: var(--accent-color, #3b4feb); text-decoration: underline;">חיפוש שותפים</a>
                   </span>
                 </ng-template>
               </div>
 
               <!-- Group Members -->
               <div class="group-members-section">
-                <strong style="display:block; margin-bottom:0.75rem; color:rgba(255,255,255,0.9);">חברי הקבוצה ({{
+                <strong style="display:block; margin-bottom:0.75rem; color:#0d1b40;">חברי הקבוצה ({{
                   activeGroup.fullMembers?.length || activeGroup.members.length }}):</strong>
                 <div class="inv-members-grid">
                   <div *ngFor="let member of activeGroup.fullMembers" class="member-mini-card">
@@ -232,7 +232,7 @@
                       <strong>תיאור:</strong> {{ inv.groupDescription }}
                     </p>
                     <div class="inv-created-by" *ngIf="inv.creatorName"
-                      style="margin-bottom: 1rem; font-size: 0.9rem; color: rgba(255,255,255,0.8);">
+                      style="margin-bottom: 1rem; font-size: 0.9rem; color: #556080;">
                       <strong>מנהל הקבוצה:</strong> {{ inv.creatorName }}
                     </div>
 

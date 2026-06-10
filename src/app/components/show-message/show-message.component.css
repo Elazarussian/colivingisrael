@@ -4,7 +4,7 @@
 
 .content {
   margin: 1rem 0 2rem 0;
-  color: #fff;
+  color: var(--text-main);
   font-size: 1.1rem;
   font-weight: 500;
   line-height: 1.5;

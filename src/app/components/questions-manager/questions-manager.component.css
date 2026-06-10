@@ -1,18 +1,13 @@
-/* Modal styles moved to global `src/styles.css` to avoid duplication */
-
-
-
 .questions-list {
     margin-bottom: 2rem;
 }
 
 .questions-list h3 {
-    color: rgba(255, 255, 255, 0.95);
+    color: #0d1b40;
     font-size: 1.3rem;
     margin-bottom: 1rem;
 }
 
-/* .question-item styles merged with global .glass-card / .card logic */
 .question-item {
     display: flex;
     justify-content: space-between;
@@ -20,18 +15,19 @@
     padding: 1rem;
     gap: 1rem;
     margin-bottom: 0.5rem;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
 }
 
 .question-info {
     flex: 1;
 }
 
-/* Action buttons container for each question item */
 .question-actions {
     display: flex;
     gap: 0.5rem;
     align-items: center;
-    /* prevent actions from shrinking too small on narrow screens */
     flex-shrink: 0;
 }
 
@@ -41,27 +37,27 @@
     gap: 0.5rem;
     padding: 0.4rem 0.75rem;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.5);
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #556080;
     transition: all 0.2s ease;
     cursor: pointer;
 }
 
 .public-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.8);
+    background: #e2e8f0;
+    color: #0d1b40;
 }
 
 .public-toggle-btn.active {
-    background: rgba(76, 175, 80, 0.15);
+    background: rgba(76, 175, 80, 0.1);
     border-color: rgba(76, 175, 80, 0.3);
-    color: #4caf50;
+    color: #2e7d32;
 }
 
 .public-toggle-btn.active:hover {
-    background: rgba(76, 175, 80, 0.25);
-    color: #66bb6a;
+    background: rgba(76, 175, 80, 0.15);
+    color: #1b5e20;
 }
 
 .public-toggle-btn .material-symbols-outlined {
@@ -75,20 +71,16 @@
 
 .permanent-badge {
     font-size: 0.95rem;
-    color: #b00;
+    color: #c62828;
     margin-right: 0.5rem;
     font-weight: 700;
 }
 
-/* Make all question items visually similar height and avoid layout shifts */
 .question-item {
     min-height: 64px;
-    /* matches topbar variable in global styles roughly */
     align-items: center;
-    /* vertically center content */
 }
 
-/* Ensure long question text doesn't push actions off-screen: clamp and ellipsis */
 .question-info strong {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -96,9 +88,10 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: #0d1b40;
+    font-size: 1.05rem;
 }
 
-/* Responsive: on small screens allow actions to wrap below the question text */
 @media (max-width: 640px) {
     .question-item {
         flex-direction: column;
@@ -115,37 +108,27 @@
         justify-content: flex-start;
         flex-wrap: wrap;
     }
-
-    /* Make buttons smaller on mobile but still tappable - handled globally */
-}
-
-
-.question-info strong {
-    color: rgba(255, 255, 255, 0.95);
-    font-size: 1.05rem;
 }
 
 .question-type {
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: #556080;
     margin-right: 0.5rem;
     font-style: italic;
 }
 
 .options-preview {
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: #94a3b8;
     margin-top: 0.5rem;
 }
-
-/* Form control and buttons handled globally */
 
 .options-manager {
     margin-bottom: 1rem;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
 }
 
 .add-option-row {
@@ -157,20 +140,19 @@
 .add-option-row input {
     flex: 1;
     padding: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid #cbd5e1;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.95);
+    background: #ffffff;
+    color: #333333;
 }
 
 .add-option-row input:focus {
     outline: none;
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(76, 175, 80, 0.5);
+    border-color: var(--accent-color);
 }
 
 .add-option-row input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: #94a3b8;
 }
 
 .options-list {
@@ -181,17 +163,16 @@
 
 .options-list li {
     display: inline-block;
-    background: rgba(76, 175, 80, 0.2);
-    border: 1px solid rgba(76, 175, 80, 0.3);
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.2);
     padding: 0.4rem 0.9rem;
     border-radius: 20px;
     margin: 0.25rem;
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.95);
+    color: #2e7d32;
     transition: all 0.2s;
 }
 
-/* Two-column layout for many options (used in onboarding/edit views) */
 .two-column-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -206,7 +187,6 @@
     gap: 0.5rem;
 }
 
-/* When two-column-options is used for the compact pill list (options-list), make items flow in columns */
 .two-column-options .options-list {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -214,26 +194,26 @@
 }
 
 .options-list li:hover {
-    background: rgba(76, 175, 80, 0.3);
-    transform: scale(1.05);
+    background: rgba(76, 175, 80, 0.18);
+    transform: scale(1.03);
 }
 
 .remove-opt {
     margin-right: 0.5rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: #556080;
     cursor: pointer;
     font-weight: bold;
     transition: color 0.2s;
 }
 
 .remove-opt:hover {
-    color: #ff6b6b;
+    color: #f05454;
 }
 
 hr {
     border: none;
     height: 1px;
-    background: rgba(255, 255, 255, 0.1);
+    background: #cbd5e1;
     margin: 2rem 0;
 }
 
@@ -250,8 +230,6 @@ select.form-control-auto {
     max-width: 100%;
 }
 
-/* btn-fit-content moved to global styles.css */
-
 .key-section-container {
     margin-bottom: 1rem;
     transition: opacity 0.3s;
@@ -259,7 +237,8 @@ select.form-control-auto {
 
 .answer-item {
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.03);
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
     border-radius: 8px;
     margin-bottom: 0.5rem;
 }
@@ -267,11 +246,11 @@ select.form-control-auto {
 .answer-item strong {
     display: block;
     margin-bottom: 0.5rem;
-    color: rgba(255, 255, 255, 0.95);
+    color: #0d1b40;
 }
 
 .answer-value {
-    color: rgba(255, 255, 255, 0.8);
+    color: #333333;
     padding-left: 1rem;
 }
 
@@ -282,7 +261,7 @@ select.form-control-auto {
 
 .question-text {
     font-size: 1.4rem;
-    color: rgba(255, 255, 255, 0.95);
+    color: #0d1b40;
     margin-bottom: 1.5rem;
     text-align: center;
 }
@@ -291,37 +270,26 @@ select.form-control-auto {
     min-height: 150px;
 }
 
-/* .yesno-buttons .btn min-width and padding handled globally */
-
-
-/* Autocomplete suggestions (app-rendered) */
 .autocomplete {
     position: relative;
 }
 
-/* .autocomplete-suggestions moved to global .suggestions-list */
-
-/* Auto-size text answers: start small (~2 words) and grow as user types */
 .auto-size-input {
     display: inline-block;
-    /* start roughly wide enough for two short words while remaining compact */
     width: 140px;
     min-width: 120px;
-    /* ensure two words fit comfortably */
     max-width: 420px;
-    /* cap to avoid overflowing typical modal widths */
     box-sizing: border-box;
     transition: width 0.12s ease;
 }
 
-/* Input error visuals for validation messages */
 .input-error {
-    border-color: #ff6b6b !important;
-    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.12) !important;
+    border-color: #f05454 !important;
+    box-shadow: 0 0 0 3px rgba(240, 84, 84, 0.15) !important;
 }
 
 .input-error-text {
-    color: #ff8a80;
+    color: #f05454;
     font-size: 0.9rem;
     margin-top: 0.35rem;
 }
@@ -333,16 +301,11 @@ select.form-control-auto {
     place-items: center;
 }
 
-
-
-/* Make sure inputs inside narrow onboarding/edit modals don't overflow */
 .onboarding-modal .auto-size-input,
 .modal-content .auto-size-input {
     max-width: calc(100% - 48px);
-    /* respect modal padding and close button */
 }
 
-/* On smaller screens, allow inputs to grow but remain within the modal */
 @media (max-width: 640px) {
     .auto-size-input {
         width: 160px;
@@ -351,30 +314,23 @@ select.form-control-auto {
     }
 }
 
-/* --- Answer Viewer (View Mode & Embedded) --- */
 .answers-viewer-container {
-    /* If embedded, this acts as the container. If filtered, we assume embedded style. */
     width: 100%;
 }
-
-/* If it is a modal (has header), we might need overlay styles, but we are moving away from full modal for this view.
-   For now, we rely on parent to handle modal overlay if it's not embedded. 
-   But since I removed .modal-overlay from the template for this mode, I should add basic container styles.
-*/
 
 .viewer-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid #cbd5e1;
     padding-bottom: 1rem;
 }
 
 .viewer-header h2 {
     margin: 0;
     font-size: 1.5rem;
-    color: #fff;
+    color: #0d1b40;
 }
 
 .answers-grid {
@@ -384,10 +340,8 @@ select.form-control-auto {
 }
 
 .answer-card-item {
-    background: rgba(255, 255, 255, 0.05);
-    /* slightly lighter than background */
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    /* subtle border */
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
     border-radius: 12px;
     padding: 1rem;
     display: flex;
@@ -397,14 +351,14 @@ select.form-control-auto {
 }
 
 .answer-card-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: #f8fafc;
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(59, 79, 235, 0.2);
 }
 
 .answer-label {
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: #556080;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -412,33 +366,27 @@ select.form-control-auto {
 
 .answer-value {
     font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.95);
+    color: #0d1b40;
     font-weight: 500;
     line-height: 1.4;
     word-break: break-word;
-    /* ensure long text wraps */
 }
-
-/* .empty-answers handled by global .empty-state */
 
 @media (max-width: 600px) {
     .answers-grid {
         grid-template-columns: 1fr;
-        /* Single column on mobile */
     }
 }
 
 @keyframes pulsate-red {
     0% {
-        box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4);
+        box-shadow: 0 0 0 0 rgba(240, 84, 84, 0.4);
     }
-
     70% {
-        box-shadow: 0 0 0 10px rgba(255, 68, 68, 0);
+        box-shadow: 0 0 0 10px rgba(240, 84, 84, 0);
     }
-
     100% {
-        box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
+        box-shadow: 0 0 0 0 rgba(240, 84, 84, 0);
     }
 }
 
@@ -447,9 +395,9 @@ select.form-control-auto {
     align-items: center;
     gap: 0.75rem;
     padding: 0.8rem 1rem;
-    background: rgba(255, 68, 68, 0.05);
-    border: 1px solid rgba(255, 68, 68, 0.15);
-    border-radius: 10px;
+    background: rgba(240, 84, 84, 0.05);
+    border: 1px solid rgba(240, 84, 84, 0.15);
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     margin: 1rem 0;
@@ -457,33 +405,33 @@ select.form-control-auto {
 }
 
 .permanent-danger-toggle:hover {
-    background: rgba(255, 68, 68, 0.1);
-    border-color: rgba(255, 68, 68, 0.3);
+    background: rgba(240, 84, 84, 0.08);
+    border-color: rgba(240, 84, 84, 0.3);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 68, 68, 0.1);
+    box-shadow: 0 4px 12px rgba(240, 84, 84, 0.08);
 }
 
 .permanent-danger-toggle.active {
-    background: rgba(255, 68, 68, 0.2);
-    border-color: #ff4444;
+    background: rgba(240, 84, 84, 0.15);
+    border-color: #f05454;
     animation: pulsate-red 2s infinite;
 }
 
 .permanent-danger-toggle .checkbox-custom {
     width: 20px;
     height: 20px;
-    border: 2px solid rgba(255, 68, 68, 0.4);
+    border: 2px solid rgba(240, 84, 84, 0.4);
     border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
-    background: rgba(0, 0, 0, 0.2);
+    background: #ffffff;
 }
 
 .permanent-danger-toggle.active .checkbox-custom {
-    background: #ff4444;
-    border-color: #ff4444;
+    background: #f05454;
+    border-color: #f05454;
 }
 
 .permanent-danger-toggle .checkbox-custom .material-symbols-outlined {
@@ -502,12 +450,11 @@ select.form-control-auto {
 .permanent-danger-toggle .toggle-label {
     font-size: 0.95rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
-    color: rgba(255, 255, 255, 0.9);
+    color: #556080;
 }
 
 .permanent-danger-toggle.active .toggle-label {
-    color: #ff4444;
+    color: #f05454;
 }
 
 .visibility-toggle {
@@ -515,8 +462,8 @@ select.form-control-auto {
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -525,8 +472,8 @@ select.form-control-auto {
 }
 
 .visibility-toggle:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: #f8fafc;
+    border-color: rgba(59, 79, 235, 0.25);
 }
 
 .visibility-toggle.active {
@@ -537,7 +484,7 @@ select.form-control-auto {
 .visibility-toggle .switch-track {
     width: 44px;
     height: 24px;
-    background: rgba(255, 255, 255, 0.1);
+    background: #cbd5e1;
     border-radius: 12px;
     position: relative;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -561,7 +508,7 @@ select.form-control-auto {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .visibility-toggle.active .switch-thumb {
@@ -582,14 +529,14 @@ select.form-control-auto {
 .visibility-toggle .toggle-title {
     font-size: 0.95rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.9);
+    color: #0d1b40;
 }
 
 .visibility-toggle .toggle-desc {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.4);
+    color: #556080;
 }
 
 .visibility-toggle.active .toggle-desc {
-    color: rgba(76, 175, 80, 0.8);
+    color: #2e7d32;
 }

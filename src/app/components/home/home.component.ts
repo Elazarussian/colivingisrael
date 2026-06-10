@@ -18,6 +18,10 @@ export class HomeComponent {
     this.auth.showAuthModal();
   }
 
+  registerWithRole(role: 'user' | 'maskir') {
+    this.auth.showAuthModal(role);
+  }
+
   scrollToContent() {
     const firstSection = document.querySelector('main .content-section');
     firstSection?.scrollIntoView({ behavior: 'smooth' });

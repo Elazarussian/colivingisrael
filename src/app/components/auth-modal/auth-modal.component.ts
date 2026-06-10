@@ -11,7 +11,7 @@ import { Router } from '@angular/router';
   templateUrl: './auth-modal.component.html',
   styleUrls: ['./auth-modal.component.css']
 })
-export class AuthModalComponent {
+export class AuthModalComponent implements OnInit {
   @Output() close = new EventEmitter<void>();
 
   activeTab: 'login' | 'signup' = 'login';
@@ -28,6 +28,10 @@ export class AuthModalComponent {
       this.renderer.appendChild(document.body, this.el.nativeElement);
     } catch (e) {
       console.warn('Could not append auth modal to body', e);
+    }
+    if (this.authService.authModalDefaultRole) {
+      this.selectedRole = this.authService.authModalDefaultRole;
+      this.activeTab = 'signup';
     }
   }
 

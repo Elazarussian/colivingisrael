@@ -91,6 +91,8 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     this.auth.profile$.subscribe(p => {
       this.profile = p;
       if (p) {
+        // Clear any leftover global message that might have been set earlier
+        this.messageService.hide();
         this.loadData();
         this.handleAutoInvite();
         this.loadAvailableProperties();
@@ -121,10 +123,17 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
 
         // Check if user is already a member of ANY *ACTIVE* group
         const userGroups = await this.groupService.getGroupsForUser(this.profile.uid);
-        const hasActive = userGroups.some(g => g.status !== 'expired' && g.status !== 'completed'); // Check status
+        const hasActive = userGroups.some(g => g.status !== 'expired' && g.status !== 'completed' && g.status !== 'deleted'); // Check status
 
         if (hasActive) {
           this.messageService.show('את\\ה כבר חבר\\ה בקבוצה פעילה, על מנת להצטרף לקבוצה חדשה, עליך לצאת מהקבוצה הנוכחית');
+          return;
+        }
+
+        // Check if group is full or inactive
+        if (group.status !== 'active' || group.members.length >= (group.requiredMembers || 2)) {
+          // Do not show a toast automatically on page load/login — keep this silent.
+          console.warn('Invite Group is not active or is full:', inviteGroupId);
           return;
         }
 
@@ -140,6 +149,10 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
         // Instead of auto-inviting, show a popup modal
         this.directInviteGroup = group;
         this.cdr.detectChanges();
+      } else {
+        // If group not found, avoid showing an immediate user-facing toast during auto-invite.
+        // The explicit accept flow will surface errors if the user attempts to join.
+        console.warn('Invite Group not found:', inviteGroupId);
       }
     }
   }
@@ -162,7 +175,9 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
       await this.loadGroups();
     } catch (err: any) {
       console.error('❌ FAILED TO JOIN VIA DIRECT INVITE:', err);
-      if (err.message?.includes('permission')) {
+      if (err.message?.includes('not found') || err.message?.includes('full') || err.message?.includes('inactive') || err.message?.includes('not exist')) {
+        this.messageService.show('קבוצה שהוזמנת אליה איננה קיימת או מלאה');
+      } else if (err.message?.includes('permission')) {
         this.messageService.show('שגיאת הרשאות: וודא שאתה מחובר ושיש לך הרשאה מתאימה.');
       } else {
         this.messageService.show('שגיאה בהצטרפות לקבוצה. נסה שוב מאוחר יותר.');
@@ -274,10 +289,12 @@ export class SearchGroupsComponent implements OnInit, OnDestroy {
     this.expiredGroups = [];
 
     this.groups.forEach(g => {
-      // Check for auto-destruct condition
-      this.checkAutoDestruct(g);
+      // Check for auto-destruct condition (only for truly active groups)
+      if (g.status === 'active' || !g.status) {
+        this.checkAutoDestruct(g);
+      }
 
-      if (g.status === 'expired') {
+      if (g.status === 'expired' || g.status === 'completed' || g.status === 'deleted') {
         this.expiredGroups.push(g);
       } else {
         this.activeGroups.push(g);

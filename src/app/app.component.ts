@@ -20,6 +20,8 @@ export class AppComponent {
   messageToShow = '';
 
   constructor(public auth: AuthService, private msg: MessageService) {
+  // Ensure any leftover global message is cleared on app start
+  this.msg.hide();
     this.auth.showAuthModal$.subscribe(v => {
       this.showAuthModal = v;
     });

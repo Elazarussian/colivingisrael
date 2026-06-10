@@ -7,6 +7,7 @@ import { QuestionsManagerComponent } from '../questions-manager/questions-manage
 import { GroupService, Group, Invitation } from '../../services/group.service';
 import { GroupNotification } from '../../models/notification.model';
 import { combineLatest } from 'rxjs';
+import { MessageService } from '../../services/message.service';
 
 @Component({
   selector: 'app-profile',
@@ -49,7 +50,8 @@ export class ProfileComponent implements OnInit {
     private groupService: GroupService,
     private router: Router,
     private route: ActivatedRoute,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private messageService: MessageService
   ) { }
 
   ngOnInit() {
@@ -57,10 +59,13 @@ export class ProfileComponent implements OnInit {
     combineLatest([this.auth.profile$, this.route.queryParams]).subscribe(async ([p, params]) => {
       console.log('📌 ProfileComponent: Subscribed update', { profile: !!p, params });
       this.profile = p;
-      if (!p) {
+  if (!p) {
         console.log('📌 ProfileComponent: No profile yet');
         return;
       }
+
+  // Clear any lingering global message when profile becomes available
+  this.messageService.hide();
 
       try {
         const onboardingCompleted = p['onboardingCompleted'] === true;
@@ -355,8 +360,13 @@ export class ProfileComponent implements OnInit {
         // Just refresh invitations, groups update automatically via listener
         await this.groupService.getInvitationsForUser(this.profile.uid);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error accepting invitation', err);
+      if (err.message?.includes('not found') || err.message?.includes('full') || err.message?.includes('inactive') || err.message?.includes('not exist')) {
+        this.messageService.show('קבוצה שהוזמנת אליה איננה קיימת או מלאה');
+      } else {
+        alert('שגיאה בקבלת ההזמנה');
+      }
     }
   }
 
